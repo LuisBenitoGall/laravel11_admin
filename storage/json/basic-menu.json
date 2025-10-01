@@ -1,0 +1,309 @@
+[
+	{
+		"option" : "dashboard",
+		"label" : "dashboard",
+		"active" : true,
+		"op" : "dashboard",
+		"permission" : "module_dashboard",
+		"module" : "dashboard",
+		"url" : "dashboard",
+		"icon" : "bars",
+		"suboptions" : [] 
+	},
+	{
+		"option" : "cuenta_mi",
+		"label" : "cuenta_mi",
+		"active" : true,
+		"op" : "cuenta_mi",
+		"permission" : "module_account",
+		"module" : "account",
+		"url" : "",
+		"icon" : "user-circle",
+		"suboptions" : [
+			{
+				"suboption" : "cuenta",
+				"label" : "cuenta",
+				"url": "company-accounts.index",
+				"slug" : "company-accounts",
+				"permission" : "my-account.edit",
+				"setted" : false	
+			},
+			{
+				"suboption" : "modulos",
+				"label" : "modulos",
+				"url": "company-modules.index",
+				"slug" : "company-modules",
+				"permission" : "my-account.edit",
+				"setted" : false
+			}
+		] 
+	},
+	{
+		"option" : "usuarios",
+		"label" : "usuarios",
+		"active" : true,
+		"op" : "usuarios",
+		"permission" : "module_users",
+		"module" : "users",
+		"url" : "",
+		"icon" : "users",
+		"suboptions" : [
+			{
+				"suboption" : "usuarios-listados",
+				"label" : "usuarios_listados",
+				"url": "users.index",
+				"slug" : "users",
+				"permission" : "users.index",
+				"setted" : false
+			},
+			{
+				"suboption" : "usuarios-todos",
+				"label" : "usuarios_todos",
+				"url": "users-all.index",
+				"slug" : "users-all",
+				"permission" : "users-all.index",
+				"setted" : false
+			},
+			{
+				"suboption" : "usuario-nuevo",
+				"label" : "usuario_nuevo",
+				"url": "users.create",
+				"slug" : "users-create",
+				"permission" : "users.create",
+				"setted" : false
+			},
+			{
+				"suboption" : "categorias",
+				"label" : "categorias",
+				"url": "user-categories.index",
+				"slug" : "user-categories",
+				"permission" : "user-categories.index",
+				"setted" : false
+			},
+			{
+				"suboption" : "acceso-ip",
+				"label" : "acceso_ip",
+				"url": "ip-access.index",
+				"slug" : "ip-access",
+				"permission" : "ip-access.index",
+				"setted" : false
+			}
+		] 
+	},
+	{
+		"option" : "empresas",
+		"label" : "empresas",
+		"active" : true,
+		"op" : "empresas",
+		"permission" : "module_companies",
+		"module" : "companies",
+		"url" : "",
+		"icon" : "building",
+		"suboptions" : [
+			{
+				"suboption" : "empresas",
+				"label" : "empresas",
+				"url": "companies.index",
+				"slug" : "companies",
+				"permission" : "companies.index",
+				"setted" : false
+			},
+			{
+				"suboption" : "sectores",
+				"label" : "directorio_sectores",
+				"url": "sectors.index",
+				"slug" : "sectors",
+				"permission" : "companies.index",
+				"setted" : false
+			},
+			{
+				"suboption" : "empresa-nueva",
+				"label" : "empresa_nueva",
+				"url": "companies.create",
+				"slug" : "companies-create",
+				"permission" : "companies.create",
+				"setted" : false
+			},
+			{
+				"suboption" : "areas-negocio",
+				"label" : "areas_negocio",
+				"url": "business-areas.index",
+				"slug" : "companies-business-areas",
+				"permission" : "business-areas.index",
+				"setted" : false
+			},
+			{
+				"suboption" : "centros-coste",
+				"label" : "centros_coste",
+				"url": "cost-centers.index",
+				"slug" : "companies-cost-centers",
+				"permission" : "cost-centers.index",
+				"setted" : false
+			},
+			{
+				"suboption" : "centros-trabajo",
+				"label" : "centros_trabajo",
+				"url": "workplaces.index",
+				"slug" : "companies-workplaces",
+				"permission" : "workplaces.index",
+				"setted" : false
+			},
+			{
+				"suboption" : "configuracion",
+				"label" : "configuracion",
+				"url": "company-settings.index",
+				"slug" : "company-settings",
+				"permission" : "companies.edit",
+				"setted" : false
+			},
+			{
+				"suboption" : "archivos",
+				"label" : "archivos",
+				"url": "files.index",
+				"slug" : "files",
+				"permission" : "files.index",
+				"setted" : false
+			},
+			{
+				"suboption" : "clientes",
+				"label" : "clientes",
+				"url": "customers.index",
+				"slug" : "customers",
+				"permission" : "customers.index",
+				"setted" : "customers_management"
+			},
+			{
+				"suboption" : "proveedores",
+				"label" : "proveedores",
+				"url" : "providers.index",
+				"slug" : "providers",
+				"permission" : "providers.index",
+				"setted" : "providers_management"
+			},
+			{
+				"suboption" : "sectores",
+				"label" : "sectores",
+				"url" : "company-sectors.index",
+				"slug" : "company-sectors",
+				"permission" : "sectors.index",
+				"setted" : false	
+			}
+		] 
+	},
+	{
+		"option" : "configuracion",
+		"label" : "configuracion",
+		"active" : true,
+		"op" : "configuracion",
+		"permission" : "module_settings",
+		"module" : "settings",
+		"url" : "",
+		"icon" : "cog",
+		"suboptions" : [
+			{
+				"suboption" : "cuentas",
+				"label" : "cuentas",
+				"url": "accounts.index",
+				"slug" : "accounts",
+				"permission" : "accounts.index",
+				"setted" : false
+			},
+			{
+				"suboption" : "modulos",
+				"label" : "modulos",
+				"url": "modules.index",
+				"slug" : "modules",
+				"permission" : "modules.index",
+				"setted" : false
+			},
+			{
+				"suboption" : "roles",
+				"label" : "roles",
+				"url": "roles.index",
+				"slug" : "roles",
+				"permission" : "roles.index",
+				"setted" : false
+			},
+			{
+				"suboption" : "permisos",
+				"label" : "permisos",
+				"url": "permissions.index",
+				"slug" : "permissions",
+				"permission" : "permissions.index",
+				"setted" : false
+			},
+			{
+				"suboption" : "monedas",
+				"label" : "monedas",
+				"url": "currencies.index",
+				"slug" : "currencies",
+				"permission" : "currencies.index",
+				"setted" : false
+			},
+			{
+				"suboption" : "bancos",
+				"label" : "bancos",
+				"url": "banks.index",
+				"slug" : "banks",
+				"permission" : "banks.index",
+				"setted" : false
+			},
+			{
+				"suboption" : "paises",
+				"label" : "paises",
+				"url": "countries.index",
+				"slug" : "countries",
+				"permission" : "countries.index",
+				"setted" : false
+			},
+			{
+				"suboption" : "contenidos",
+				"label" : "contenidos",
+				"url": "contents.index",
+				"slug" : "contents",
+				"permission" : "contents.index",
+				"setted" : false	
+			},
+			{
+				"suboption" : "movimientos stock",
+				"label" : "stock_movimientos",
+				"url": "stock-movements.index",
+				"slug" : "stock-movements",
+				"permission" : "stock-movements.index",
+				"setted" : false	
+			},
+			{
+				"suboption" : "unidades",
+				"label" : "unidades",
+				"url": "units.index",
+				"slug" : "units",
+				"permission" : "units.index",
+				"setted" : false	
+			},
+			{
+				"suboption" : "iva tipos",
+				"label" : "iva_tipos",
+				"url": "iva-types.index",
+				"slug" : "iva-types",
+				"permission" : "iva-types.index",
+				"setted" : false	
+			},
+			{
+				"suboption" : "grupos contables",
+				"label" : "grupos_contables",
+				"url": "accounting-account-types.index",
+				"slug" : "accounting-account-types",
+				"permission" : "accounting-account-types.index",
+				"setted" : false	
+			},
+			{
+				"suboption" : "agencias transporte",
+				"label" : "transporte_agencias",
+				"url": "transport-agencies.index",
+				"slug" : "transport-agencies",
+				"permission" : "transport-agencies.index",
+				"setted" : false	
+			}
+		] 
+	}
+]

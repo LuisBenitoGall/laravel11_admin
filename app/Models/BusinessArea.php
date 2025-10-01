@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class BusinessArea extends Model
+{
+    use SoftDeletes;
+
+    protected $table = 'business_areas';
+
+    /**
+     * @var array
+     */
+    protected $fillable = [
+        'company_id',
+        'name',
+        'slug',
+        'status',
+    ];
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function scopeForCompany($query, $companyId)
+    {
+        return $query->where('company_id', $companyId);
+    }
+}

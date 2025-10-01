@@ -1,0 +1,1 @@
+import{j as r}from"./app-Vy3k0dXk.js";function p({className:e="",checked:t=!1,value:o="1",onChange:s,...c}){return r.jsx("input",{...c,type:"checkbox",className:`form-check-input ${e}`,checked:t,value:o,onChange:s})}export{p as C};

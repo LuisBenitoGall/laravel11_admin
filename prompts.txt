@@ -1,0 +1,3 @@
+[2023-05-10 15:45] guarda en el archivo@prompts.txt todos los prompts que escriba cuando esté trabajando con el directorio @/, empezando por este
+
+
