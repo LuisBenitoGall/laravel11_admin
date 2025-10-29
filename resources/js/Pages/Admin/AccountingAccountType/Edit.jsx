@@ -11,9 +11,11 @@ import TextInput from '@/Components/TextInput';
 
 //Hooks:
 import { useTranslation } from '@/Hooks/useTranslation';
+import { useFiscalTranslation } from '@/Hooks/useFiscalTranslation';
 
 export default function Index({ auth, session, title, subtitle, type, mode_name, availableLocales }){
     const __ = useTranslation();
+    const ft = useFiscalTranslation();
     const props = usePage()?.props || {};
     const locale = props.locale || false;
     const languages = props.languages || [];
@@ -92,7 +94,7 @@ export default function Index({ auth, session, title, subtitle, type, mode_name,
                 <div className="row">
                     <div className="col-12">
                         <h2>
-                            {__('grupo_contable')} <u>{ type.name }</u>
+                            {__('grupo_contable')} <u>{ ft(type.name) }</u>
                         </h2>
                     </div>
 

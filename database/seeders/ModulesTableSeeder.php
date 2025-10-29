@@ -76,6 +76,16 @@ class ModulesTableSeeder extends Seeder{
             'status' => 0,
             'active' => true
             ],
+            ['name' => 'crm',
+            'slug' => 'crm',
+            'label' => 'crm',
+            'color' => '#5DAE65',
+            'icon' => 'address-book',
+            'level' => '3',
+            'translations' => serialize(['es' => 'CRM']),
+            'status' => 0,
+            'active' => true
+            ],
             ['name' => 'products',
             'slug' => 'products',
             'label' => 'catalogo',

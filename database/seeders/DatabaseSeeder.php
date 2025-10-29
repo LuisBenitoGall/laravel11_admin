@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder{
      */
     public function run(): void{
         //Mantener el orden de ejecución de los seeds:
+        $this->call(AccountingAccountTypesTableSeeder::class);  //php artisan db:seed --class=AccountingAccountTypesTableSeeder
         $this->call(AccountsTableSeeder::class);
         $this->call(CountriesTableSeeder::class);
         $this->call(ProvincesTableSeeder::class);

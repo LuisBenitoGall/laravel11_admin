@@ -68,15 +68,16 @@ export default function Sidebar(auth) {
             <div className="navbar-brand-box">
                 <Link href={route('dashboard.index')} className="logo">
                     <span className="logo-sm">
-                        <img src={'/img/logo-amdt.png'} alt="Radnify" className="img-fluid p-3" />
+                        <img src={'/img/logo/logo-rft-portrait.jpg'} alt="RFT" className="img-fluid p-3" />
                     </span>
                     <span className="logo-lg">
-                        <img src={'/img/logo-amdt.png'} alt="Radnify" className="img-fluid p-3" />
+                        <img src={'/img/logo/logo-rft-landscape.jpg'} alt="RFT" className="img-fluid p-3" />
                     </span>
                 </Link>
             </div>
 
-            <div className="company-logo text-center">
+            {/* 23/10/2025: Para el proyecto RFT se oculta esta sección. */}
+            {/* <div className="company-logo text-center">
                 {companySettings?.company?.logo && (() => {
                     const raw = companySettings.company.logo;
                     let logoSrc = '';
@@ -104,7 +105,7 @@ export default function Sidebar(auth) {
 
                     return logoSrc ? <img src={logoSrc} alt={companySettings.company?.name || ''} className="img-fluid" /> : null;
                 })()}
-            </div>
+            </div> */}
 
             <div id="scrollbar">
                 <div id="sidebar-menu">

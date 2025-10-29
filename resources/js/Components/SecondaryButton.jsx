@@ -3,7 +3,11 @@ export default function SecondaryButton({ type = 'button', className = '', disab
         <button
             {...props}
             type={type}
-            className={className}
+            className={
+                `btn btn-secondary text-white ${
+                    disabled && 'opacity-25'
+                } ` + className
+            }
             disabled={disabled}
         >
             {children}

@@ -70,8 +70,11 @@ class Product extends Model{
     /**
      * 3. Guardar producto.
      */
-    public static function saveProduct($request){
-        $companyId = (int) session('currentCompany');
+    public static function saveProduct($request, int $companyId){
+        if ($companyId <= 0) {
+            throw new \InvalidArgumentException('companyId inválido.');
+        }
+
         $baseSlug  = Str::slug($request->name ?? '');
         $slug      = $baseSlug !== '' ? $baseSlug : Str::random(8);
 

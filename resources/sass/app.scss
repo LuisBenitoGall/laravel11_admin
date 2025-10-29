@@ -9,21 +9,39 @@
 $br_xl: 15px;
 
 // Colors Radnify:
-$rdn_primary: #56BCB6;
-$rdn_primary_light: #5BC9D6;
-$rdn_secondary: #414D67;
-$rdn_tertiary: #8391b2;
+// $rdn_primary: #56BCB6;
+// $rdn_primary_light: #5BC9D6;
+// $rdn_secondary: #414D67;
+// $rdn_tertiary: #8391b2;
+
+// Colors RFT:
+$rdn_primary: #7B0031;
+$rdn_primary_light: #BB4071;
+$rdn_secondary: #D6B800;
+$rdn_tertiary: #B89E00;
 
 // Font-size:
 $fs_controls: 1rem;
+$fs_standard: 1rem;
 
 // Gama grises:
-$rd_grey0: #FBFBFB;
+// $rd_grey0: #FBFBFB;
+// $rd_grey0_1: #F0F0F0;
+// $rd_grey0_2: #F8F9FA;
+// $rd_grey1: #DEDEDE;
+// $rd_grey2: #686A6C;
+// $rd_grey3: #9F9F9F;
+
+// Gama grises RFT:
+$rd_grey0: #EFEFEF;
 $rd_grey0_1: #F0F0F0;
 $rd_grey0_2: #F8F9FA;
 $rd_grey1: #DEDEDE;
 $rd_grey2: #686A6C;
 $rd_grey3: #9F9F9F;
+$rd_grey_semi_light: #DADADA;
+$rd_grey_semi_dark: #646464;
+$rd_grey_dark: #191919;
 
 // Margin & Padding:
 $mpx_min: 10px;
@@ -67,16 +85,27 @@ a, h1, h2, h3, th, img {
 	}
 }
 
+a{
+	color: $rdn_primary;	
+}
+
 h2{
 	font-size: 1.3rem;
 }
 
 h5{
-	font-size: 1rem;
+	font-size: $fs_standard;
 }
 
 [title], [alt] {
     text-transform: capitalize;
+}
+
+.text-primary{
+	color: $rdn_primary !important;
+}
+.text-secondary{
+	color: $rdn_secondary !important;
 }
 
 .badge{
@@ -111,6 +140,11 @@ h5{
 	span{
 		font-size: .9rem;
 	}
+}
+
+.btn-info{
+	background-color: $rdn_secondary !important;
+	border: 1px solid $rdn_secondary !important;
 }
 
 .btn-top-header{
@@ -158,6 +192,10 @@ h5{
   	color: #fff !important;
 }
 
+.navbar-menu{ 
+    background-color: $rd_grey_semi_dark;
+}
+
 // *************** TABLES ****************
 .table td{
 	a.link-text{
@@ -166,7 +204,7 @@ h5{
 		transition: .4s;
 
 		&:hover{
-			color: #198754;
+			color: $rdn-secondary;
 		}
 	}
 }
@@ -174,6 +212,9 @@ h5{
 .tbl-filters{
 	th{
 		background-color: #FFF;
+		.form-control{
+			height: 26px;
+		}
 	}
 }
 
@@ -201,9 +242,12 @@ h5{
 
 // *************** FORMS ****************
 .btn{
-	border-radius: 25px;
-	font-size: .9rem;
-	line-height: 1.1rem;
+	border-style: solid;
+	border-width: 1px;
+	border-radius: $br_xl;
+	font-size: $fs_standard;
+	line-height: 1.3rem;
+	transition: .4s;
 
 	&.btn-primary{
 		background-color: $rdn_primary;
@@ -216,8 +260,23 @@ h5{
 	}
 
 	&.btn-secondary{
-		background-color: $rdn_secondary;
+		background-color: $rdn_primary;
+		border-color: $rdn_primary;
+	}
+
+	&.btn-outline-primary{
+		border-color: $rdn_primary;
+		color: $rdn_primary;	
+	}
+
+	&.btn-outline-secondary{
 		border-color: $rdn_secondary;
+		color: $rdn_secondary;	
+		&:hover{
+			background-color: $rd_grey1;
+			border-color: $rdn_tertiary;
+			color: $rdn_tertiary;	
+		}
 	}
 }
 
@@ -226,8 +285,24 @@ h5{
 }
 
 .form-control,
+.form-label,
 .form-select{
-	font-size: .9rem;
+	font-size: $fs_standard;
+}
+
+.form-control,
+.form-select{
+	height: 38px;
+}
+
+textarea.form-control{
+	min-height: 100px;
+}
+
+#top-menu .form-select{
+	background-position: right 0.5rem center; 
+	height: 30px;
+	padding: 2px 30px 4px 12px !important;
 }
 
 .form-check-input{
@@ -269,7 +344,7 @@ h5{
     border-radius: 22px !important; 
     color: $rd_grey2;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: $fs_standard;
     font-weight: 500;
     outline: none;
     padding: 4px 12px; 
@@ -426,7 +501,7 @@ iframe[title="LastPass"] {
 
 /* WYSIWYG Wrapper */
 .wysiwyg-container {
-    margin-bottom: 1rem;
+    margin-bottom: $fs_standard;
     border-radius: 0.375rem;
     border: 1px solid #ced4da;
     direction: ltr !important;
@@ -451,7 +526,7 @@ iframe[title="LastPass"] {
     background-color: #fff;
     border-radius: 0 0 0.375rem 0.375rem;
     direction: ltr !important;
-    font-size: 1rem;
+    font-size: $fs_standard;
     line-height: 1.5;
     min-height: 150px;
     padding: 0.75rem;
@@ -559,7 +634,7 @@ iframe[title="LastPass"] {
 	#navbar-nav{
 		.nav-item{
 			&.active{
-				background-color: $rdn_tertiary;
+				background-color: $rd_grey3;
 				padding-bottom: 10px;
 
 				a span{
@@ -577,6 +652,7 @@ iframe[title="LastPass"] {
 
 			.nav{
 				.nav-link{
+					font-size: $fs_standard;
 					margin-right: 10px;
 					&.active{
 						background-color: $rdn_primary;
@@ -732,3 +808,36 @@ iframe[title="LastPass"] {
     min-height: 2.5em;
     height: 100%;
 }
+
+// *************** ADMIN ****************
+#auth-page{
+	.left-column{
+		@media (max-width: 991px) {
+        	height: 200px;
+    	}	
+	}
+
+	.auth-one-bg {
+		height: 100%;
+	    display: flex;
+	    align-items: center;
+	    justify-content: center;
+	    position: relative;
+
+		.bg-overlay {
+		    background-image: url('/img/logo/logo-rft-landscape.jpg');
+		    background-repeat: no-repeat;
+		    background-position: center;
+		    background-size: contain;
+
+		    @media (max-width: 991px) {
+	        	background-size: 60%; 
+	   		}
+
+	   		@media (max-width: 767px) {
+	        	background-size: 80%; 
+	   		}
+	    }
+	}
+}
+

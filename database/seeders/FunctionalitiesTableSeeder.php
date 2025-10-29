@@ -202,6 +202,32 @@ class FunctionalitiesTableSeeder extends Seeder{
             'module' => 'rrhh'
             ],
 
+            ['name' => 'leads',
+            'slug' => 'leads',
+            'label' => 'leads',
+            'module' => 'crm'
+            ],
+            ['name' => 'crm accounts',
+            'slug' => 'crm-accounts',
+            'label' => 'cuentas',
+            'module' => 'crm'
+            ],
+            ['name' => 'crm contacts',
+            'slug' => 'crm-contacts',
+            'label' => 'contactos',
+            'module' => 'crm'
+            ],
+            ['name' => 'crm opportunities',
+            'slug' => 'crm-opportunities',
+            'label' => 'oportunidades',
+            'module' => 'crm'
+            ],
+            ['name' => 'marketing',
+            'slug' => 'marketing',
+            'label' => 'marketing',
+            'module' => 'crm'
+            ],
+
             ['name' => 'products',
             'slug' => 'products',
             'label' => 'productos',

@@ -17,16 +17,20 @@ export default function Header({ user, title, subtitle, actions, companies, curr
     const props = usePage()?.props || {};
     const locale = props.locale || false;
     const languages = props.languages || [];
+    
+    //Las opciones del menú superior se configuran desde el archivo config/constants.php:
+    const menuLocales = props.menuLocales;
+    const menuChat = props.menuChat;
+    const menuCustom = props.menuCustom;
+    const menuNotifications = props.menuNotifications;
+    
     const { showConfirm } = useSweetAlert();
 
     //Selección de empresa:
     const handleCompanyChange = (event) => {
         const companyId = event.target.value;
-        // Inertia.get(route('companies.select-get', companyId), { company: companyId });
         router.post(route('companies.select'), {
             selectedCompany: companyId
-        }, {
-            //onSuccess: () => window.location.reload()
         });
     };
 
@@ -90,88 +94,118 @@ export default function Header({ user, title, subtitle, actions, companies, curr
                         {/* PENDIENTE TODA LA LÓGICA */}
 
 
-                        {/* Selector idioma */}
-                        <div className="language-selector position-relative">
-                            <button 
-                                className="btn rounded-pill btn-locale d-flex align-items-center mx-1" 
-                                onClick={() => setDropdownOpen(!isDropdownOpen)}
-                            >
-                                <OverlayTrigger
-                                    key="locale1"
-                                    placement="left"
-                                    overlay={
-                                        <Tooltip className="ttp-top">
-                                           { __('idiomas') }
-                                        </Tooltip>
-                                    }
+                        {/* Condicional para mostrar el selector de idioma */}
+                        {menuLocales && (
+                            <div className="language-selector position-relative">
+                                <button 
+                                    className="btn rounded-pill btn-locale d-flex align-items-center mx-1" 
+                                    onClick={() => setDropdownOpen(!isDropdownOpen)}
                                 >
-                                    <div className="d-flex align-items-center">
-                                        <span className='me-2'>{locale}</span>
-                                        <i className="la la-caret-down"></i> 
-                                    </div>   
-                                </OverlayTrigger>
-                            </button>
+                                    <OverlayTrigger
+                                        key="locale1"
+                                        placement="left"
+                                        overlay={
+                                            <Tooltip className="ttp-top">
+                                               { __('idiomas') }
+                                            </Tooltip>
+                                        }
+                                    >
+                                        <div className="d-flex align-items-center">
+                                            <span className='me-2'>{locale}</span>
+                                            <i className="la la-caret-down"></i> 
+                                        </div>   
+                                    </OverlayTrigger>
+                                </button>
 
-                            {isDropdownOpen && (
-                                <ul className="dropdown-menu show position-absolute">
-                                    {Object.keys(languages).map((key) => {
-                                        const langData = languages[key]; // Extrae los datos del idioma
-                                        return (
-                                            <li key={key}>
-                                                <button 
-                                                    className={`dropdown-item ${locale === langData[0] ? 'active' : ''}`}
-                                                    onClick={() => handleLanguageChange(langData[0])}
-                                                >
-                                                    {langData[3]} {/* Nombre del idioma */}
-                                                </button>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            )}
-                        </div>
+                                {isDropdownOpen && (
+                                    <ul className="dropdown-menu show position-absolute">
+                                        {Object.keys(languages).map((key) => {
+                                            const langData = languages[key]; // Extrae los datos del idioma
+                                            return (
+                                                <li key={key}>
+                                                    <button 
+                                                        className={`dropdown-item ${locale === langData[0] ? 'active' : ''}`}
+                                                        onClick={() => handleLanguageChange(langData[0])}
+                                                    >
+                                                        {langData[3]} {/* Nombre del idioma */}
+                                                    </button>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                )}
+                            </div>
+                        )}
 
-                        {/* Chat */}
-                        <div className="chat-warning position-relative">
-                            <button 
-                                className="btn btn-top-header rounded-pill d-flex align-items-center mx-1" 
-                            >
-                                <OverlayTrigger
-                                    key="chat1"
-                                    placement="left"
-                                    overlay={
-                                        <Tooltip className="ttp-top">
-                                           { __('chat') }
-                                        </Tooltip>
-                                    }
+                        {/* Condicional para mostrar el menú personalizado */}
+                        {menuCustom && (
+                            <div className="custom-menu position-relative">
+                                <button 
+                                    className="btn btn-top-header rounded-pill d-flex align-items-center mx-1" 
+                                    onClick={() => setDropdownOpen(!isDropdownOpen)}
                                 >
-                                    <div className="d-flex justify-content-center w-100">
-                                        <i className="la la-comment-alt"></i> 
-                                    </div>   
-                                </OverlayTrigger>
-                            </button>
-                        </div>
+                                    <OverlayTrigger
+                                        key="custom1"
+                                        placement="left"
+                                        overlay={
+                                            <Tooltip className="ttp-top">
+                                               { __('menu_preferencias') }
+                                            </Tooltip>
+                                        }
+                                    >
+                                        <div className="d-flex justify-content-center w-100">
+                                            <i className="la la-cog"></i> 
+                                        </div>   
+                                    </OverlayTrigger>
+                                </button>
+                            </div>
+                        )}
 
-                        {/* Notificaciones */}
-                        <div className="notifications-warning position-relative">
-                            <button 
-                                className="btn btn-top-header rounded-pill d-flex align-items-center mx-1" 
-                            >
-                                <OverlayTrigger
-                                    key="notification1"
-                                    placement="left"
-                                    overlay={
-                                        <Tooltip className="ttp-top">
-                                           { __('notificaciones') }
-                                        </Tooltip>
-                                    }
+                        {/* Condicional para mostrar el chat */}
+                        {menuChat && (
+                            <div className="chat-warning position-relative">
+                                <button 
+                                    className="btn btn-top-header rounded-pill d-flex align-items-center mx-1" 
                                 >
-                                    <div className="d-flex justify-content-center w-100">
-                                        <i className="la la-bell"></i> 
-                                    </div>   
-                                </OverlayTrigger>
-                            </button>
-                        </div>
+                                    <OverlayTrigger
+                                        key="chat1"
+                                        placement="left"
+                                        overlay={
+                                            <Tooltip className="ttp-top">
+                                               { __('chat') }
+                                            </Tooltip>
+                                        }
+                                    >
+                                        <div className="d-flex justify-content-center w-100">
+                                            <i className="la la-comment-alt"></i> 
+                                        </div>   
+                                    </OverlayTrigger>
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Condicional para mostrar las notificaciones */}
+                        {menuNotifications && (
+                            <div className="notifications-warning position-relative">
+                                <button 
+                                    className="btn btn-top-header rounded-pill d-flex align-items-center mx-1" 
+                                >
+                                    <OverlayTrigger
+                                        key="notification1"
+                                        placement="left"
+                                        overlay={
+                                            <Tooltip className="ttp-top">
+                                               { __('notificaciones') }
+                                            </Tooltip>
+                                        }
+                                    >
+                                        <div className="d-flex justify-content-center w-100">
+                                            <i className="la la-bell"></i> 
+                                        </div>   
+                                    </OverlayTrigger>
+                                </button>
+                            </div>
+                        )}
 
                         {/* Selector empresa */}
                         {companies.length === 1 ? (
@@ -220,7 +254,7 @@ export default function Header({ user, title, subtitle, actions, companies, curr
                                     </span>
                                 </span>
                             </button>
-                           
+                            
                             <div className="dropdown-menu dropdown-menu-end">
                                 <h6 className="dropdown-header">{ __('hola') } {user.name}!</h6>
                                 {/* Acceso a perfil */}

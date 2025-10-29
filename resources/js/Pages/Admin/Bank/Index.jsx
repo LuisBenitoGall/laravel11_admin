@@ -14,7 +14,7 @@ import StatusButton from '@/Components/StatusButton';
 import TableExporter from '@/Components/TableExporter';
 
 //Hooks:
-import { useSweetAlert } from '@/Hooks/useSweetAlert';
+//import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
 

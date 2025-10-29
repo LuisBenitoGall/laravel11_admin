@@ -26,7 +26,7 @@ class AccountingAccountTypeResource extends JsonResource{
             'id' => $this->id,
             'autoreference' => $this->autoreference,
             'code' => $this->code,
-            'name' => ucfirst($this->name),
+            'name' => ucfirst(__($this->name)),
             'level' => strlen($this->code),
             'mode' => $this->mode? $modes[$this->mode]:'',
             'deleted_at' => $this->deleted_at, 

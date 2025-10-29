@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use App\Support\CompanyContext;
 use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
@@ -239,14 +240,14 @@ class CompanyController extends Controller{
         $company->updated_by_name = optional($company->updatedBy)->full_name ?? false;
 
         $permissions = $this->resolvePermissions([
-                'companies.create',
-                'companies.destroy',
-                'companies.edit',
-                'companies.index',
-                'companies.search',
-                'companies.show',
-                'companies.update'
-            ]);
+            'companies.create',
+            'companies.destroy',
+            'companies.edit',
+            'companies.index',
+            'companies.search',
+            'companies.show',
+            'companies.update'
+        ]);
 
         return Inertia::render('Admin/Company/Edit', [
             "title" => __($this->option),
@@ -360,31 +361,34 @@ class CompanyController extends Controller{
      * @param \App\Models\Company $company
      * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector
      */
-    public function selectCompany(Company $company){
-        //Validar que la empresa está vinculada al usuario:
-        if(!UserCompany::where('user_id', auth()->user()->id)->where('company_id', $company->id)->exists()){
+    public function selectCompany(Request $request, Company $company, CompanyContext $ctx){
+        // 1) Seguridad: que el usuario pertenezca a la empresa
+        $userId = $request->user()->id;
+        $isLinked = UserCompany::where('user_id', $userId)
+            ->where('company_id', $company->id)
+            ->exists();
+
+        if (! $isLinked) {
             abort(403, __('empresa_usuario_no_autorizado'));
         }
 
-        session(['currentCompany' => $company->id]);
+        // 2) Fija empresa en sesión (persistencia) y en contexto (memoria)
+        $request->session()->put('currentCompany', $company->id);
+        $ctx->set($company->id);
 
-        $prev_url = URL::previous();
+        // 3) Carga módulos y settings en sesión (si así lo usas)
+        $modules = \App\Models\CompanyModule::getCompanyModules($company->id);
+        $request->session()->put('companyModules', $modules);
 
-        //Módulos de la empresa:
-        //$this->setCompanyModules($company->id);
+        $settings = \App\Models\CompanySetting::companySettings($company->id);
+        $request->session()->put('companySettings', $settings);
 
-        $modules = CompanyModule::getCompanyModules($company->id);
-        session(['companyModules' => $modules]);
+        // 4) Notifica cambio de empresa
+        event(new CompanyChanged($request->user(), $company->id));
 
-        //Cache de módulos por empresa:
-        event(new CompanyChanged(auth()->user(), $company->id ?? $request->selectedCompany));
-
-        //Configuración de la empresa:
-        $settings = CompanySetting::companySettings($company->id);
-        session(['companySettings' => $settings]);
-
-        //Regresamos a la página en que se hallaba:
-        return redirect($prev_url);
+        // 5) Redirección segura al origen, con fallback
+        return redirect()->back(fallback: route('dashboard'))
+            ->with('msg', __('Empresa cambiada'));
     }
 
     /**
@@ -393,38 +397,45 @@ class CompanyController extends Controller{
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function selectCompanyPost(Request $request){
-        $validator = Validator::make($request->all(), [
-            'selectedCompany' => 'required|numeric|exists:companies,id'
+    public function selectCompanyPost(Request $request, CompanyContext $ctx){
+        // 1) Validación sencilla (usa FormRequest si quieres más control)
+        $validated = $request->validate([
+            'selectedCompany' => ['required', 'integer', 'exists:companies,id'],
         ]);
-        if($validator->fails()){
-            return redirect('admin')
-                ->withErrors($validator)
-                ->withInput();
-        }
 
-        //Validar que la empresa está vinculada al usuario:
-        if(!UserCompany::where('user_id', auth()->user()->id)->where('company_id', $request->selectedCompany)->exists()){
+        $companyId = (int) $validated['selectedCompany'];
+
+        // 2) Autorización: que el usuario pertenezca a la empresa
+        $userId = $request->user()->id;
+        $linked = UserCompany::where('user_id', $userId)
+            ->where('company_id', $companyId)
+            ->exists();
+
+        if (! $linked) {
             abort(403, __('empresa_usuario_no_autorizado'));
         }
 
-        session(['currentCompany' => $request->selectedCompany]);
+        // 3) Refresca el ID de sesión para evitar fijación en cambios de contexto sensibles
+        //    (opcional, pero recomendable si la visibilidad cambia mucho entre empresas)
+        $request->session()->regenerate();
 
-        //Módulos de la empresa:
-        $modules = CompanyModule::getCompanyModules($request->selectedCompany);
-        session(['companyModules' => $modules]);
+        // 4) Fija empresa en sesión (persistencia) y contexto (memoria del request)
+        $request->session()->put('currentCompany', $companyId);
+        $ctx->set($companyId);
 
-        //Cache de módulos por empresa:
-        event(new CompanyChanged(auth()->user(), $request->selectedCompany ?? $request->selectedCompany));
+        // 5) Carga módulos y settings específicos de la empresa
+        $modules  = CompanyModule::getCompanyModules($companyId);
+        $settings = CompanySetting::companySettings($companyId);
 
-        //Configuración de la empresa:
-        $settings = CompanySetting::companySettings($request->selectedCompany);
-        session(['companySettings' => $settings]);
+        $request->session()->put('companyModules', $modules);
+        $request->session()->put('companySettings', $settings);
 
-        //Forzar persistencia en disco de la session:
-        session()->save();
+        // 6) Notifica cambio (listeners ya podrán leer CompanyContext)
+        event(new CompanyChanged($request->user(), $companyId));
 
-        return redirect()->back();
+        // 7) Redirección segura al origen con fallback
+        return redirect()->back(fallback: route('dashboard'))
+            ->with('msg', __('Empresa cambiada'));
     }
 
     /**

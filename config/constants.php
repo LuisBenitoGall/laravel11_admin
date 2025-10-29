@@ -5,6 +5,10 @@ return [
     'CURRENCY_NAME_' => 'EUR',
     'EMAIL_' => 'luisbgall@gmail.com',
     'ERROR_MAX_403_' => 10,
+    'MENU_CHAT_' => false,
+    'MENU_CUSTOM_' => true,
+    'MENU_LOCALES_' => false,
+    'MENU_NOTIFICATIONS_' => false,
 	'METHODS_' => [
         ['index', 'Ver '], 
         ['create', 'Crear '], 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -41,6 +42,9 @@ class AccountingAccountTypeController extends Controller{
      * 2. Formulario nuevo tipo grupo contable.
      * 3. Guardar grupo.
      * 4. Editar grupo contable.
+     * 5. Actualizar grupo contable.
+     * 6. Conversión traducciones textos fiscales.
+     * 7. Selectores condicionales de tipos.
      */
     
     use HasUserPermissionsTrait;
@@ -68,6 +72,9 @@ class AccountingAccountTypeController extends Controller{
      * 1. Relación de grupos contables.
      */
     public function index(AccountingAccountTypeFilterRequest $request){
+        //Generación de traducciones:
+        //$this->exportFiscalTranslationsToJson('es');
+
         $perPage = $request->input('per_page', config('constants.RECORDS_PER_PAGE_DEFAULT_'));
 
         $types = $this->dataQuery($request)->paginate($perPage)->onEachSide(1);
@@ -224,5 +231,60 @@ class AccountingAccountTypeController extends Controller{
             Log::error('Error en update(): ' . $e->getMessage());
             abort(500, 'Error interno del servidor');
         }
-    }            
+    }    
+
+    /**
+     * 6. Conversión traducciones textos fiscales.
+     */
+    public function exportFiscalTranslationsToJson(string $locale){
+        // Usa helpers que normalizan rutas
+        $phpLangPath = lang_path("{$locale}/fiscal.php");
+        $jsonLangPath = lang_path("{$locale}_fiscal.json");
+
+        if (!File::exists($phpLangPath)) {
+            \Log::warning("Archivo no encontrado: {$phpLangPath}");
+            return;
+        }
+
+        $translations = include $phpLangPath;
+
+        if (!is_array($translations)) {
+            \Log::error("El archivo fiscal.php no devolvió un array válido");
+            return;
+        }
+
+        $jsonContent = json_encode($translations, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        File::put($jsonLangPath, $jsonContent);
+
+        //\Log::info("Traducciones exportadas correctamente a {$jsonLangPath}");
+    }
+
+    /**
+     * 7. Selectores condicionales de tipos.
+     */
+    public function select(Request $request, $type){
+        if($request->ajax()){
+            try {
+                $data = AccountingAccountType::select('id', 'name', 'code')
+                    ->where('autoreference', $type)
+                    ->orderBy('code', 'ASC')
+                    ->get();
+
+                // Si no hay datos, devolver un array vacío
+                if ($data->isEmpty()) {
+                    return response()->json([]);
+                }
+
+                return response()->json($data);
+            } catch (\Exception $e) {
+                // Manejo de errores
+                return response()->json(['error' => 'Error al obtener los datos: ' . $e->getMessage()], 500);
+            }
+        }
+
+        return response()->json(['error' => 'Solicitud no válida.'], 400);
+    }
+        
 }
+
+

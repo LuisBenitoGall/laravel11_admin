@@ -22,8 +22,50 @@ use File;
 use App\Models\Company;
 use App\Models\CompanySetting;
 
+//Traits
+use App\Traits\HasUserPermissionsTrait;
+use App\Traits\LocaleTrait;
+
 class CompanySettingController extends Controller{
     /**
-     * 
+     * 1. Página de configuración de empresa.
+     * 2. Actualizar datos de configuración.
      */
+    
+    use HasUserPermissionsTrait;
+    use LocaleTrait;
+
+    private $module = 'companies';
+    private $option = 'configuracion';
+    protected array $permissions = [];
+
+    public function __construct(){
+        if(session('currentCompany')){
+            $this->permissions = $this->resolvePermissions([
+                'company-settings.create',
+                'company-settings.destroy',
+                'company-settings.edit',
+                'company-settings.index',
+                'company-settings.search',
+                'company-settings.show',
+                'company-settings.update'
+            ]);   
+        } 
+    }  
+
+    /**
+     * 1. Página de configuración de empresa.
+     */
+    public function index(Request $request){
+        return Inertia::render('Admin/CompanySetting/Index', [
+            "title" => __($this->option),
+            "subtitle" => __('configuracion'),
+            "module" => $this->module,
+            "slug" => 'companies',
+            "queryParams" => request()->query() ?: null,
+            "availableLocales" => LocaleTrait::availableLocales(),
+            "permissions" => $this->permissions,
+        ]);
+
+    }
 }

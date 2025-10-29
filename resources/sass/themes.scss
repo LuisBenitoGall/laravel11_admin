@@ -317,8 +317,11 @@ input:-webkit-autofill:active{
     display: none;
 }
 
-.navbar-menu .navbar-nav .nav-link{
-    padding: 0.5rem 1.5rem;    
+.navbar-menu{ 
+    .navbar-nav .nav-link{
+        font-size: 1rem;
+        padding: 0.5rem 1.5rem;    
+    }
 }
 .navbar-menu .navbar-nav .nav-sm .nav-link{
     padding: 0.45rem 1.5rem !important;

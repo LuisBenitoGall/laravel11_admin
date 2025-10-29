@@ -1,6 +1,6 @@
 # PROJECT
 
-RADNIFY
+Real Fábrica de Tapices (RFT)
 
 ## Requisitos
 - Laravel 11 + React JS
@@ -64,6 +64,7 @@ En el archivo config/constants.php se definen constantes personalizadas.
 
 
 ## COMMANDS:
+- Compilación: npm run dev
 - Limpieza de caché: composer run dev:reset
 
 
@@ -94,6 +95,9 @@ En el archivo config/constants.php se definen constantes personalizadas.
 	        options: si el filtro es select
 
 		Y si alguna columna necesita algo especial (íconos, badges, enlaces, etc.), lo añadimos sin problema.
+
+## IA CODEX.
+	- Snippet cabecera prompts: estilo Laravel 11 + PHP 8.2 + Pint/Larastan level X
 
 
 

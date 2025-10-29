@@ -131,7 +131,6 @@ $value in $theme-colors {
     }
 }
 
-
 // overlay
 
 .bg-overlay {
@@ -142,8 +141,12 @@ $value in $theme-colors {
     bottom: 0;
     left: 0;
     top: 0;
-    opacity: 0.7;
-    background-color: $black;
+    // opacity: 0.7;
+    // margin: 20px; /* Adds breathing space around the image */
+
+    // @media (max-width: 991px) {
+    //     background-size: 80%; /* Adjusts the size for smaller screens */
+    // }
 }
 
 // Btn Customizer
@@ -168,7 +171,6 @@ code {
 }
 
 .layout-rightside-col {
-
     @media (max-width: 1699.98px) { 
         display: none;
         position: fixed !important;
@@ -273,3 +275,4 @@ code {
     opacity: 0;
   }
 }
+

@@ -180,7 +180,7 @@ class ProductController extends Controller{
      */
     public function store(ProductStoreRequest $request){
         //Guardando producto:
-        $product = Product::saveProduct($request);        
+        $product = Product::saveProduct($request, session('currentCompany'));        
 
         return redirect()->route('products.edit', $product->id)
             ->with('msg', __('producto_creado_msg'));

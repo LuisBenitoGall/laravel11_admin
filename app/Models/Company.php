@@ -77,8 +77,8 @@ class Company extends Model{
         $co->tradename = $request->tradename;
         $co->nif = $request->nif;
         $co->is_ute = $request->is_ute? true:false;
-        $co->created_by = Auth::user()->id;
-        $co->updated_by = Auth::user()->id;   
+        $co->created_by = Auth::id();
+        $co->updated_by = Auth::id();   
         
         //Guardando logo:
         $filename = self::saveCompanyLogo($request, $slug);
@@ -137,15 +137,15 @@ class Company extends Model{
      * 6. Guardar logo de empresa.
      */
     public static function saveCompanyLogo($request, string $slug){
-        if (!$request->hasFile('logo')) return null;
+        if(!$request->hasFile('logo')) return null;
 
         $file = $request->file('logo');
         $mime = $file->getMimeType() ?: '';
         $size = $file->getSize() ?? 0;
 
         $allowed = ['image/png','image/jpeg','image/jpg','image/webp','image/svg+xml'];
-        if (!in_array($mime, $allowed, true)) return null;
-        if ($size > 3 * 1024 * 1024) return null; // 3MB
+        if(!in_array($mime, $allowed, true)) return null;
+        if($size > 3 * 1024 * 1024) return null; // 3MB
 
         $ext = $file->getClientOriginalExtension() ?: 'bin';
         $filename = $slug.'_'.time().'.'.$ext;
