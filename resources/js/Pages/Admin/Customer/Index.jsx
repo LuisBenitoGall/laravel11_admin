@@ -16,7 +16,7 @@ import StatusButton from '@/Components/StatusButton';
 import TableExporter from '@/Components/TableExporter';
 
 //Hooks:
-import { useSweetAlert } from '@/Hooks/useSweetAlert';
+//import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
 
@@ -145,7 +145,7 @@ export default function Index({ auth, session, title, subtitle, companies, query
                                     {/* Acciones */}
                                     <td className="text-end">
                                         {/* Estado */}
-                                        {permissions?.['companies.edit'] && (
+                                        {permissions?.['customers.edit'] && (
                                             <OverlayTrigger
                                                 key={"status-"+company.id}
                                                 placement="top"
@@ -154,28 +154,28 @@ export default function Index({ auth, session, title, subtitle, companies, query
                                                 <StatusButton 
                                                     status={company.status} 
                                                     id={company.id} 
-                                                    updateRoute='companies.status'
-                                                    reloadUrl={route('companies.index')}
-                                                    reloadResource="companies"
+                                                    updateRoute='customers.status'
+                                                    reloadUrl={route('customers.index')}
+                                                    reloadResource="customers"
                                                 />
                                             </OverlayTrigger>
                                         )}
 
                                         {/* Editar */}
-                                        {permissions?.['companies.edit'] && (
+                                        {permissions?.['customers.edit'] && (
                                             <OverlayTrigger
                                                 key={"edit-"+company.id}
                                                 placement="top"
                                                 overlay={<Tooltip className="ttp-top">{ __('editar') }</Tooltip>}
                                             >
-                                                <Link href={route('companies.edit', company.id)} className="btn btn-sm btn-info ms-1">
+                                                <Link href={route('customers.edit', company.id)} className="btn btn-sm btn-info ms-1">
                                                     <i className="la la-edit"></i>
                                                 </Link>
                                             </OverlayTrigger>
                                         )}
 
                                         {/* Eliminar */}
-                                        {permissions?.['companies.destroy'] && (
+                                        {permissions?.['customers.destroy'] && (
                                             <OverlayTrigger
                                                 key={"delete-"+company.id}
                                                 placement="top"

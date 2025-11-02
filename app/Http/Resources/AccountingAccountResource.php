@@ -7,6 +7,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Session; 
 use Carbon\Carbon;
 
+//Models:
+use App\Models\AccountingAccount;
+
 //Traits:
 use App\Traits\LocaleTrait;
 
@@ -29,6 +32,7 @@ class AccountingAccountResource extends JsonResource{
             'id' => $this->id,
             'code' => $this->code,
             'name' => $this->name,
+            'nature' => $this->nature ? AccountingAccount::natureLabels()[ $this->nature ] : '',
             'status' => $this->status,
             'created_by' => new UserResource($this->createdBy),
             'updated_by' => new UserResource($this->updatedBy),

@@ -8,12 +8,13 @@ use App\Http\Controllers\Frontend\HomeController;
 // use App\Http\Controllers\Admin\AccountingController;
 use App\Http\Controllers\Admin\AccountingAccountTypeController;
 use App\Http\Controllers\Admin\AccountingAccountController;
+use App\Http\Controllers\Admin\AccountingAccountUsageController;
 use App\Http\Controllers\Admin\AccountingConceptController;
 use App\Http\Controllers\Admin\AccountingOptionController;
 use App\Http\Controllers\Admin\AccountController;
-// use App\Http\Controllers\Admin\AgencyController;
+use App\Http\Controllers\Admin\AgencyController;
 use App\Http\Controllers\Admin\AmortizationLineController;
-// use App\Http\Controllers\Admin\AmortizationController;
+use App\Http\Controllers\Admin\AmortizationController;
 // use App\Http\Controllers\Admin\AnswerController;
 use App\Http\Controllers\Admin\AttributeController;
 use App\Http\Controllers\Admin\BankAccountController;
@@ -177,35 +178,58 @@ Route::get('/dashboard', function () {
 //ADMIN:
 Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function(){
     //Accounting Account Types:
-    Route::get('/accounting-account-types', [AccountingAccountTypeController::class, 'index'])->name('accounting-account-types.index')->middleware('permission:accounting-account-types.index');
-    Route::get('/accounting-account-types/filtered-data', [AccountingAccountTypeController::class, 'filteredData'])->name('accounting-account-types.filtered-data')->middleware('permission:accounting-account-types.index');
-    Route::get('/accounting-account-types/create', [AccountingAccountTypeController::class, 'create'])->name('accounting-account-types.create')->middleware('permission:accounting-account-types.create');
-    Route::post('/accounting-account-types/store', [AccountingAccountTypeController::class, 'store'])->name('accounting-account-types.store')->middleware('permission:accounting-account-types.create');
-    Route::get('/accounting-account-types/{type}/edit', [AccountingAccountTypeController::class, 'edit'])->name('accounting-account-types.edit')->middleware('permission:accounting-account-types.edit');
-    Route::put('/accounting-account-types/{type}', [AccountingAccountTypeController::class, 'update'])->name('accounting-account-types.update')->middleware('permission:accounting-account-types.update');
-    Route::delete('/accounting-account-types/{type}', [AccountingAccountTypeController::class, 'destroy'])->name('accounting-account-types.destroy')->middleware('permission:accounting-account-types.destroy');
-    Route::get('accounting-account-types/{type}/select', [AccountingAccountTypeController::class, 'select'])->name('accounting-account-types.select');
+    Route::middleware('module_setted:accounting')->group(function (){
+        Route::get('/accounting-account-types', [AccountingAccountTypeController::class, 'index'])->name('accounting-account-types.index')->middleware('permission:accounting-account-types.index');
+        Route::get('/accounting-account-types/filtered-data', [AccountingAccountTypeController::class, 'filteredData'])->name('accounting-account-types.filtered-data')->middleware('permission:accounting-account-types.index');
+        Route::get('/accounting-account-types/create', [AccountingAccountTypeController::class, 'create'])->name('accounting-account-types.create')->middleware('permission:accounting-account-types.create');
+        Route::post('/accounting-account-types/store', [AccountingAccountTypeController::class, 'store'])->name('accounting-account-types.store')->middleware('permission:accounting-account-types.create');
+        Route::get('/accounting-account-types/{type}/edit', [AccountingAccountTypeController::class, 'edit'])->name('accounting-account-types.edit')->middleware('permission:accounting-account-types.edit');
+        Route::put('/accounting-account-types/{type}', [AccountingAccountTypeController::class, 'update'])->name('accounting-account-types.update')->middleware('permission:accounting-account-types.update');
+        Route::delete('/accounting-account-types/{type}', [AccountingAccountTypeController::class, 'destroy'])->name('accounting-account-types.destroy')->middleware('permission:accounting-account-types.destroy');
+        Route::get('accounting-account-types/{type}/select', [AccountingAccountTypeController::class, 'select'])->name('accounting-account-types.select');
+    });
 
     //Accounting Accounts:
-    Route::get('/accounting-accounts', [AccountingAccountController::class, 'index'])->name('accounting-accounts.index')->middleware('permission:accounting-accounts.index');
-    Route::get('/accounting-accounts/create', [AccountingAccountController::class, 'create'])->name('accounting-accounts.create')->middleware('permission:accounting-accounts.create');
-    Route::post('/accounting-accounts/store', [AccountingAccountController::class, 'store'])->name('accounting-accounts.store')->middleware('permission:accounting-accounts.create');
+    Route::middleware('module_setted:accounting')->group(function (){
+        Route::get('/accounting-accounts', [AccountingAccountController::class, 'index'])->name('accounting-accounts.index')->middleware('permission:accounting-accounts.index');
+        Route::get('/accounting-accounts/create', [AccountingAccountController::class, 'create'])->name('accounting-accounts.create')->middleware('permission:accounting-accounts.create');
+        Route::post('/accounting-accounts/store', [AccountingAccountController::class, 'store'])->name('accounting-accounts.store')->middleware('permission:accounting-accounts.create');
+        Route::get('/accounting-accounts/{account}/edit', [AccountingAccountController::class, 'edit'])->name('accounting-accounts.edit')->middleware('permission:accounting-accounts.edit');
+        Route::put('/accounting-accounts/{account}', [AccountingAccountController::class, 'update'])->name('accounting-accounts.update')->middleware('permission:accounting-accounts.update');
+        Route::delete('/accounting-accounts/{account}', [AccountingAccountController::class, 'destroy'])->name('accounting-accounts.destroy')->middleware('permission:accounting-accounts.destroy');
+        Route::post('/accounting-accounts/status', [AccountingAccountController::class, 'status'])->name('accounting-accounts.status')->middleware('permission:accounting-accounts.edit');
+        Route::get('/accounting-accounts/parent-options', [AccountingAccountController::class, 'parentOptions'])->name('accounting-accounts.parent-options');
+        Route::get('accounting-accounts/iva-accounts', [AccountingAccountController::class, 'ivaAccounts'])->name('accounting-accounts.iva-accounts')->middleware('permission:accounting-accounts.index');
+        Route::post('/accounting-accounts/store-auto-account', [AccountingAccountController::class, 'storeAutoAccount'])->name('accounting-accounts.store-auto-account')->middleware('permission:accounting-accounts.create');
+        Route::post('accounting-accounts/iva-bulk-generate', [AccountingAccountController::class, 'bulkGenerateIva'])->name('accounting-accounts.iva-bulk-generate')->middleware('permission:accounting-accounts.create');
+    });
+
+    //Accounting Account Usages:
+    Route::middleware('module_setted:accounting')->group(function (){
+        Route::delete('accounting-accounts-usages/{usage}', [AccountingAccountUsageController::class, 'unlinkUsage'])->name('accounting-accounts-usages.destroy');
+    });
 
     //Accounting Concepts:
-    Route::get('/accounting-concepts', [AccountingConceptController::class, 'index'])->name('accounting-concepts.index')->middleware('permission:accounting-concepts.index');
+    Route::middleware('module_setted:accounting')->group(function (){
+        Route::get('/accounting-concepts', [AccountingConceptController::class, 'index'])->name('accounting-concepts.index')->middleware('permission:accounting-concepts.index');
+    });
 
     //Accounting Options:
-    Route::get('/accounting-options', [AccountingOptionController::class, 'index'])->name('accounting-options.index')->middleware('permission:accounting-options.index');
+    Route::middleware('module_setted:accounting')->group(function (){
+        Route::get('/accounting-options', [AccountingOptionController::class, 'index'])->name('accounting-options.index')->middleware('permission:accounting-options.index');
+    });
 
     //Accounts:
-    Route::get('/accounts', [AccountController::class, 'index'])->name('accounts.index')->middleware('permission:accounts.index');
-    Route::get('/accounts/filtered-data', [AccountController::class, 'filteredData'])->name('accounts.filtered-data')->middleware('permission:accounts.index');
-    Route::get('/accounts/create', [AccountController::class, 'create'])->name('accounts.create')->middleware('permission:accounts.create');
-    Route::post('/accounts/store', [AccountController::class, 'store'])->name('accounts.store')->middleware('permission:accounts.create');
-    Route::get('/accounts/{account}/edit', [AccountController::class, 'edit'])->name('accounts.edit')->middleware('permission:accounts.edit');
-    Route::put('/accounts/{account}', [AccountController::class, 'update'])->name('accounts.update')->middleware('permission:accounts.update');
-    Route::delete('/accounts/{account}', [AccountController::class, 'destroy'])->name('accounts.destroy')->middleware('permission:accounts.destroy');
-    Route::post('/accounts/status', [AccountController::class, 'status'])->name('accounts.status')->middleware('permission:accounts.edit');
+    Route::middleware('module_setted:account')->group(function (){
+        Route::get('/accounts', [AccountController::class, 'index'])->name('accounts.index')->middleware('permission:accounts.index');
+        Route::get('/accounts/filtered-data', [AccountController::class, 'filteredData'])->name('accounts.filtered-data')->middleware('permission:accounts.index');
+        Route::get('/accounts/create', [AccountController::class, 'create'])->name('accounts.create')->middleware('permission:accounts.create');
+        Route::post('/accounts/store', [AccountController::class, 'store'])->name('accounts.store')->middleware('permission:accounts.create');
+        Route::get('/accounts/{account}/edit', [AccountController::class, 'edit'])->name('accounts.edit')->middleware('permission:accounts.edit');
+        Route::put('/accounts/{account}', [AccountController::class, 'update'])->name('accounts.update')->middleware('permission:accounts.update');
+        Route::delete('/accounts/{account}', [AccountController::class, 'destroy'])->name('accounts.destroy')->middleware('permission:accounts.destroy');
+        Route::post('/accounts/status', [AccountController::class, 'status'])->name('accounts.status')->middleware('permission:accounts.edit');
+    });
 
     //Agencies:
     Route::get('/agencies', [AgencyController::class, 'index'])->name('agencies.index')->middleware('permission:agencies.index');
@@ -214,30 +238,36 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index')->middleware('permission:dashboard.index');
 
     //Amortizations:
-    Route::get('/amortizations', [AmortizationController::class, 'index'])->name('amortizations.index')->middleware('permission:amortizations.index');
+    Route::middleware('module_setted:accounting')->group(function (){
+        Route::get('/amortizations', [AmortizationController::class, 'index'])->name('amortizations.index')->middleware('permission:amortizations.index');
+    });
 
     //Attributes:
     Route::get('/attributes', [AttributeController::class, 'index'])->name('attributes.index')->middleware('permission:attributes.index');
 
     //Bank Accounts:
-    Route::get('/bank-accounts', [BankAccountController::class, 'index'])->name('bank-accounts.index')->middleware('permission:bank-accounts.index');
-    Route::get('/bank-accounts/filtered-data', [BankAccountController::class, 'filteredData'])->name('bank-accounts.filtered-data')->middleware('permission:bank-accounts.index');
-    Route::get('/bank-accounts/create', [BankAccountController::class, 'create'])->name('bank-accounts.create')->middleware('permission:bank-accounts.create');
-    Route::post('/bank-accounts/store', [BankAccountController::class, 'store'])->name('bank-accounts.store')->middleware('permission:bank-accounts.create');
-    Route::get('/bank-accounts/{account}/edit', [BankAccountController::class, 'edit'])->name('bank-accounts.edit')->middleware('permission:bank-accounts.edit');
-    Route::put('/bank-accounts/{account}', [BankAccountController::class, 'update'])->name('bank-accounts.update')->middleware('permission:bank-accounts.update');
-    Route::post('/bank-accounts/status', [BankAccountController::class, 'status'])->name('bank-accounts.status')->middleware('permission:bank-accounts.edit');
-    Route::delete('/bank-accounts/{account}', [BankAccountController::class, 'destroy'])->name('bank-accounts.destroy')->middleware('permission:bank-accounts.destroy');
+    Route::middleware('module_setted:accounting')->group(function (){
+        Route::get('/bank-accounts', [BankAccountController::class, 'index'])->name('bank-accounts.index')->middleware('permission:bank-accounts.index');
+        Route::get('/bank-accounts/filtered-data', [BankAccountController::class, 'filteredData'])->name('bank-accounts.filtered-data')->middleware('permission:bank-accounts.index');
+        Route::get('/bank-accounts/create', [BankAccountController::class, 'create'])->name('bank-accounts.create')->middleware('permission:bank-accounts.create');
+        Route::post('/bank-accounts/store', [BankAccountController::class, 'store'])->name('bank-accounts.store')->middleware('permission:bank-accounts.create');
+        Route::get('/bank-accounts/{account}/edit', [BankAccountController::class, 'edit'])->name('bank-accounts.edit')->middleware('permission:bank-accounts.edit');
+        Route::put('/bank-accounts/{account}', [BankAccountController::class, 'update'])->name('bank-accounts.update')->middleware('permission:bank-accounts.update');
+        Route::post('/bank-accounts/status', [BankAccountController::class, 'status'])->name('bank-accounts.status')->middleware('permission:bank-accounts.edit');
+        Route::delete('/bank-accounts/{account}', [BankAccountController::class, 'destroy'])->name('bank-accounts.destroy')->middleware('permission:bank-accounts.destroy');
+    });
 
     //Banks:
-    Route::get('/banks', [BankController::class, 'index'])->name('banks.index')->middleware('permission:banks.index');
-    Route::get('/banks/filtered-data', [BankController::class, 'filteredData'])->name('banks.filtered-data')->middleware('permission:banks.index');
-    Route::get('/banks/create', [BankController::class, 'create'])->name('banks.create')->middleware('permission:banks.create');
-    Route::post('/banks/store', [BankController::class, 'store'])->name('banks.store')->middleware('permission:banks.create');
-    Route::get('/banks/{bank}/edit', [BankController::class, 'edit'])->name('banks.edit')->middleware('permission:banks.edit');
-    Route::put('/banks/{bank}', [BankController::class, 'update'])->name('banks.update')->middleware('permission:banks.update');
-    Route::post('/banks/status', [BankController::class, 'status'])->name('banks.status')->middleware('permission:banks.edit');
-    Route::delete('/banks/{bank}', [BankController::class, 'destroy'])->name('banks.destroy')->middleware('permission:banks.destroy');
+    Route::middleware('module_setted:settings')->group(function (){
+        Route::get('/banks', [BankController::class, 'index'])->name('banks.index')->middleware('permission:banks.index');
+        Route::get('/banks/filtered-data', [BankController::class, 'filteredData'])->name('banks.filtered-data')->middleware('permission:banks.index');
+        Route::get('/banks/create', [BankController::class, 'create'])->name('banks.create')->middleware('permission:banks.create');
+        Route::post('/banks/store', [BankController::class, 'store'])->name('banks.store')->middleware('permission:banks.create');
+        Route::get('/banks/{bank}/edit', [BankController::class, 'edit'])->name('banks.edit')->middleware('permission:banks.edit');
+        Route::put('/banks/{bank}', [BankController::class, 'update'])->name('banks.update')->middleware('permission:banks.update');
+        Route::post('/banks/status', [BankController::class, 'status'])->name('banks.status')->middleware('permission:banks.edit');
+        Route::delete('/banks/{bank}', [BankController::class, 'destroy'])->name('banks.destroy')->middleware('permission:banks.destroy');
+    });
 
     //Batch Patterns:
     Route::get('/batch-patterns', [BatchPatternController::class, 'index'])->name('batch-patterns.index')->middleware('permission:batch-patterns.index');
@@ -270,28 +300,32 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/budgets-from-providers', [BudgetController::class, 'index'])->name('budgets-from-providers.index')->middleware('permission:budgets-from-providers.index');
 
     //Business Areas:
-    Route::get('/business-areas', [BusinessAreaController::class, 'index'])->name('business-areas.index')->middleware('permission:business-areas.index');
-    Route::get('/business-areas/filtered-data', [BusinessAreaController::class, 'filteredData'])->name('business-areas.filtered-data')->middleware('permission:business-areas.index');
-    Route::get('/business-areas/create', [BusinessAreaController::class, 'create'])->name('business-areas.create')->middleware('permission:business-areas.create');
-    Route::post('/business-areas/store', [BusinessAreaController::class, 'store'])->name('business-areas.store')->middleware('permission:business-areas.create');
-    Route::get('/business-areas/{business_area}/edit', [BusinessAreaController::class, 'edit'])->name('business-areas.edit')->middleware('permission:business-areas.edit');
-    Route::put('/business-areas/{business_area}/update', [BusinessAreaController::class, 'update'])->name('business-areas.update')->middleware('permission:business-areas.update');
-    Route::delete('/business-areas/{business_area}', [BusinessAreaController::class, 'destroy'])->name('business-areas.destroy')->middleware('permission:business-areas.destroy');
-    Route::post('business-areas/status', [BusinessAreaController::class, 'status'])->name('business-areas.status')->middleware('permission:business-areas.status');
+    Route::middleware('module_setted:companies')->group(function (){
+        Route::get('/business-areas', [BusinessAreaController::class, 'index'])->name('business-areas.index')->middleware('permission:business-areas.index');
+        Route::get('/business-areas/filtered-data', [BusinessAreaController::class, 'filteredData'])->name('business-areas.filtered-data')->middleware('permission:business-areas.index');
+        Route::get('/business-areas/create', [BusinessAreaController::class, 'create'])->name('business-areas.create')->middleware('permission:business-areas.create');
+        Route::post('/business-areas/store', [BusinessAreaController::class, 'store'])->name('business-areas.store')->middleware('permission:business-areas.create');
+        Route::get('/business-areas/{business_area}/edit', [BusinessAreaController::class, 'edit'])->name('business-areas.edit')->middleware('permission:business-areas.edit');
+        Route::put('/business-areas/{business_area}/update', [BusinessAreaController::class, 'update'])->name('business-areas.update')->middleware('permission:business-areas.update');
+        Route::delete('/business-areas/{business_area}', [BusinessAreaController::class, 'destroy'])->name('business-areas.destroy')->middleware('permission:business-areas.destroy');
+        Route::post('business-areas/status', [BusinessAreaController::class, 'status'])->name('business-areas.status')->middleware('permission:business-areas.status');
+    });
 
-    //Company:
-    Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index')->middleware('permission:companies.index');
-    Route::get('/companies/filtered-data', [CompanyController::class, 'filteredData'])->name('companies.filtered-data')->middleware('permission:companies.index');
-    Route::get('/companies/create', [CompanyController::class, 'create'])->name('companies.create')->middleware('permission:companies.create');
-    Route::post('/companies/store', [CompanyController::class, 'store'])->name('companies.store')->middleware('permission:companies.store');
-    Route::get('/companies/{company}/edit', [CompanyController::class, 'edit'])->name('companies.edit')->middleware('permission:companies.edit');
-    Route::put('/companies/{company}', [CompanyController::class, 'update'])->name('companies.update')->middleware('permission:companies.update');
-    Route::delete('/companies/{company}', [CompanyController::class, 'destroy'])->name('companies.destroy')->middleware('permission:companies.destroy');
-    Route::delete('/companies/{company}/logo', [CompanyController::class, 'deleteLogo'])->name('companies.logo.delete')->middleware('permission:companies.edit');
-    Route::post('/companies/status', [CompanyController::class, 'status'])->name('companies.status')->middleware('permission:companies.edit');
-    Route::get('/companies/{company}/select', [CompanyController::class, 'selectCompany'])->name('companies.select-get')->middleware('permission:companies.index');
-    Route::post('/companies/select', [CompanyController::class, 'selectCompanyPost'])->name('companies.select')->withoutMiddleware(VerifyCsrfToken::class)->middleware('permission:companies.index');
-    Route::get('/companies/refresh-session', [CompanyController::class, 'refreshSession'])->name('companies.refresh-session')->middleware('permission:companies.index');
+    //Company: no puede llevar middleware module_setted pues antes de seleccionar empresa no están definidos los módulos vinculados.
+    //Route::middleware('module_setted:companies')->group(function (){
+        Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index')->middleware('permission:companies.index');
+        Route::get('/companies/filtered-data', [CompanyController::class, 'filteredData'])->name('companies.filtered-data')->middleware('permission:companies.index');
+        Route::get('/companies/create', [CompanyController::class, 'create'])->name('companies.create')->middleware('permission:companies.create');
+        Route::post('/companies/store', [CompanyController::class, 'store'])->name('companies.store')->middleware('permission:companies.store');
+        Route::get('/companies/{company}/edit', [CompanyController::class, 'edit'])->name('companies.edit')->middleware('permission:companies.edit');
+        Route::put('/companies/{company}', [CompanyController::class, 'update'])->name('companies.update')->middleware('permission:companies.update');
+        Route::delete('/companies/{company}', [CompanyController::class, 'destroy'])->name('companies.destroy')->middleware('permission:companies.destroy');
+        Route::delete('/companies/{company}/logo', [CompanyController::class, 'deleteLogo'])->name('companies.logo.delete')->middleware('permission:companies.edit');
+        Route::post('/companies/status', [CompanyController::class, 'status'])->name('companies.status')->middleware('permission:companies.edit');
+        Route::get('/companies/{company}/select', [CompanyController::class, 'selectCompany'])->name('companies.select-get')->middleware('permission:companies.index');
+        Route::post('/companies/select', [CompanyController::class, 'selectCompanyPost'])->name('companies.select')->withoutMiddleware(VerifyCsrfToken::class)->middleware('permission:companies.index');
+        Route::get('/companies/refresh-session', [CompanyController::class, 'refreshSession'])->name('companies.refresh-session')->middleware('permission:companies.index');
+    //});
 
     //Company Accounts:
     Route::get('/company-accounts', [CompanyAccountController::class, 'index'])->name('company-accounts.index')->middleware('permission:company-accounts.index');
@@ -310,13 +344,15 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/concourse-patterns', [ConcoursePatternController::class, 'index'])->name('concourse-patterns.index')->middleware('permission:concourse-patterns.index');
 
     //Contents:
-    Route::get('/contents', [ContentController::class, 'index'])->name('contents.index')->middleware('permission:contents.index');
-    Route::get('/contents/create', [ContentController::class, 'create'])->name('contents.create')->middleware('permission:contents.create');
-    Route::post('/contents/store', [ContentController::class, 'store'])->name('contents.store')->middleware('permission:contents.create');
-    Route::get('/contents/{content}/edit', [ContentController::class, 'edit'])->name('contents.edit')->middleware('permission:contents.edit');
-    Route::put('/contents/{content}/update', [ContentController::class, 'update'])->name('contents.update')->middleware('permission:contents.update');
-    Route::delete('/contents/{content}', [ContentController::class, 'destroy'])->name('contents.destroy')->middleware('permission:contents.destroy');
-    Route::post('/contents/status', [ContentController::class, 'status'])->name('contents.status')->middleware('permission:contents.edit');
+    Route::middleware('module_setted:settings')->group(function (){
+        Route::get('/contents', [ContentController::class, 'index'])->name('contents.index')->middleware('permission:contents.index');
+        Route::get('/contents/create', [ContentController::class, 'create'])->name('contents.create')->middleware('permission:contents.create');
+        Route::post('/contents/store', [ContentController::class, 'store'])->name('contents.store')->middleware('permission:contents.create');
+        Route::get('/contents/{content}/edit', [ContentController::class, 'edit'])->name('contents.edit')->middleware('permission:contents.edit');
+        Route::put('/contents/{content}/update', [ContentController::class, 'update'])->name('contents.update')->middleware('permission:contents.update');
+        Route::delete('/contents/{content}', [ContentController::class, 'destroy'])->name('contents.destroy')->middleware('permission:contents.destroy');
+        Route::post('/contents/status', [ContentController::class, 'status'])->name('contents.status')->middleware('permission:contents.edit');
+    });
 
     //Contracts:
     Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index')->middleware('permission:contracts.index');
@@ -325,44 +361,52 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/control-panel', [ControlPanelController::class, 'index'])->name('control-panel.index')->middleware('permission:control-panel.index');
 
     //Cost Centers:
-    Route::get('/cost-centers', [CostCenterController::class, 'index'])->name('cost-centers.index')->middleware('permission:cost-centers.index');
-    Route::get('/cost-centers/filtered-data', [CostCenterController::class, 'filteredData'])->name('cost-centers.filtered-data')->middleware('permission:cost-centers.index');
-    Route::get('/cost-centers/create', [CostCenterController::class, 'create'])->name('cost-centers.create')->middleware('permission:cost-centers.create');
-    Route::post('/cost-centers/store', [CostCenterController::class, 'store'])->name('cost-centers.store')->middleware('permission:cost-centers.create');
-    Route::get('/cost-centers/{cost_center}/edit', [CostCenterController::class, 'edit'])->name('cost-centers.edit')->middleware('permission:cost-centers.edit');
-    Route::put('/cost-centers/{cost_center}/update', [CostCenterController::class, 'update'])->name('cost-centers.update')->middleware('permission:cost-centers.update');
-    Route::delete('/cost-centers/{cost_center}', [CostCenterController::class, 'destroy'])->name('cost-centers.destroy')->middleware('permission:cost-centers.destroy');
-    Route::post('cost-centers/status', [CostCenterController::class, 'status'])->name('cost-centers.status')->middleware('permission:cost-centers.edit');
+    Route::middleware('module_setted:companies')->group(function (){
+        Route::get('/cost-centers', [CostCenterController::class, 'index'])->name('cost-centers.index')->middleware('permission:cost-centers.index');
+        Route::get('/cost-centers/filtered-data', [CostCenterController::class, 'filteredData'])->name('cost-centers.filtered-data')->middleware('permission:cost-centers.index');
+        Route::get('/cost-centers/create', [CostCenterController::class, 'create'])->name('cost-centers.create')->middleware('permission:cost-centers.create');
+        Route::post('/cost-centers/store', [CostCenterController::class, 'store'])->name('cost-centers.store')->middleware('permission:cost-centers.create');
+        Route::get('/cost-centers/{cost_center}/edit', [CostCenterController::class, 'edit'])->name('cost-centers.edit')->middleware('permission:cost-centers.edit');
+        Route::put('/cost-centers/{cost_center}/update', [CostCenterController::class, 'update'])->name('cost-centers.update')->middleware('permission:cost-centers.update');
+        Route::delete('/cost-centers/{cost_center}', [CostCenterController::class, 'destroy'])->name('cost-centers.destroy')->middleware('permission:cost-centers.destroy');
+        Route::post('cost-centers/status', [CostCenterController::class, 'status'])->name('cost-centers.status')->middleware('permission:cost-centers.edit');
+    });
 
     //Countries:
-    Route::get('/countries', [CountryController::class, 'index'])->name('countries.index')->middleware('permission:countries.index');
-    Route::get('/countries/filtered-data', [CountryController::class, 'filteredData'])->name('countries.filtered-data')->middleware('permission:countries.index');
-    Route::get('/countries/create', [CountryController::class, 'create'])->name('countries.create')->middleware('permission:countries.create');
-    Route::post('/countries', [CountryController::class, 'store'])->name('countries.store')->middleware('permission:countries.create');
-    Route::get('/countries/{country}/edit', [CountryController::class, 'edit'])->name('countries.edit')->middleware('permission:countries.edit');
-    Route::put('/countries/{country}', [CountryController::class, 'update'])->name('countries.update')->middleware('permission:countries.update');
-    Route::delete('/countries/{country}', [CountryController::class, 'destroy'])->name('countries.delete')->middleware('permission:countries.delete');
-    Route::post('/countries/status', [CountryController::class, 'status'])->name('countries.status')->middleware('permission:countries.edit');
+    Route::middleware('module_setted:settings')->group(function (){
+        Route::get('/countries', [CountryController::class, 'index'])->name('countries.index')->middleware('permission:countries.index');
+        Route::get('/countries/filtered-data', [CountryController::class, 'filteredData'])->name('countries.filtered-data')->middleware('permission:countries.index');
+        Route::get('/countries/create', [CountryController::class, 'create'])->name('countries.create')->middleware('permission:countries.create');
+        Route::post('/countries', [CountryController::class, 'store'])->name('countries.store')->middleware('permission:countries.create');
+        Route::get('/countries/{country}/edit', [CountryController::class, 'edit'])->name('countries.edit')->middleware('permission:countries.edit');
+        Route::put('/countries/{country}', [CountryController::class, 'update'])->name('countries.update')->middleware('permission:countries.update');
+        Route::delete('/countries/{country}', [CountryController::class, 'destroy'])->name('countries.delete')->middleware('permission:countries.delete');
+        Route::post('/countries/status', [CountryController::class, 'status'])->name('countries.status')->middleware('permission:countries.edit');
+    });
 
     //CRM Accounts:
-    Route::get('/crm-accounts', [CrmAccountController::class, 'index'])->name('crm-accounts.index')->middleware('permission:crm-accounts.index');
-    Route::get('/crm-accounts/search', [CrmAccountController::class, 'search'])->name('search')->middleware('permission:crm-accounts.search');
-    Route::get('/crm-accounts/create', [CrmAccountController::class, 'create'])->name('crm-accounts.create')->middleware('permission:crm-accounts.create');
-    Route::post('/crm-accounts', [CrmAccountController::class, 'store'])->name('crm-accounts.store')->middleware('permission:crm-accounts.create');
-    Route::get('crm-accounts/{account}', [CrmAccountController::class, 'show'])->name('crm-accounts.show')->middleware('permission:crm-accounts.show');
-    Route::get('crm-accounts/{account}/edit', [CrmAccountController::class, 'edit'])->name('crm-accounts.edit')->middleware('permission:crm-accounts.edit');
-    Route::put('crm-accounts/{account}', [CrmAccountController::class, 'update'])->name('crm-accounts.update')->middleware('permission:crm-accounts.update|crm-accounts.update.own');
-    Route::delete('crm-accounts/{account}', [CrmAccountController::class, 'destroy'])->name('crm-accounts.destroy')->middleware('permission:crm-accounts.destroy|crm-accounts.destroy.own');
+    Route::middleware('module_setted:crm')->group(function (){
+        Route::get('/crm-accounts', [CrmAccountController::class, 'index'])->name('crm-accounts.index')->middleware('permission:crm-accounts.index');
+        Route::get('/crm-accounts/search', [CrmAccountController::class, 'search'])->name('search')->middleware('permission:crm-accounts.search');
+        Route::get('/crm-accounts/create', [CrmAccountController::class, 'create'])->name('crm-accounts.create')->middleware('permission:crm-accounts.create');
+        Route::post('/crm-accounts', [CrmAccountController::class, 'store'])->name('crm-accounts.store')->middleware('permission:crm-accounts.create');
+        Route::get('crm-accounts/{account}', [CrmAccountController::class, 'show'])->name('crm-accounts.show')->middleware('permission:crm-accounts.show');
+        Route::get('crm-accounts/{account}/edit', [CrmAccountController::class, 'edit'])->name('crm-accounts.edit')->middleware('permission:crm-accounts.edit');
+        Route::put('crm-accounts/{account}', [CrmAccountController::class, 'update'])->name('crm-accounts.update')->middleware('permission:crm-accounts.update|crm-accounts.update.own');
+        Route::delete('crm-accounts/{account}', [CrmAccountController::class, 'destroy'])->name('crm-accounts.destroy')->middleware('permission:crm-accounts.destroy|crm-accounts.destroy.own');
+    });
 
     //Currencies:
-    Route::get('/currencies', [CurrencyController::class, 'index'])->name('currencies.index')->middleware('permission:currencies.index');
-    Route::get('/currencies/filtered-data', [CurrencyController::class, 'filteredData'])->name('currencies.filtered-data')->middleware('permission:currencies.index');
-    Route::get('/currencies/create', [CurrencyController::class, 'create'])->name('currencies.create')->middleware('permission:currencies.create');
-    Route::post('/currencies', [CurrencyController::class, 'store'])->name('currencies.store')->middleware('permission:currencies.create');
-    Route::get('/currencies/{currency}/edit', [CurrencyController::class, 'edit'])->name('currencies.edit')->middleware('permission:currencies.edit');
-    Route::put('/currencies/{currency}/update', [CurrencyController::class, 'update'])->name('currencies.update')->middleware('permission:currencies.update');
-    Route::delete('/currencies/{currency}', [CurrencyController::class, 'destroy'])->name('currencies.destroy')->middleware('permission:currencies.destroy');
-    Route::post('/currencies/status', [CurrencyController::class, 'status'])->name('currencies.status')->middleware('permission:currencies.status');
+    Route::middleware('module_setted:settings')->group(function (){
+        Route::get('/currencies', [CurrencyController::class, 'index'])->name('currencies.index')->middleware('permission:currencies.index');
+        Route::get('/currencies/filtered-data', [CurrencyController::class, 'filteredData'])->name('currencies.filtered-data')->middleware('permission:currencies.index');
+        Route::get('/currencies/create', [CurrencyController::class, 'create'])->name('currencies.create')->middleware('permission:currencies.create');
+        Route::post('/currencies', [CurrencyController::class, 'store'])->name('currencies.store')->middleware('permission:currencies.create');
+        Route::get('/currencies/{currency}/edit', [CurrencyController::class, 'edit'])->name('currencies.edit')->middleware('permission:currencies.edit');
+        Route::put('/currencies/{currency}/update', [CurrencyController::class, 'update'])->name('currencies.update')->middleware('permission:currencies.update');
+        Route::delete('/currencies/{currency}', [CurrencyController::class, 'destroy'])->name('currencies.destroy')->middleware('permission:currencies.destroy');
+        Route::post('/currencies/status', [CurrencyController::class, 'status'])->name('currencies.status')->middleware('permission:currencies.status');
+    });
 
     //Customers:
     Route::get('/customers', [CustomerProviderController::class, 'customers'])->name('customers.index')->middleware('permission:customers.index');
@@ -383,7 +427,9 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/delivery-patterns', [DeliveryPatternController::class, 'index'])->name('delivery-patterns.index')->middleware('permission:delivery-patterns.index');
 
     //Effects:
-    Route::get('/effects', [EffectController::class, 'index'])->name('effects.index')->middleware('permission:effects.index');
+    Route::middleware('module_setted:accounting')->group(function (){
+        Route::get('/effects', [EffectController::class, 'index'])->name('effects.index')->middleware('permission:effects.index');
+    });
 
     //Employees:
     Route::get('/employees', [EmployeeController::class, 'index'])->name('employees.index')->middleware('permission:employees.index');
@@ -399,12 +445,14 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index')->middleware('permission:expenses.index');
 
     //Functionalities:
-    Route::get('/functionalities', [FunctionalityController::class, 'index'])->name('functionalities.index')->middleware('permission:functionalities.index');
-    Route::get('/functionalities/filtered-data', [FunctionalityController::class, 'filteredData'])->name('functionalities.filtered-data')->middleware('permission:functionalities.index');
-    Route::post('/functionalities/store', [FunctionalityController::class, 'store'])->name('functionalities.store')->middleware('permission:functionalities.create');
-    Route::get('/functionalities/{functionality}/edit', [FunctionalityController::class, 'edit'])->name('functionalities.edit')->middleware('permission:functionalities.edit');
-    Route::put('/functionalities/{functionality}/update', [FunctionalityController::class, 'update'])->name('functionalities.update')->middleware('permission:functionalities.update');
-    Route::delete('/functionalities/{functionality}', [FunctionalityController::class, 'destroy'])->name('functionalities.destroy')->middleware('permission:functionalities.destroy');
+    Route::middleware('module_setted:settings')->group(function (){
+        Route::get('/functionalities', [FunctionalityController::class, 'index'])->name('functionalities.index')->middleware('permission:functionalities.index');
+        Route::get('/functionalities/filtered-data', [FunctionalityController::class, 'filteredData'])->name('functionalities.filtered-data')->middleware('permission:functionalities.index');
+        Route::post('/functionalities/store', [FunctionalityController::class, 'store'])->name('functionalities.store')->middleware('permission:functionalities.create');
+        Route::get('/functionalities/{functionality}/edit', [FunctionalityController::class, 'edit'])->name('functionalities.edit')->middleware('permission:functionalities.edit');
+        Route::put('/functionalities/{functionality}/update', [FunctionalityController::class, 'update'])->name('functionalities.update')->middleware('permission:functionalities.update');
+        Route::delete('/functionalities/{functionality}', [FunctionalityController::class, 'destroy'])->name('functionalities.destroy')->middleware('permission:functionalities.destroy');
+    });
 
     //Groups:
     Route::get('/groups', [GroupController::class, 'index'])->name('groups.index')->middleware('permission:groups.index');
@@ -413,39 +461,51 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index')->middleware('permission:inventory.index');
 
     //Invoice Patterns:
-    Route::get('/invoice-patterns', [InvoicePatternController::class, 'index'])->name('invoice-patterns.index')->middleware('permission:invoice-patterns.index');
+    Route::middleware('module_setted:accounting')->group(function (){
+        Route::get('/invoice-patterns', [InvoicePatternController::class, 'index'])->name('invoice-patterns.index')->middleware('permission:invoice-patterns.index');
+    });
 
     //Invoice Queries:
-    Route::get('/invoice-queries', [InvoiceQueryController::class, 'index'])->name('invoice-queries.index')->middleware('permission:invoice-queries.index');
+    Route::middleware('module_setted:accounting')->group(function (){
+        Route::get('/invoice-queries', [InvoiceQueryController::class, 'index'])->name('invoice-queries.index')->middleware('permission:invoice-queries.index');
+    });
 
     //Invoice Settings:
-    Route::get('/invoice-settings', [InvoiceSettingController::class, 'index'])->name('invoice-settings.index')->middleware('permission:invoice-settings.index');
+    Route::middleware('module_setted:accounting')->group(function (){
+        Route::get('/invoice-settings', [InvoiceSettingController::class, 'index'])->name('invoice-settings.index')->middleware('permission:invoice-settings.index');
+    });
 
     //Invoices:
-    Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index')->middleware('permission:invoices.index');
+    Route::middleware('module_setted:accounting')->group(function (){
+        Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index')->middleware('permission:invoices.index');
+    });
 
     //Iva Types:
-    Route::get('/iva-types', [IvaTypeController::class, 'index'])->name('iva-types.index')->middleware('permission:iva-types.index');
-    Route::get('/iva-types/filtered-data', [IvaTypeController::class, 'filteredData'])->name('iva-types.filtered-data')->middleware('permission:iva-types.index');
-    Route::get('/iva-types/create', [IvaTypeController::class, 'create'])->name('iva-types.create')->middleware('permission:iva-types.create');
-    Route::post('/iva-types/store', [IvaTypeController::class, 'store'])->name('iva-types.store')->middleware('permission:iva-types.create');
-    Route::get('/iva-types/{type}/edit', [IvaTypeController::class, 'edit'])->name('iva-types.edit')->middleware('permission:iva-types.edit');
-    Route::put('/iva-types/{type}/update', [IvaTypeController::class, 'update'])->name('iva-types.update')->middleware('permission:iva-types.update');
-    Route::delete('/iva-types/{type}', [IvaTypeController::class, 'destroy'])->name('iva-types.destroy')->middleware('permission:iva-types.destroy');
-    Route::post('iva-types/status', [IvaTypeController::class, 'status'])->name('iva-types.status')->middleware('permission:iva-types.edit');
+    Route::middleware('module_setted:settings')->group(function (){
+        Route::get('/iva-types', [IvaTypeController::class, 'index'])->name('iva-types.index')->middleware('permission:iva-types.index');
+        Route::get('/iva-types/filtered-data', [IvaTypeController::class, 'filteredData'])->name('iva-types.filtered-data')->middleware('permission:iva-types.index');
+        Route::get('/iva-types/create', [IvaTypeController::class, 'create'])->name('iva-types.create')->middleware('permission:iva-types.create');
+        Route::post('/iva-types/store', [IvaTypeController::class, 'store'])->name('iva-types.store')->middleware('permission:iva-types.create');
+        Route::get('/iva-types/{type}/edit', [IvaTypeController::class, 'edit'])->name('iva-types.edit')->middleware('permission:iva-types.edit');
+        Route::put('/iva-types/{type}/update', [IvaTypeController::class, 'update'])->name('iva-types.update')->middleware('permission:iva-types.update');
+        Route::delete('/iva-types/{type}', [IvaTypeController::class, 'destroy'])->name('iva-types.destroy')->middleware('permission:iva-types.destroy');
+        Route::post('iva-types/status', [IvaTypeController::class, 'status'])->name('iva-types.status')->middleware('permission:iva-types.edit');
+    });
 
     //Leads:
     Route::get('/leads', [CrmAccountController::class, 'index'])->name('leads.index')->middleware('permission:leads');
 
     //Modules:
-    Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index')->middleware('permission:modules.index');
-    Route::get('/modules/filtered-data', [ModuleController::class, 'filteredData'])->name('modules.filtered-data')->middleware('permission:modules.index');
-    Route::get('/modules/create', [ModuleController::class, 'create'])->name('modules.create')->middleware('permission:modules.create');
-    Route::post('/modules/store', [ModuleController::class, 'store'])->name('modules.store')->middleware('permission:modules.create');
-    Route::get('/modules/{module}/edit/{tab?}', [ModuleController::class, 'edit'])->name('modules.edit')->middleware('permission:modules.edit');
-    Route::put('/modules/{module}/update', [ModuleController::class, 'update'])->name('modules.update')->middleware('permission:modules.update');
-    Route::delete('/modules/{module}', [ModuleController::class, 'destroy'])->name('modules.destroy')->middleware('permission:modules.destroy');
-    Route::post('modules/status', [ModuleController::class, 'status'])->name('modules.status')->middleware('permission:modules.edit');
+    Route::middleware('module_setted:settings')->group(function (){
+        Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index')->middleware('permission:modules.index');
+        Route::get('/modules/filtered-data', [ModuleController::class, 'filteredData'])->name('modules.filtered-data')->middleware('permission:modules.index');
+        Route::get('/modules/create', [ModuleController::class, 'create'])->name('modules.create')->middleware('permission:modules.create');
+        Route::post('/modules/store', [ModuleController::class, 'store'])->name('modules.store')->middleware('permission:modules.create');
+        Route::get('/modules/{module}/edit/{tab?}', [ModuleController::class, 'edit'])->name('modules.edit')->middleware('permission:modules.edit');
+        Route::put('/modules/{module}/update', [ModuleController::class, 'update'])->name('modules.update')->middleware('permission:modules.update');
+        Route::delete('/modules/{module}', [ModuleController::class, 'destroy'])->name('modules.destroy')->middleware('permission:modules.destroy');
+        Route::post('modules/status', [ModuleController::class, 'status'])->name('modules.status')->middleware('permission:modules.edit');
+    });
 
     //Order Categories:
     Route::get('/order-categories', [OrderCategoriesController::class, 'index'])->name('order-categories.index')->middleware('permission:order-categories.index');
@@ -469,12 +529,14 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/payment-methods', [PaymentMethodController::class, 'index'])->name('payment-methods.index')->middleware('permission:payment-methods.index');
 
     //Permissions:
-    Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index')->middleware('permission:permissions.index');
-    Route::get('/permissions/filtered-data', [PermissionController::class, 'filteredData'])->name('permissions.filtered-data')->middleware('permission:permissions.index');
-    Route::get('/permissions/create', [PermissionController::class, 'create'])->name('permissions.create')->middleware('permission:permissions.create');
-    Route::post('/permissions/store', [PermissionController::class, 'store'])->name('permissions.store')->middleware('permission:permissions.create');
-    Route::get('/permissions/{permission}/edit', [PermissionController::class, 'edit'])->name('permissions.edit')->middleware('permission:permissions.edit');
-    Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->name('permissions.destroy')->middleware('permission:permissions.destroy');
+    Route::middleware('module_setted:settings')->group(function (){
+        Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index')->middleware('permission:permissions.index');
+        Route::get('/permissions/filtered-data', [PermissionController::class, 'filteredData'])->name('permissions.filtered-data')->middleware('permission:permissions.index');
+        Route::get('/permissions/create', [PermissionController::class, 'create'])->name('permissions.create')->middleware('permission:permissions.create');
+        Route::post('/permissions/store', [PermissionController::class, 'store'])->name('permissions.store')->middleware('permission:permissions.create');
+        Route::get('/permissions/{permission}/edit', [PermissionController::class, 'edit'])->name('permissions.edit')->middleware('permission:permissions.edit');
+        Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->name('permissions.destroy')->middleware('permission:permissions.destroy');
+    });
 
     //Planning:
     Route::get('/planning', [PlanningController::class, 'index'])->name('planning.index')->middleware('permission:planning.index');
@@ -486,26 +548,32 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/procedures', [ProcedureController::class, 'index'])->name('procedures.index')->middleware('permission:procedures.index');
 
     //Product Categories:
-    Route::get('/product-categories', [CategoryController::class, 'index'])->name('product-categories.index')->middleware('permission:product-categories.index');
+    Route::middleware('module_setted:accounting')->group(function (){
+        Route::get('/product-categories', [CategoryController::class, 'index'])->name('product-categories.index')->middleware('permission:product-categories.index');
+    });
 
     //Product Patterns:
-    Route::get('/product-patterns', [ProductPatternController::class, 'index'])->name('product-patterns.index')->middleware('permission:product-patterns.index');
-    Route::get('/product-patterns/filtered-data', [ProductPatternController::class, 'filteredData'])->name('product-patterns.filtered-data')->middleware('permission:product-patterns.index');
-    Route::get('/product-patterns/create', [ProductPatternController::class, 'create'])->name('product-patterns.create')->middleware('permission:product-patterns.create');
-    Route::post('/product-patterns/store', [ProductPatternController::class, 'store'])->name('product-patterns.store')->middleware('permission:product-patterns.create');
-    Route::get('/product-patterns/{pattern}/edit', [ProductPatternController::class, 'edit'])->name('product-patterns.edit')->middleware('permission:product-patterns.edit');
-    Route::put('/product-patterns/{pattern}', [ProductPatternController::class, 'update'])->name('product-patterns.update')->middleware('permission:product-patterns.update');
-    Route::delete('/product-patterns/{pattern}', [ProductPatternController::class, 'destroy'])->name('product-patterns.destroy')->middleware('permission:product-patterns.destroy');
-    Route::post('/product-patterns/status', [ProductPatternController::class, 'status'])->name('product-patterns.status')->middleware('permission:product-patterns.edit');
+    Route::middleware('module_setted:accounting')->group(function (){
+        Route::get('/product-patterns', [ProductPatternController::class, 'index'])->name('product-patterns.index')->middleware('permission:product-patterns.index');
+        Route::get('/product-patterns/filtered-data', [ProductPatternController::class, 'filteredData'])->name('product-patterns.filtered-data')->middleware('permission:product-patterns.index');
+        Route::get('/product-patterns/create', [ProductPatternController::class, 'create'])->name('product-patterns.create')->middleware('permission:product-patterns.create');
+        Route::post('/product-patterns/store', [ProductPatternController::class, 'store'])->name('product-patterns.store')->middleware('permission:product-patterns.create');
+        Route::get('/product-patterns/{pattern}/edit', [ProductPatternController::class, 'edit'])->name('product-patterns.edit')->middleware('permission:product-patterns.edit');
+        Route::put('/product-patterns/{pattern}', [ProductPatternController::class, 'update'])->name('product-patterns.update')->middleware('permission:product-patterns.update');
+        Route::delete('/product-patterns/{pattern}', [ProductPatternController::class, 'destroy'])->name('product-patterns.destroy')->middleware('permission:product-patterns.destroy');
+        Route::post('/product-patterns/status', [ProductPatternController::class, 'status'])->name('product-patterns.status')->middleware('permission:product-patterns.edit');
+    });
 
     //Products:
-    Route::get('/products', [ProductController::class, 'index'])->name('products.index')->middleware('permission:products.index');
-    Route::get('/products/filtered-data', [ProductController::class, 'filteredData'])->name('products.filtered-data')->middleware('permission:products.index');
-    Route::get('/products/create', [ProductController::class, 'create'])->name('products.create')->middleware('permission:products.create');
-    Route::post('/products/store', [ProductController::class, 'store'])->name('products.store')->middleware('permission:products.create');
-    Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit')->middleware('permission:products.edit');
-    Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy')->middleware('permission:products.destroy');
-    Route::post('/products/status', [ProductController::class, 'status'])->name('products.status')->middleware('permission:products.edit');
+    Route::middleware('module_setted:accounting')->group(function (){
+        Route::get('/products', [ProductController::class, 'index'])->name('products.index')->middleware('permission:products.index');
+        Route::get('/products/filtered-data', [ProductController::class, 'filteredData'])->name('products.filtered-data')->middleware('permission:products.index');
+        Route::get('/products/create', [ProductController::class, 'create'])->name('products.create')->middleware('permission:products.create');
+        Route::post('/products/store', [ProductController::class, 'store'])->name('products.store')->middleware('permission:products.create');
+        Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit')->middleware('permission:products.edit');
+        Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy')->middleware('permission:products.destroy');
+        Route::post('/products/status', [ProductController::class, 'status'])->name('products.status')->middleware('permission:products.edit');
+    });
 
     //Project Categories:
     Route::get('/project-categories', [CategoryController::class, 'index'])->name('project-categories.index')->middleware('permission:project-categories.index');
@@ -520,23 +588,27 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/protocols', [ProtocolController::class, 'index'])->name('protocols.index')->middleware('permission:protocols.index');
 
     //Providers:
-    Route::get('/providers', [CustomerProviderController::class, 'providers'])->name('providers.index')->middleware('permission:providers.index');
-    Route::get('providers/create', [CustomerProviderController::class, 'create'])->name('providers.create')->defaults('side', 'providers')->middleware('permission:providers.create');
-    Route::post('providers', [CustomerProviderController::class, 'store'])->name('providers.store')->middleware('permission:providers.create');
-    Route::get('providers/{cp}', [CustomerProviderController::class, 'show'])->name('providers.show')->middleware('permission:providers.show');
-    Route::get('providers/{cp}/edit', [CustomerProviderController::class, 'edit'])->name('providers.edit')->middleware('permission:providers.edit');
-    Route::put('providers/{cp}', [CustomerProviderController::class, 'update'])->name('providers.update')->middleware('permission:providers.update');
-    Route::delete('providers/{cp}', [CustomerProviderController::class, 'destroy'])->name('providers.destroy')->middleware('permission:providers.destroy');
+    Route::middleware('module_setted:companies')->group(function (){
+        Route::get('/providers', [CustomerProviderController::class, 'providers'])->name('providers.index')->middleware('permission:providers.index');
+        Route::get('providers/create', [CustomerProviderController::class, 'create'])->name('providers.create')->defaults('side', 'providers')->middleware('permission:providers.create');
+        Route::post('providers', [CustomerProviderController::class, 'store'])->name('providers.store')->middleware('permission:providers.create');
+        Route::get('providers/{cp}', [CustomerProviderController::class, 'show'])->name('providers.show')->middleware('permission:providers.show');
+        Route::get('providers/{cp}/edit', [CustomerProviderController::class, 'edit'])->name('providers.edit')->middleware('permission:providers.edit');
+        Route::put('providers/{cp}', [CustomerProviderController::class, 'update'])->name('providers.update')->middleware('permission:providers.update');
+        Route::delete('providers/{cp}', [CustomerProviderController::class, 'destroy'])->name('providers.destroy')->middleware('permission:providers.destroy');
+    });
 
     //Provinces:
-    Route::get('/provinces/{country}', [ProvinceController::class, 'index'])->name('provinces.index')->middleware('permission:provinces.index');
-    Route::get('/provinces/filtered-data/{country}', [ProvinceController::class, 'filteredData'])->name('provinces.filtered-data')->middleware('permission:provinces.index');
-    Route::get('/provinces/{country}/create', [ProvinceController::class, 'create'])->name('provinces.create')->middleware('permission:provinces.create');
-    Route::post('/provinces', [ProvinceController::class, 'store'])->name('provinces.store')->middleware('permission:provinces.create');
-    Route::get('/provinces/{province}/edit', [ProvinceController::class, 'edit'])->name('provinces.edit')->middleware('permission:provinces.edit');
-    Route::put('/provinces/{province}', [ProvinceController::class, 'update'])->name('provinces.update')->middleware('permission:provinces.update');
-    Route::delete('/provinces/{province}', [ProvinceController::class, 'destroy'])->name('provinces.destroy')->middleware('permission:provinces.destroy');
-    Route::post('/provinces/status', [ProvinceController::class, 'status'])->name('provinces.status')->middleware('permission:provinces.edit');
+    Route::middleware('module_setted:settings')->group(function (){
+        Route::get('/provinces/{country}', [ProvinceController::class, 'index'])->name('provinces.index')->middleware('permission:provinces.index');
+        Route::get('/provinces/filtered-data/{country}', [ProvinceController::class, 'filteredData'])->name('provinces.filtered-data')->middleware('permission:provinces.index');
+        Route::get('/provinces/{country}/create', [ProvinceController::class, 'create'])->name('provinces.create')->middleware('permission:provinces.create');
+        Route::post('/provinces', [ProvinceController::class, 'store'])->name('provinces.store')->middleware('permission:provinces.create');
+        Route::get('/provinces/{province}/edit', [ProvinceController::class, 'edit'])->name('provinces.edit')->middleware('permission:provinces.edit');
+        Route::put('/provinces/{province}', [ProvinceController::class, 'update'])->name('provinces.update')->middleware('permission:provinces.update');
+        Route::delete('/provinces/{province}', [ProvinceController::class, 'destroy'])->name('provinces.destroy')->middleware('permission:provinces.destroy');
+        Route::post('/provinces/status', [ProvinceController::class, 'status'])->name('provinces.status')->middleware('permission:provinces.edit');
+    });
 
     //Purchase Patterns:
     Route::get('/purchase-patterns', [PurchasePatternController::class, 'index'])->name('purchase-patterns.index')->middleware('permission:purchase-patterns.index');
@@ -551,18 +623,22 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/remittance-patterns', [RemittancePatternController::class, 'index'])->name('remittance-patterns.index')->middleware('permission:remittance-patterns.index');
 
     //Remittances:
-    Route::get('/remittances', [RemittanceController::class, 'index'])->name('remittances.index')->middleware('permission:remittances.index');
+    Route::middleware('module_setted:accounting')->group(function (){
+        Route::get('/remittances', [RemittanceController::class, 'index'])->name('remittances.index')->middleware('permission:remittances.index');
+    });
 
     //Roles:
-    Route::get('/roles', [RoleController::class, 'index'])->name('roles.index')->middleware('permission:roles.index');
-    Route::get('/roles/filtered-data', [RoleController::class, 'filteredData'])->name('roles.filtered-data')->middleware('permission:roles.index');
-    Route::get('/roles/create', [RoleController::class, 'create'])->name('roles.create')->middleware('permission:roles.create');
-    Route::post('/roles', [RoleController::class, 'store'])->name('roles.store')->middleware('permission:roles.create');
-    Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->name('roles.edit')->middleware('permission:roles.edit');
-    Route::put('/roles/{role}/update', [RoleController::class, 'update'])->name('roles.update')->middleware('permission:roles.update');
-    Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy')->middleware('permission:roles.destroy');
-    Route::post('/roles/{role}/set-permission', [RoleController::class, 'setPermission'])->name('roles.set-permission')->middleware('permission:roles.update');
-    Route::post('/roles/{role}/set-multiple-permissions', [RoleController::class, 'setMultiplePermissions'])->name('roles.set-multiple-permissions')->middleware('permission:roles.update');
+    Route::middleware('module_setted:settings')->group(function (){
+        Route::get('/roles', [RoleController::class, 'index'])->name('roles.index')->middleware('permission:roles.index');
+        Route::get('/roles/filtered-data', [RoleController::class, 'filteredData'])->name('roles.filtered-data')->middleware('permission:roles.index');
+        Route::get('/roles/create', [RoleController::class, 'create'])->name('roles.create')->middleware('permission:roles.create');
+        Route::post('/roles', [RoleController::class, 'store'])->name('roles.store')->middleware('permission:roles.create');
+        Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->name('roles.edit')->middleware('permission:roles.edit');
+        Route::put('/roles/{role}/update', [RoleController::class, 'update'])->name('roles.update')->middleware('permission:roles.update');
+        Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy')->middleware('permission:roles.destroy');
+        Route::post('/roles/{role}/set-permission', [RoleController::class, 'setPermission'])->name('roles.set-permission')->middleware('permission:roles.update');
+        Route::post('/roles/{role}/set-multiple-permissions', [RoleController::class, 'setMultiplePermissions'])->name('roles.set-multiple-permissions')->middleware('permission:roles.update');
+    });
 
     //Sat:
     Route::get('/sat', [SatController::class, 'index'])->name('sat.index')->middleware('permission:sat.index');
@@ -577,29 +653,39 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/schedules', [ScheduleController::class, 'index'])->name('schedules.index')->middleware('permission:schedules.index');
 
     //Seats:
-    Route::get('/seats', [SeatController::class, 'index'])->name('seats.index')->middleware('permission:seats.index');
+    Route::middleware('module_setted:accounting')->group(function (){
+        Route::get('/seats', [SeatController::class, 'index'])->name('seats.index')->middleware('permission:seats.index');
+    });
 
     //Shipment Patterns:
-    Route::get('/shipment-patterns', [ShipmentPatternController::class, 'index'])->name('shipment-patterns.index')->middleware('permission:shipment-patterns.index');
+    Route::middleware('module_setted:logistics')->group(function (){
+        Route::get('/shipment-patterns', [ShipmentPatternController::class, 'index'])->name('shipment-patterns.index')->middleware('permission:shipment-patterns.index');
+    });
 
     //Shipments:
-    Route::get('/shipments', [ShipmentController::class, 'index'])->name('shipments.index')->middleware('permission:shipments.index');
+    Route::middleware('module_setted:logistics')->group(function (){
+        Route::get('/shipments', [ShipmentController::class, 'index'])->name('shipments.index')->middleware('permission:shipments.index');
+    });
 
     //Staff Picks:
     Route::get('/staff-pick', [StaffPickController::class, 'index'])->name('staff-pick.index')->middleware('permission:staff-pick.index');
 
     //Stock Movements:
-    Route::get('/stock-movements', [StockMovementController::class, 'index'])->name('stock-movements.index')->middleware('permission:stock-movements.index');
-    Route::get('/stock-movements/filtered-data', [StockMovementController::class, 'filteredData'])->name('stock-movements.filtered-data')->middleware('permission:stock-movements.index');
-    Route::get('/stock-movements/create', [StockMovementController::class, 'create'])->name('stock-movements.create')->middleware('permission:stock-movements.create');
-    Route::post('/stock-movements/store', [StockMovementController::class, 'store'])->name('stock-movements.store')->middleware('permission:stock-movements.create');
-    Route::get('/stock-movements/{movement}/edit', [StockMovementController::class, 'edit'])->name('stock-movements.edit')->middleware('permission:stock-movements.edit');
-    Route::put('/stock-movements/{movement}/update', [StockMovementController::class, 'update'])->name('stock-movements.update')->middleware('permission:stock-movements.update');
-    Route::delete('/stock-movements/{movement}', [StockMovementController::class, 'destroy'])->name('stock-movements.destroy')->middleware('permission:stock-movements.destroy');
-    Route::post('stock-movements/status', [StockMovementController::class, 'status'])->name('stock-movements.status')->middleware('permission:stock-movements.edit');
+    Route::middleware('module_setted:stocks')->group(function (){
+        Route::get('/stock-movements', [StockMovementController::class, 'index'])->name('stock-movements.index')->middleware('permission:stock-movements.index');
+        Route::get('/stock-movements/filtered-data', [StockMovementController::class, 'filteredData'])->name('stock-movements.filtered-data')->middleware('permission:stock-movements.index');
+        Route::get('/stock-movements/create', [StockMovementController::class, 'create'])->name('stock-movements.create')->middleware('permission:stock-movements.create');
+        Route::post('/stock-movements/store', [StockMovementController::class, 'store'])->name('stock-movements.store')->middleware('permission:stock-movements.create');
+        Route::get('/stock-movements/{movement}/edit', [StockMovementController::class, 'edit'])->name('stock-movements.edit')->middleware('permission:stock-movements.edit');
+        Route::put('/stock-movements/{movement}/update', [StockMovementController::class, 'update'])->name('stock-movements.update')->middleware('permission:stock-movements.update');
+        Route::delete('/stock-movements/{movement}', [StockMovementController::class, 'destroy'])->name('stock-movements.destroy')->middleware('permission:stock-movements.destroy');
+        Route::post('stock-movements/status', [StockMovementController::class, 'status'])->name('stock-movements.status')->middleware('permission:stock-movements.edit');
+    });
 
     //Stocks:
-    Route::get('/stocks', [StockController::class, 'index'])->name('stocks.index')->middleware('permission:stocks.index');
+    Route::middleware('module_setted:stocks')->group(function (){
+        Route::get('/stocks', [StockController::class, 'index'])->name('stocks.index')->middleware('permission:stocks.index');
+    });
 
     //Stores:
     Route::get('/stores', [StoreController::class, 'index'])->name('stores.index')->middleware('permission:stores.index');
@@ -608,14 +694,16 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/teams', [TeamController::class, 'index'])->name('teams.index')->middleware('permission:teams.index');
 
     //Towns:
-    Route::get('/towns/{province}', [TownController::class, 'index'])->name('towns.index')->middleware('permission:towns.index');
-    Route::get('/towns/filtered-data/{province}', [TownController::class, 'filteredData'])->name('towns.filtered-data')->middleware('permission:towns.index');
-    Route::get('/towns/{province}/create', [TownController::class, 'create'])->name('towns.create')->middleware('permission:towns.create');
-    Route::post('/towns', [TownController::class, 'store'])->name('towns.store')->middleware('permission:towns.create');
-    Route::get('/towns/{town}/edit', [TownController::class, 'edit'])->name('towns.edit')->middleware('permission:towns.edit');
-    Route::put('/towns/{town}', [TownController::class, 'update'])->name('towns.update')->middleware('permission:towns.update');
-    Route::delete('/towns/{town}', [TownController::class, 'destroy'])->name('towns.destroy')->middleware('permission:towns.destroy');
-    Route::post('/towns/status', [TownController::class, 'status'])->name('towns.status')->middleware('permission:towns.edit');
+    Route::middleware('module_setted:settings')->group(function (){
+        Route::get('/towns/{province}', [TownController::class, 'index'])->name('towns.index')->middleware('permission:towns.index');
+        Route::get('/towns/filtered-data/{province}', [TownController::class, 'filteredData'])->name('towns.filtered-data')->middleware('permission:towns.index');
+        Route::get('/towns/{province}/create', [TownController::class, 'create'])->name('towns.create')->middleware('permission:towns.create');
+        Route::post('/towns', [TownController::class, 'store'])->name('towns.store')->middleware('permission:towns.create');
+        Route::get('/towns/{town}/edit', [TownController::class, 'edit'])->name('towns.edit')->middleware('permission:towns.edit');
+        Route::put('/towns/{town}', [TownController::class, 'update'])->name('towns.update')->middleware('permission:towns.update');
+        Route::delete('/towns/{town}', [TownController::class, 'destroy'])->name('towns.destroy')->middleware('permission:towns.destroy');
+        Route::post('/towns/status', [TownController::class, 'status'])->name('towns.status')->middleware('permission:towns.edit');
+    });
 
     //Units:
     Route::get('/units', [UnitController::class, 'index'])->name('units.index')->middleware('permission:units.index');
@@ -627,7 +715,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::delete('/units/{unit}', [UnitController::class, 'destroy'])->name('units.destroy')->middleware('permission:units.destroy');
     Route::post('units/status', [UnitController::class, 'status'])->name('units.status')->middleware('permission:units.edit');
 
-    //User Column Preferences:  No requirere permisos.
+    //User Column Preferences:  No requiere permisos.
     Route::get('/column-preferences', [UserColumnPreferenceController::class, 'index'])->name('column-preferences.index');
     Route::post('/column-preferences', [UserColumnPreferenceController::class, 'store'])->name('column-preferences.store');
 
@@ -656,15 +744,17 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/work-orders', [WorkOrderController::class, 'index'])->name('work-orders.index')->middleware('permission:work-orders.index');
 
     //Workplaces:
-    Route::get('/workplaces', [WorkplaceController::class, 'index'])->name('workplaces.index')->middleware('permission:workplaces.index');
-    Route::get('/workplaces/filtered-data', [WorkplaceController::class, 'filteredData'])->name('workplaces.filtered-data')->middleware('permission:workplaces.index');
-    Route::get('/workplaces/create', [WorkplaceController::class, 'create'])->name('workplaces.create')->middleware('permission:workplaces.create');
-    Route::post('/workplaces/store', [WorkplaceController::class, 'store'])->name('workplaces.store')->middleware('permission:workplaces.create');
-    Route::get('/workplaces/{workplace}/edit', [WorkplaceController::class, 'edit'])->name('workplaces.edit')->middleware('permission:workplaces.edit');
-    Route::put('/workplaces/{workplace}/update', [WorkplaceController::class, 'update'])->name('workplaces.update')->middleware('permission:workplaces.update');
-    Route::delete('/workplaces/{workplace}', [WorkplaceController::class, 'destroy'])->name('workplaces.destroy')->middleware('permission:workplaces.destroy');
-    Route::delete('/workplaces/{workplace}/logo', [WorkplaceController::class, 'deleteLogo'])->name('workplaces.logo.delete')->middleware('permission:workplaces.edit');
-    Route::post('workplaces/status', [WorkplaceController::class, 'status'])->name('workplaces.status')->middleware('permission:workplaces.edit');
+    Route::middleware('module_setted:companies')->group(function (){
+        Route::get('/workplaces', [WorkplaceController::class, 'index'])->name('workplaces.index')->middleware('permission:workplaces.index');
+        Route::get('/workplaces/filtered-data', [WorkplaceController::class, 'filteredData'])->name('workplaces.filtered-data')->middleware('permission:workplaces.index');
+        Route::get('/workplaces/create', [WorkplaceController::class, 'create'])->name('workplaces.create')->middleware('permission:workplaces.create');
+        Route::post('/workplaces/store', [WorkplaceController::class, 'store'])->name('workplaces.store')->middleware('permission:workplaces.create');
+        Route::get('/workplaces/{workplace}/edit', [WorkplaceController::class, 'edit'])->name('workplaces.edit')->middleware('permission:workplaces.edit');
+        Route::put('/workplaces/{workplace}/update', [WorkplaceController::class, 'update'])->name('workplaces.update')->middleware('permission:workplaces.update');
+        Route::delete('/workplaces/{workplace}', [WorkplaceController::class, 'destroy'])->name('workplaces.destroy')->middleware('permission:workplaces.destroy');
+        Route::delete('/workplaces/{workplace}/logo', [WorkplaceController::class, 'deleteLogo'])->name('workplaces.logo.delete')->middleware('permission:workplaces.edit');
+        Route::post('workplaces/status', [WorkplaceController::class, 'status'])->name('workplaces.status')->middleware('permission:workplaces.edit');
+    });
 });
 
 Route::middleware('auth')->group(function(){

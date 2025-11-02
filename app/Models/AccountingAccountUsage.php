@@ -1,173 +1,108 @@
 <?php
-// app/Models/AccountingAccountUsage.php
 
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class AccountingAccountUsage extends Model{
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
 
     protected $table = 'accounting_account_usages';
-    protected $guarded = [];
 
-    protected $casts = [
-        'is_default' => 'boolean',
+    // Evita “string mágicos” en todo el código
+    public const SIDE_OUTPUT = 'output'; // Repercutido
+    public const SIDE_INPUT  = 'input';  // Soportado
+
+    protected $fillable = [
+        'company_id',
+        'account_id',          // tu columna se llama account_id (no accounting_account_id)
+        'usage_code',
+        'context_type',
+        'context_id',
+        'is_default',
+        'notes',
+        'context_key',
+        'iva_type_id',
+        'side',
+        'locked',
+        'created_by',
+        'updated_by',
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | Relaciones
-    |--------------------------------------------------------------------------
-    */
-    public function company()
-    {
-        return $this->belongsTo(Company::class);
-    }
+    protected $casts = [
+        'is_default' => 'bool',
+        'locked'     => 'bool',
+    ];
+
+    /* --------------------------------
+     | Relaciones
+     | -------------------------------*/
 
     public function account()
     {
+        // Ajusta el namespace si tu modelo se llama distinto
         return $this->belongsTo(AccountingAccount::class, 'account_id');
     }
 
-    // Polimórfica al “contexto”: cliente, proveedor, banco, etc.
+    public function ivaType()
+    {
+        return $this->belongsTo(IvaType::class, 'iva_type_id');
+    }
+
+    // Por si usas el usage en otros contextos (polimórfico opcional)
     public function context()
     {
         return $this->morphTo(__FUNCTION__, 'context_type', 'context_id');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Scopes
-    |--------------------------------------------------------------------------
-    */
-    public function scopeForCompany(Builder $q, $companyId)
+    /* --------------------------------
+     | Scopes útiles
+     | -------------------------------*/
+
+    public function scopeCompany($query, int $companyId)
     {
-        return $q->where('company_id', $companyId);
+        return $query->where('company_id', $companyId);
     }
 
-    public function scopeUsage(Builder $q, string $usageCode)
+    public function scopeSide($query, string $side)
     {
-        return $q->where('usage_code', $usageCode);
+        return $query->where('side', $side);
     }
 
-    public function scopeGlobal(Builder $q)
+    public function scopeIva($query, $ivaTypeId)
     {
-        return $q->whereNull('context_type')->whereNull('context_id');
+        return $query->where('iva_type_id', $ivaTypeId);
     }
 
-    public function scopeForContext(Builder $q, $model)
-    {
-        if (!$model) {
-            return $q->whereNull('context_type')->whereNull('context_id');
-        }
-        return $q->where('context_type', get_class($model))
-                 ->where('context_id', $model->getKey());
-    }
+    public function scopeForIvaSet($query, $ivaTypeIds){
+        $ids = collect($ivaTypeIds)
+        ->map(function ($v) {
+            if (is_array($v))  return $v['id'] ?? null;
+            if (is_object($v)) return $v->id ?? null;
+            return $v;
+        })
+        ->filter()
+        ->unique()
+        ->values()
+        ->all();
 
-    public function scopeDefault(Builder $q)
-    {
-        return $q->where('is_default', true);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Helpers
-    |--------------------------------------------------------------------------
-    */
-
-    /**
-     * Resuelve la cuenta para un uso concreto dentro de una empresa y un contexto opcional.
-     * Prioriza:
-     *  1) Uso por contexto (cliente/proveedor/banco) marcado como default
-     *  2) Uso por contexto cualquiera
-     *  3) Uso global por empresa (sin contexto) default
-     *  4) Uso global cualquiera
-     */
-    public static function resolveAccountId(int $companyId, string $usageCode, $contextModel = null): ?int
-    {
-        // 1 y 2: contexto
-        if ($contextModel) {
-            $base = static::query()
-                ->forCompany($companyId)
-                ->usage($usageCode)
-                ->forContext($contextModel)
-                ->orderByDesc('is_default')
-                ->orderBy('id');
-
-            $row = $base->first();
-            if ($row) return $row->account_id;
+        if (empty($ids)) {
+            // nada que buscar; evita whereIn([]) según el driver
+            return $query->whereRaw('1 = 0');
         }
 
-        // 3 y 4: global
-        $row = static::query()
-            ->forCompany($companyId)
-            ->usage($usageCode)
-            ->global()
-            ->orderByDesc('is_default')
-            ->orderBy('id')
-            ->first();
-
-        return $row ? $row->account_id : null;
+        return $query->whereIn('iva_type_id', $ids);
     }
 
-    /**
-     * Asigna o sustituye la cuenta para un uso y contexto.
-     * Respeta la unicidad (company, usage_code, context_key) definida en BD.
-     */
-    public static function setUsage(int $companyId, string $usageCode, int $accountId, $contextModel = null, bool $isDefault = true, ?string $notes = null): self
-    {
-        $attrs = [
-            'company_id' => $companyId,
-            'usage_code' => $usageCode,
-            'account_id' => $accountId,
-            'is_default' => $isDefault,
-            'notes'      => $notes,
-        ];
-
-        if ($contextModel) {
-            $attrs['context_type'] = get_class($contextModel);
-            $attrs['context_id']   = $contextModel->getKey();
-        } else {
-            $attrs['context_type'] = null;
-            $attrs['context_id']   = null;
-        }
-
-        // Upsert manual por la clave única lógica
-        $existing = static::query()
-            ->forCompany($companyId)
-            ->usage($usageCode)
-            ->when($contextModel, function (Builder $q) use ($contextModel) {
-                $q->forContext($contextModel);
-            }, function (Builder $q) {
-                $q->whereNull('context_type')->whereNull('context_id');
-            })
-            ->first();
-
-        if ($existing) {
-            $existing->fill($attrs)->save();
-            return $existing;
-        }
-
-        return static::create($attrs);
-    }
-
-    /**
-     * Elimina el uso definido.
-     */
-    public static function clearUsage(int $companyId, string $usageCode, $contextModel = null): void
-    {
-        $q = static::query()->forCompany($companyId)->usage($usageCode);
-
-        if ($contextModel) {
-            $q->forContext($contextModel);
-        } else {
-            $q->whereNull('context_type')->whereNull('context_id');
-        }
-
-        $q->delete();
+    protected static function booted(){
+        static::saving(function (self $m) {
+            // Si es un usage de IVA y falta el espejo, complétalo
+            if ($m->usage_code === 'iva' && $m->context_type === \App\Models\IvaType::class) {
+                if (empty($m->iva_type_id)) {
+                    $m->iva_type_id = $m->context_id ?: null;
+                }
+            }
+        });
     }
 }

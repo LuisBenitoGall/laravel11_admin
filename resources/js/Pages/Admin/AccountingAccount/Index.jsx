@@ -30,7 +30,7 @@ export default function Index({ auth, session, title, subtitle, accounts, queryP
         { key: 'code', label: __('cuenta'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('codigo_filtrar') },
 		{ key: 'name', label: __('nombre'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_filtrar') },
         { key: 'company', label: __('empresa'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('empresa_filtrar') },
-        { key: 'type', label: __('tipo'), sort: true, filter: 'text', class_th: 'text-center', class_td: 'text-center', placeholder: __('tipo_filtrar') },
+        { key: 'nature', label: __('tipo_contable'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('tipo_filtrar') },
     ];
 
     //Métodos de la tabla:
@@ -53,7 +53,7 @@ export default function Index({ auth, session, title, subtitle, accounts, queryP
         indexRoute: 'accounting-accounts.index',
         destroyRoute: 'accounting-accounts.destroy',
         filteredDataRoute: 'accounting-accounts.filtered-data',
-        labelName: 'cuentas_contables',
+        labelName: 'cuenta_contable',
         queryParams
     });	
 
@@ -68,148 +68,157 @@ export default function Index({ auth, session, title, subtitle, accounts, queryP
         });
     }
 
-    return (
-            <AdminAuthenticatedLayout
-                user={auth.user}
-                title={title}
-                subtitle={subtitle}
-                actions={actions}
-            >
-                <Head title={title} />
-    
-                <div className="contents">
-                    <div className="row">
-                        <div className="controls d-flex align-items-center">
-                            <ColumnFilter columns={columns} visibleColumns={visibleColumns} toggleColumn={toggleColumnVisibility} />
-                            <RecordsPerPage perPage={perPage} setPerPage={setPerPage} />
-                            <TableExporter filename={ __('unidades') } columns={columns} fetchData={filteredData}/>
-                        </div>
-                    </div>
-
-                    {/* Tabla */}
-                    <div className="table-responsive">
-                        <Table className="table table-nowrap table-striped align-middle mb-0" id="tblAccountingAccounts">
-                            <thead>
-                                <tr>
-                                    {columns.map(col => (
-                                        <th key={col.key} className={`${col.class_th ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}>
-                                            {__(col.label)}
-                                            {col.sort && (
-                                                <SortControl
-                                                    name={col.key}
-                                                    sortable={true}
-                                                    sort_field={queryParams.sort_field}
-                                                    sort_direction={queryParams.sort_direction}
-                                                    sortChanged={sortChanged}
-                                                />
-                                            )}
-                                        </th>
-                                    ))}
-                                    <th className="text-center">{ __('acciones') }</th>
-                                </tr>
-                            </thead>
-    
-                            <FilterRow
-                                columns={columns}
-                                queryParams={queryParams}
-                                visibleColumns={visibleColumns}
-                                SearchFieldChanged={SearchFieldChanged}
-                            />
-    
-                            <tbody>
-                                {accounts.data.map((account) => (
-                                    <tr key={"account-"+account.id}>	
-                                        {columns.map(col => (
-                                            <td key={col.key} className={`${col.class_td ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}>
-                                                {renderCellContent(account[col.key], col, account)}
-                                            </td>
-                                        ))}
-    
-                                        {/* Acciones */}
-                                        <td className="text-end">
-                                            {/* Activa - inactiva */}
-                                            {/* {permissions?.['accounting-account-types.edit'] && (
-                                                <OverlayTrigger
-                                                    key={"status-"+type.id}
-                                                    placement="top"
-                                                    overlay={
-                                                        <Tooltip className="ttp-top">
-                                                            { type.status == 1 ? __('unidad_activa') : __('unidad_inactiva') }
-                                                        </Tooltip>
-                                                    }
-                                                >
-                                                    <StatusButton 
-                                                        status={type.status} 
-                                                        id={type.id} 
-                                                        updateRoute='accounting-account-types.status'
-                                                        reloadUrl={route('accounting-account-types.index')}
-  													    reloadResource="accounting-account-types"
-                                                    />
-                                                </OverlayTrigger>
-                                            )} */}
-    
-                                            {/* Editar */}
-                                            {permissions?.['accounting-accounts.edit'] && (
-                                                <OverlayTrigger
-                                                    key={"edit-"+type.id}
-                                                    placement="top"
-                                                    overlay={
-                                                        <Tooltip className="ttp-top">
-                                                            { __('editar') }
-                                                        </Tooltip>
-                                                    }
-                                                >
-                                                    <Link href={route('accounting-accounts.edit', account.id)} className="btn btn-sm btn-info ms-1" >
-                                                        <i className="la la-edit"></i>
-                                                    </Link>
-                                                </OverlayTrigger>
-                                            )}
-    
-                                            {/* Eliminar */}
-                                            {permissions?.['accounting-accounts.destroy'] && (
-                                                <OverlayTrigger
-                                                    key={"delete-"+account.id}
-                                                    placement="top"
-                                                    overlay={
-                                                        <Tooltip className="ttp-top">
-                                                            { __('eliminar') }
-                                                        </Tooltip>
-                                                    }
-                                                >
-                                                    <span>
-                                                        <button
-                                                            type="button"
-                                                            className="btn btn-sm btn-danger ms-1"
-                                                            onClick={() => handleDelete(type.id)}
-                                                        >
-                                                            <i className="la la-trash"></i>
-                                                        </button>
-                                                    </span>
-                                                </OverlayTrigger>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </Table>
-                    </div>
-
-                    <Pagination
-                        links={accounts.meta.links}
-                        totalRecords={accounts.meta.total}
-                        currentPage={accounts.meta.current_page}
-                        perPage={accounts.meta.per_page}
-                        onPageChange={(page) => {
-                            router.get(route("accounting-accounts.index"), {
-                                ...queryParams,
-                                page,
-                                per_page: perPage,
-                                sort_field: sortParams.sort_field,
-                                sort_direction: sortParams.sort_direction,
-                            }, { preserveState: true });
-                        }}
-                    />
-                </div>
-            </AdminAuthenticatedLayout>
-        );
+    if (permissions?.['accounting-accounts.index']) {
+        actions.push({
+            text: __('cuentas_iva'),
+            icon: 'la-file-invoice-dollar',
+            url: 'accounting-accounts.iva-accounts',
+            modal: false
+        });
     }
+
+    return (
+        <AdminAuthenticatedLayout
+            user={auth.user}
+            title={title}
+            subtitle={subtitle}
+            actions={actions}
+        >
+            <Head title={title} />
+
+            <div className="contents">
+                <div className="row">
+                    <div className="controls d-flex align-items-center">
+                        <ColumnFilter columns={columns} visibleColumns={visibleColumns} toggleColumn={toggleColumnVisibility} />
+                        <RecordsPerPage perPage={perPage} setPerPage={setPerPage} />
+                        <TableExporter filename={ __('unidades') } columns={columns} fetchData={filteredData}/>
+                    </div>
+                </div>
+
+                {/* Tabla */}
+                <div className="table-responsive">
+                    <Table className="table table-nowrap table-striped align-middle mb-0" id="tblAccountingAccounts">
+                        <thead>
+                            <tr>
+                                {columns.map(col => (
+                                    <th key={col.key} className={`${col.class_th ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}>
+                                        {__(col.label)}
+                                        {col.sort && (
+                                            <SortControl
+                                                name={col.key}
+                                                sortable={true}
+                                                sort_field={queryParams.sort_field}
+                                                sort_direction={queryParams.sort_direction}
+                                                sortChanged={sortChanged}
+                                            />
+                                        )}
+                                    </th>
+                                ))}
+                                <th className="text-center">{ __('acciones') }</th>
+                            </tr>
+                        </thead>
+
+                        <FilterRow
+                            columns={columns}
+                            queryParams={queryParams}
+                            visibleColumns={visibleColumns}
+                            SearchFieldChanged={SearchFieldChanged}
+                        />
+
+                        <tbody>
+                            {accounts.data.map((account) => (
+                                <tr key={"account-"+account.id}>	
+                                    {columns.map(col => (
+                                        <td key={col.key} className={`${col.class_td ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}>
+                                            {renderCellContent(account[col.key], col, account)}
+                                        </td>
+                                    ))}
+
+                                    {/* Acciones */}
+                                    <td className="text-end">
+                                        {/* Activa - inactiva */}
+                                        {permissions?.['accounting-accounts.edit'] && (
+                                            <OverlayTrigger
+                                                key={"status-"+account.id}
+                                                placement="top"
+                                                overlay={
+                                                    <Tooltip className="ttp-top">
+                                                        { account.status == 1 ? __('cuenta_activa') : __('cuenta_inactiva') }
+                                                    </Tooltip>
+                                                }
+                                            >
+                                                <StatusButton 
+                                                    status={account.status} 
+                                                    id={account.id} 
+                                                    updateRoute='accounting-accounts.status'
+                                                    reloadUrl={route('accounting-accounts.index')}
+                                                    reloadResource="accounting-accounts"
+                                                />
+                                            </OverlayTrigger>
+                                        )}
+
+                                        {/* Editar */}
+                                        {permissions?.['accounting-accounts.edit'] && (
+                                            <OverlayTrigger
+                                                key={"edit-"+account.id}
+                                                placement="top"
+                                                overlay={
+                                                    <Tooltip className="ttp-top">
+                                                        { __('editar') }
+                                                    </Tooltip>
+                                                }
+                                            >
+                                                <Link href={route('accounting-accounts.edit', account.id)} className="btn btn-sm btn-info ms-1" >
+                                                    <i className="la la-edit"></i>
+                                                </Link>
+                                            </OverlayTrigger>
+                                        )}
+
+                                        {/* Eliminar */}
+                                        {permissions?.['accounting-accounts.destroy'] && (
+                                            <OverlayTrigger
+                                                key={"delete-"+account.id}
+                                                placement="top"
+                                                overlay={
+                                                    <Tooltip className="ttp-top">
+                                                        { __('eliminar') }
+                                                    </Tooltip>
+                                                }
+                                            >
+                                                <span>
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-sm btn-danger ms-1"
+                                                        onClick={() => handleDelete(account.id)}
+                                                    >
+                                                        <i className="la la-trash"></i>
+                                                    </button>
+                                                </span>
+                                            </OverlayTrigger>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+                </div>
+
+                <Pagination
+                    links={accounts.meta.links}
+                    totalRecords={accounts.meta.total}
+                    currentPage={accounts.meta.current_page}
+                    perPage={accounts.meta.per_page}
+                    onPageChange={(page) => {
+                        router.get(route("accounting-accounts.index"), {
+                            ...queryParams,
+                            page,
+                            per_page: perPage,
+                            sort_field: sortParams.sort_field,
+                            sort_direction: sortParams.sort_direction,
+                        }, { preserveState: true });
+                    }}
+                />
+            </div>
+        </AdminAuthenticatedLayout>
+    );
+}

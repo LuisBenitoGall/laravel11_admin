@@ -1,0 +1,1 @@
+import{r as t,j as u}from"./app-ipN4Lpei.js";const p=t.forwardRef(function({className:s="",isFocused:r=!1,multiple:f=!1,children:c,...n},o){const e=o||t.useRef();return t.useEffect(()=>{r&&e.current&&e.current.focus()},[r]),u.jsx("select",{...n,ref:e,className:`form-control ${s}`,multiple:f,children:c})});export{p as S};
