@@ -90,6 +90,7 @@ use App\Http\Controllers\Admin\IvaTypeController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\OrderPatternController;
+use App\Http\Controllers\Admin\OrderSettingController;
 use App\Http\Controllers\Admin\PaymentMethodController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\PlanningController;
