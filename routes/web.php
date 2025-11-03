@@ -521,7 +521,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/order-patterns', [OrderPatternController::class, 'index'])->name('order-patterns.index')->middleware('permission:order-patterns.index');
 
     //Order Queries:
-    Route::get('/order-queries', [OrderQueryController::class, 'index'])->name('order-queries.index')->middleware('permission:order-queries.index');
+    //Route::get('/order-queries', [OrderQueryController::class, 'index'])->name('order-queries.index')->middleware('permission:order-queries.index');
 
     //Order Settings:
     Route::get('/order-settings', [OrderSettingController::class, 'index'])->name('order-settings.index')->middleware('permission:order-settings.index');
