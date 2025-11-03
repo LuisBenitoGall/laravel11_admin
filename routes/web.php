@@ -55,6 +55,7 @@ use App\Http\Controllers\Admin\ContractController;
 use App\Http\Controllers\Admin\CostCenterController;
 use App\Http\Controllers\Admin\CountryController;
 use App\Http\Controllers\Admin\CrmAccountController;
+use App\Http\Controllers\Admin\CrmContactController;
 use App\Http\Controllers\Admin\CurrencyController;
 // use App\Http\Controllers\Admin\CustomerProductController;
 use App\Http\Controllers\Admin\CustomerProviderController;
@@ -397,6 +398,11 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
         Route::get('crm-accounts/{account}/edit', [CrmAccountController::class, 'edit'])->name('crm-accounts.edit')->middleware('permission:crm-accounts.edit');
         Route::put('crm-accounts/{account}', [CrmAccountController::class, 'update'])->name('crm-accounts.update')->middleware('permission:crm-accounts.update|crm-accounts.update.own');
         Route::delete('crm-accounts/{account}', [CrmAccountController::class, 'destroy'])->name('crm-accounts.destroy')->middleware('permission:crm-accounts.destroy|crm-accounts.destroy.own');
+    });
+
+    //CRM Accounts:
+    Route::middleware('module_setted:crm')->group(function (){
+        Route::get('/crm-contacts', [CrmContactController::class, 'index'])->name('crm-contacts.index')->middleware('permission:crm-contacts.index');
     });
 
     //Currencies:
