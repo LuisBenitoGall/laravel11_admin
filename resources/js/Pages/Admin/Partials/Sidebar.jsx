@@ -62,7 +62,7 @@ export default function Sidebar(auth) {
             })
             .catch(error => console.error('Error fetching secondary menu:', error));
     }, [companyModules.length, currentCompany]);
-
+console.log('Sidebar modules:', modules);
     return (
         <div className={`app-menu navbar-menu ${isOpen ? 'show' : 'hide'}`}>
             <div className="navbar-brand-box">
@@ -71,7 +71,7 @@ export default function Sidebar(auth) {
                         <img src={'/img/logo/logo-rft-portrait.jpg'} alt="RFT" className="img-fluid p-3" />
                     </span>
                     <span className="logo-lg">
-                        <img src={'/img/logo/logo-rft-landscape.jpg'} alt="RFT" className="img-fluid p-3" />
+                        <img src={'/img/logo/logo-rft-landscape.png'} alt="RFT" className="img-fluid p-3" />
                     </span>
                 </Link>
             </div>
