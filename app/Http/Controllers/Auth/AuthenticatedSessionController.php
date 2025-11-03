@@ -50,7 +50,7 @@ class AuthenticatedSessionController extends Controller{
             //Módulos de la empresa:
             $companyModules = CompanyModule::getCompanyModules($companies[0]->id);
             session(['companyModules' => $companyModules]);
-
+dd(session('companyModules'));
             //Configuración de la empresa:
             $settings = CompanySetting::companySettings($companies[0]->id);
             session(['companySettings' => $settings]);
