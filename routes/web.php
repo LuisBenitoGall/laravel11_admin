@@ -341,7 +341,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/company-settings', [CompanySettingController::class, 'index'])->name('company-settings.index')->middleware('permission:company-settings.index');
 
     //Concourse Patterns:
-    Route::get('/concourse-patterns', [ConcoursePatternController::class, 'index'])->name('concourse-patterns.index')->middleware('permission:concourse-patterns.index');
+    // Route::get('/concourse-patterns', [ConcoursePatternController::class, 'index'])->name('concourse-patterns.index')->middleware('permission:concourse-patterns.index');
 
     //Contents:
     Route::middleware('module_setted:settings')->group(function (){
