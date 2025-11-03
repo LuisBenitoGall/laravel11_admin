@@ -13,12 +13,14 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use App\Support\CompanyContext;
 use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
 
 //Models:
 use App\Models\Company;
+use App\Models\CompanyAccount;
 use App\Models\CustomerProvider;
 use App\Models\UserColumnPreference;
 
@@ -48,6 +50,8 @@ class CustomerProviderController extends Controller{
      * 3. Formulario nuevo cliente o proveedor.
      * 3.1. Helper normalización cliente o proveedor.
      * 3.2. Helper empresas no vinculadas.
+     * 4. Editar.
+     * 5. Actualizar.
      */
     
     use HasUserPermissionsTrait;
@@ -338,6 +342,35 @@ class CustomerProviderController extends Controller{
     /**
      * 4. Guardar nuevo cliente.
      */
+    public function storeCustomer(Request $request, CompanyContext $ctx){
+        $companyId = (int) $ctx->id();
+        if($companyId <= 0){
+            abort(422, __('no_hay_empresa_activa'));
+        }
+
+        //Guardando empresa. El método del Model guarda también company_account, roles, workplace y user_company.
+        $customer = Company::saveCompany($request);
+
+        
+
+        //Guardar relación:
+        $relation = CustomerProvider::firstOrCreate(
+            [
+                'customer_id' => $customer->id,
+                'provider_id' => $companyId
+            ],
+            [
+                'created_by' => Auth::id(),
+                'updated_by' => Auth::id()
+            ]
+        );
+
+
+        //Cuenta contable:
+        
+        return redirect()->route('customers.edit', $company->id)
+            ->with('msg', __('cliente_creado_msg'));
+    }
     
     /**
      * 5. Guardar nuevo proveedor.
@@ -364,8 +397,8 @@ class CustomerProviderController extends Controller{
                 'provider_id' => $provider_id
             ],
             [
-                'created_by' => auth()->user()->id,
-                'updated_by' => auth()->user()->id
+                'created_by' => Auth::id(),
+                'updated_by' => Auth::id()
             ]
         );
 

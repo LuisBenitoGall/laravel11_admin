@@ -6,9 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use File;
+use Carbon\Carbon;
 
 //Concerns:
 use App\Concerns\HasCategories;
@@ -86,7 +88,29 @@ class Company extends Model{
         $co->save();
 
         //Cuenta de la empresa:
-        
+        if($request->account_id){
+            $accountId = $request->account_id;
+            $price = '0';
+
+        }else{
+            $account = Account::select('id', 'rate')
+            ->where('slug', 'free')
+            ->where('status', 1)
+            ->first();
+
+            $accountId = $account->id;
+            $price = $account->rate;
+        }
+
+        CompanyAccount::create([
+            'company_id' => $co->id,
+            'guardian' => NULL,
+            'account_id' => $accountId,
+            'start_date' => Carbon::now(),
+            'end_date' => config('constants.UNDEFINED_DATE_')
+            'price' => $price,
+            'status' => 1
+        ]);
 
         //Roles de la empresa:
         
@@ -105,6 +129,9 @@ class Company extends Model{
                 ['user_id' => Auth::user()->id, 'company_id' => $co->id,],
                 ['user_id' => Auth::user()->id, 'company_id' => $co->id]
             );
+
+            //Pasamos empresa a la sesión de empresas:
+            \Session::push('companies', $co);
         } 
 
         return $co;

@@ -480,7 +480,7 @@ class AccountingAccountController extends Controller{
 
         foreach ($types as $t) {
             foreach (['output','input'] as $side) {
-                $exists = \App\Models\AccountingAccountUsage::query()
+                $exists = AccountingAccountUsage::query()
                     ->where('company_id', $companyId)
                     ->where('usage_code', 'iva')
                     ->where('context_type', \App\Models\IvaType::class)
@@ -498,7 +498,7 @@ class AccountingAccountController extends Controller{
                     $side === 'output' ? __('repercutido') : __('soportado')
                 );
 
-                \App\Models\AccountingAccount::createForProfile($companyId, [
+                AccountingAccount::createForProfile($companyId, [
                     'profile'      => 'iva',
                     'iva_type_id'  => $t->id,
                     'side'         => $side,

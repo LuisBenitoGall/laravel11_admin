@@ -78,7 +78,7 @@ use App\Http\Controllers\Admin\GroupController;
 //use App\Http\Controllers\Admin\IncidenceController;
 // use App\Http\Controllers\Admin\IncidenceDocController;
 // use App\Http\Controllers\Admin\IncidenceMessageController;
-// use App\Http\Controllers\Admin\IncidencePatternController;
+use App\Http\Controllers\Admin\IncidencePatternController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\InvoicePatternController;
@@ -456,6 +456,9 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
 
     //Groups:
     Route::get('/groups', [GroupController::class, 'index'])->name('groups.index')->middleware('permission:groups.index');
+
+    //Incidence Patterns:
+    Route::get('/incidence-patterns', [IncidencePatternController::class, 'index'])->name('incidence-patterns.index')->middleware('permission:incidence-patterns.index');
 
     //Inventory:
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index')->middleware('permission:inventory.index');
