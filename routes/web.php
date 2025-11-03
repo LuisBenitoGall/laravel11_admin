@@ -102,6 +102,7 @@ use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\ProjectPatternController;
 use App\Http\Controllers\Admin\ProtocolController;
 use App\Http\Controllers\Admin\ProvinceController;
+use App\Http\Controllers\Admin\PurchasePatternController;
 use App\Http\Controllers\Admin\PurchaseProductController;
 use App\Http\Controllers\Admin\ReceivingController;
 use App\Http\Controllers\Admin\RemittanceController;
