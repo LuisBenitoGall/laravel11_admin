@@ -358,7 +358,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index')->middleware('permission:contracts.index');
 
     //Control Panel:
-    Route::get('/control-panel', [ControlPanelController::class, 'index'])->name('control-panel.index')->middleware('permission:control-panel.index');
+    //Route::get('/control-panel', [ControlPanelController::class, 'index'])->name('control-panel.index')->middleware('permission:control-panel.index');
 
     //Cost Centers:
     Route::middleware('module_setted:companies')->group(function (){
