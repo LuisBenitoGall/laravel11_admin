@@ -39,20 +39,17 @@ class AccountingAccountUsage extends Model{
      | Relaciones
      | -------------------------------*/
 
-    public function account()
-    {
+    public function account(){
         // Ajusta el namespace si tu modelo se llama distinto
         return $this->belongsTo(AccountingAccount::class, 'account_id');
     }
 
-    public function ivaType()
-    {
+    public function ivaType(){
         return $this->belongsTo(IvaType::class, 'iva_type_id');
     }
 
     // Por si usas el usage en otros contextos (polimórfico opcional)
-    public function context()
-    {
+    public function context(){
         return $this->morphTo(__FUNCTION__, 'context_type', 'context_id');
     }
 
