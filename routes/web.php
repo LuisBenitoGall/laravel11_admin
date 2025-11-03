@@ -89,6 +89,7 @@ use App\Http\Controllers\Admin\InvoiceSettingController;
 // use App\Http\Controllers\Admin\IpAccessController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\IvaTypeController;
+use App\Http\Controllers\Admin\MarketingController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\OrderPatternController;
@@ -515,6 +516,9 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
 
     //Leads:
     Route::get('/leads', [CrmAccountController::class, 'index'])->name('leads.index')->middleware('permission:leads');
+
+    //Marketing:
+    Route::get('/marketing', [MarketingController::class, 'index'])->name('marketing.index')->middleware('permission:marketing');
 
     //Modules:
     Route::middleware('module_setted:settings')->group(function (){
