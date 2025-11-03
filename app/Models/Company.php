@@ -107,7 +107,7 @@ class Company extends Model{
             'guardian' => NULL,
             'account_id' => $accountId,
             'start_date' => Carbon::now(),
-            'end_date' => config('constants.UNDEFINED_DATE_')
+            'end_date' => config('constants.UNDEFINED_DATE_'),
             'price' => $price,
             'status' => 1
         ]);
