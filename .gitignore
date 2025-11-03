@@ -48,6 +48,8 @@ Thumbs.db
 *.mov
 *.wmv
 
+.env
+
 laravel11_admin.sublime-project
 laravel11_admin.sublime-workspace
 

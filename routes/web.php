@@ -19,7 +19,7 @@ use App\Http\Controllers\Admin\AmortizationController;
 use App\Http\Controllers\Admin\AttributeController;
 use App\Http\Controllers\Admin\BankAccountController;
 use App\Http\Controllers\Admin\BankController;
-// use App\Http\Controllers\Admin\BatchController;
+use App\Http\Controllers\Admin\BatchController;
 use App\Http\Controllers\Admin\BatchPatternController;
 use App\Http\Controllers\Admin\BriefingController;
 use App\Http\Controllers\Admin\BriefingItemController;
