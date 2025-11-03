@@ -29,21 +29,21 @@ class SecondaryMenuController extends Controller{
         $companyId = session('currentCompany');
         if (!$companyId) return response()->json([]);
 
-        $activeModuleIds = (array) session('companyModules', []);
-        sort($activeModuleIds);
-        $modsHash = md5(json_encode($activeModuleIds));
-        $locale   = app()->getLocale();
+        $activeModuleSlugs = (array) session('companyModules', []);
+        sort($activeModuleSlugs);
+        $modsHash = md5(json_encode($activeModuleSlugs));
+        $locale = app()->getLocale();
 
         $cacheKey = "secondary_menu_user_{$user->id}_company_{$companyId}_mods_{$modsHash}_loc_{$locale}";
 
-        $menu = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($activeModuleIds, $user) {
+        $menu = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($activeModuleSlugs, $user) {
             $path = storage_path("json/secondary-menu.json");
             if (!File::exists($path)) return [];
 
             $rawModules = json_decode(File::get($path), true) ?: [];
 
-            return collect($rawModules)->map(function ($module) use ($activeModuleIds, $user) {
-                    if (!in_array($module['id'], $activeModuleIds, true)) return null;
+            return collect($rawModules)->map(function ($module) use ($activeModuleSlugs, $user) {
+                    if (!in_array($module['slug'], $activeModuleSlugs, true)) return null;
 
                     $module['label'] = __($module['label'] ?? $module['slug'] ?? '');
                     $module['functionalities'] = collect($module['functionalities'] ?? [])

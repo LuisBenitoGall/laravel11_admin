@@ -50,17 +50,31 @@ export default function Sidebar(auth) {
             new bootstrap.Collapse(el, { toggle: false });
         });
 
-        if (!Array.isArray(companyModules) || companyModules.length === 0 || !currentCompany) {
+        if (!currentCompany) {
             setModules([]);
             return;
         }
 
+        // if (!Array.isArray(companyModules) || companyModules.length === 0 || !currentCompany) {
+        //     setModules([]);
+        //     return;
+        // }
+
+    //     axios.get('/secondary-menu')
+    //         .then(response => {
+    //             const filteredModules = response.data.filter(module => companyModules.includes(module.id));
+    //             setModules(filteredModules);
+    //         })
+    //         .catch(error => console.error('Error fetching secondary menu:', error));
+    // }, [JSON.stringify(companyModules), currentCompany?.id]);
+
         axios.get('/secondary-menu')
-            .then(response => {
-                const filteredModules = response.data.filter(module => companyModules.includes(module.id));
-                setModules(filteredModules);
-            })
-            .catch(error => console.error('Error fetching secondary menu:', error));
+        .then(({ data }) => {
+        // Backend ya filtra por slug. No vuelvas a filtrar por id.
+        setModules(Array.isArray(data) ? data : []);
+        })
+        .catch(error => console.error('Error fetching secondary menu:', error));
+    // No uses solo .length; si cambian los slugs con igual longitud no se re-renderiza
     }, [JSON.stringify(companyModules), currentCompany?.id]);
 
     return (
