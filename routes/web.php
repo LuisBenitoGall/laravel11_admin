@@ -48,7 +48,7 @@ use App\Http\Controllers\Admin\CompanyModuleController;
 // use App\Http\Controllers\Admin\CompanySectorController;
 use App\Http\Controllers\Admin\CompanySettingController;
 // use App\Http\Controllers\Admin\CompanyUteController;
-// use App\Http\Controllers\Admin\ConcoursePattern;
+use App\Http\Controllers\Admin\ConcoursePatternController;
 use App\Http\Controllers\Admin\ContentController;
 // use App\Http\Controllers\Admin\ContentImageController;
 use App\Http\Controllers\Admin\ContractController;
