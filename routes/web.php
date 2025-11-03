@@ -511,7 +511,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     });
 
     //Order Categories:
-    Route::get('/order-categories', [OrderCategoriesController::class, 'index'])->name('order-categories.index')->middleware('permission:order-categories.index');
+    //Route::get('/order-categories', [OrderCategoriesController::class, 'index'])->name('order-categories.index')->middleware('permission:order-categories.index');
 
     //Order Groups:
     Route::get('/order-groups', [OrderGroupController::class, 'index'])->name('order-groups.index')->middleware('permission:order-groups.index');
