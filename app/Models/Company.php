@@ -113,7 +113,6 @@ class Company extends Model{
         ]);
 
         //Roles de la empresa:
-        //------------------
 
         //Creando centro de trabajo por defecto:
         $wp = new Workplace();
