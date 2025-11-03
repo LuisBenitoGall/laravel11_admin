@@ -51,6 +51,7 @@ abstract class Controller{
         }
 
         $jsondata = json_encode($modules);
+
         file_put_contents(storage_path()."/json/secondary-menu.json", $jsondata);
     }
 

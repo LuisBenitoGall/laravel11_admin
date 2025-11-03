@@ -27,65 +27,48 @@ class SecondaryMenuController extends Controller{
     public function __invoke(){
         $user = auth()->user();
         $companyId = session('currentCompany');
+        if (!$companyId) return response()->json([]);
 
-        if (!$companyId) {
-            return response()->json([]);
-        }
+        $activeModuleIds = (array) session('companyModules', []);
+        sort($activeModuleIds);
+        $modsHash = md5(json_encode($activeModuleIds));
+        $locale   = app()->getLocale();
 
-        $activeModuleIds = session('companyModules') ?? [];
-        $cacheKey = "secondary_menu_user_{$user->id}_company_{$companyId}";
+        $cacheKey = "secondary_menu_user_{$user->id}_company_{$companyId}_mods_{$modsHash}_loc_{$locale}";
 
         $menu = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($activeModuleIds, $user) {
             $path = storage_path("json/secondary-menu.json");
-            if (!File::exists($path)) {
-                return [];
-            }
+            if (!File::exists($path)) return [];
 
-            $rawModules = json_decode(File::get($path), true);
+            $rawModules = json_decode(File::get($path), true) ?: [];
 
             return collect($rawModules)->map(function ($module) use ($activeModuleIds, $user) {
-                if (!in_array($module['id'], $activeModuleIds)) {
-                    return null;
-                }
+                    if (!in_array($module['id'], $activeModuleIds, true)) return null;
 
-                // Traducir módulo
-                $module['label'] = __($module['label']);
+                    $module['label'] = __($module['label'] ?? $module['slug'] ?? '');
+                    $module['functionalities'] = collect($module['functionalities'] ?? [])
+                        ->map(function ($func) {
+                            $func['label'] = __($func['label'] ?? $func['slug'] ?? '');
+                            return $func;
+                        })->values()->all();
 
-                // Traducir funcionalidades
-                $module['functionalities'] = collect($module['functionalities'] ?? [])
-                    ->map(function ($func) {
-                        $func['label'] = __($func['label']);
-                        return $func;
-                    })
-                    ->values()
-                    ->all();
+                    if ($user->isSuperAdmin()) return $module;
 
-                if ($user->isSuperAdmin()) {
-                    return $module;
-                }
+                    $modulePermission = 'module_' . ($module['slug'] ?? '');
+                    if (!$user->can($modulePermission)) return null;
 
-                $modulePermission = 'module_' . $module['slug'];
-                if (!$user->can($modulePermission)) {
-                    return null;
-                }
+                    $visible = collect($module['functionalities'])
+                        ->filter(fn ($f) => isset($f['slug']) && $user->can($f['slug'] . '.index'))
+                        ->values()->all();
 
-                $visibleFunctionalities = collect($module['functionalities'])
-                    ->filter(fn ($func) => isset($func['slug']) && $user->can($func['slug'] . '.index'))
-                    ->values()
-                    ->all();
-
-                if (!empty($visibleFunctionalities)) {
-                    $module['functionalities'] = $visibleFunctionalities;
-                    return $module;
-                }
-
-                return null;
-            })
-            ->filter()
-            ->values()
-            ->all();
+                    return !empty($visible) ? array_merge($module, ['functionalities' => $visible]) : null;
+                })
+                ->filter()
+                ->values()
+                ->all();
         });
 
         return response()->json($menu);
     }
+
 }

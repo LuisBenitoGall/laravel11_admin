@@ -61,8 +61,8 @@ export default function Sidebar(auth) {
                 setModules(filteredModules);
             })
             .catch(error => console.error('Error fetching secondary menu:', error));
-    }, [companyModules.length, currentCompany]);
-console.log('Sidebar modules:', modules);
+    }, [JSON.stringify(companyModules), currentCompany?.id]);
+
     return (
         <div className={`app-menu navbar-menu ${isOpen ? 'show' : 'hide'}`}>
             <div className="navbar-brand-box">
