@@ -53,6 +53,9 @@ En el archivo config/constants.php se definen constantes personalizadas.
 - HTML to Draft JS para Textarea WYSIWYG:
 	- npm install html-to-draftjs draftjs-to-html draft-js react-draft-wysiwyg
 
+- Normalización y validación de número de teléfono:
+	- composer require giggsey/libphonenumber-for-php
+	
 
 
 ## CACHE REDIS:

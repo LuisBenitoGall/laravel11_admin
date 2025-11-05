@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useRef } from 'react';
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default forwardRef(function TextInput({ type = 'text', className = '', onChange, isFocused = false, addon = false, ...props }, ref) {
+export default forwardRef(function TextInput({ type = 'text', className = '', onChange, isFocused = false, addon = false, required = false, ...props }, ref) {
     const __ = useTranslation();
     const input = ref ? ref : useRef();
 
@@ -49,6 +49,8 @@ export default forwardRef(function TextInput({ type = 'text', className = '', on
             ref={input}
             autoComplete="off"
             maxLength={props.maxLength || 255}
+            required={required}
+            aria-required={required}
         />
     );
 

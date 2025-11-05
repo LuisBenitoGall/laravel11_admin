@@ -29,9 +29,11 @@ export function useTableManagement({
     const permissions = props.permissions || {};
 
     // Preferencias de columnas:
-    const initialVisible = Array.isArray(props.columnPreferences?.[table])
-        ? props.columnPreferences[table]
-        : allColumnKeys;
+    // If there are saved column preferences for this table use them, but if the
+    // saved array is empty treat it as 'no preference' and fall back to showing
+    // all columns. An empty array would otherwise hide every column.
+    const savedPrefs = props.columnPreferences?.[table];
+    const initialVisible = Array.isArray(savedPrefs) && savedPrefs.length ? savedPrefs : allColumnKeys;
 
     const [sortParams, setSortParams] = useState({
         sort_field: queryParams.sort_field || defaultSortField,

@@ -266,6 +266,7 @@ class CompanyController extends Controller{
      * 6. Actualizar empresa.
      */
     public function update(CompanyUpdateRequest $request, Company $company){
+        //dd($request->all());
         try {
             $validated = $request->validated();
 
@@ -285,8 +286,16 @@ class CompanyController extends Controller{
 
             $company->save();
 
-            return redirect()->route('companies.edit', $company->id)
-            ->with('msg', __('empresa_actualizada_msg'));
+            if($request->side == 'customers'){
+                return redirect()->route('customers.edit', $company->id)
+                ->with('msg', __('cliente_actualizado_msg'));    
+            }elseif($request->side == 'providers'){
+                return redirect()->route('providers.edit', $company->id)
+                ->with('msg', __('proveedor_actualizado_msg'));
+            }else{
+                return redirect()->route('companies.edit', $company->id)
+                ->with('msg', __('empresa_actualizada_msg'));
+            }
             
         } catch (\Throwable $e) {
             Log::error('Error en update(): ' . $e->getMessage());
@@ -387,7 +396,7 @@ class CompanyController extends Controller{
         event(new CompanyChanged($request->user(), $company->id));
 
         // 5) Redirección segura al origen, con fallback
-        return redirect()->back(fallback: route('dashboard'))
+        return redirect()->back(fallback: route('dashboard.index'))
             ->with('msg', __('Empresa cambiada'));
     }
 
@@ -434,7 +443,7 @@ class CompanyController extends Controller{
         event(new CompanyChanged($request->user(), $companyId));
 
         // 7) Redirección segura al origen con fallback
-        return redirect()->back(fallback: route('dashboard'))
+        return redirect()->back(fallback: route('dashboard.index'))
             ->with('msg', __('Empresa cambiada'));
     }
 

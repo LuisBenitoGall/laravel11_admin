@@ -1,1 +1,0 @@
-import{j as s}from"./app-ipN4Lpei.js";function u({type:n="button",className:o="",disabled:t,children:r,...e}){return s.jsx("button",{...e,type:n,className:`btn btn-secondary text-white ${t&&"opacity-25"} `+o,disabled:t,children:r})}export{u as S};

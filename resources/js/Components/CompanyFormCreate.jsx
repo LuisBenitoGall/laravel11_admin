@@ -19,7 +19,8 @@ const CompanyFormCreate = ({ side = false }) => {
         tradename: '',
         nif: '',
         is_ute: false,
-        auto_link: false
+        auto_link: false,
+        side: side || ''
     });
 
     const handleChange = (e) => {
@@ -35,7 +36,9 @@ const CompanyFormCreate = ({ side = false }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        post(route('companies.store'), {
+        // Elegir ruta según la prop `side`
+        const routeName = side === 'customers' ? 'customers.store' : side === 'providers' ? 'providers.store' : 'companies.store';
+        post(route(routeName), {
             onSuccess: () => reset()
         });
     };
@@ -54,6 +57,7 @@ const CompanyFormCreate = ({ side = false }) => {
                             value={data.name} 
                             onChange={(e) => setData('name', e.target.value)}
                             maxLength={100}
+                            required
                         />
 
                         <InputError message={errors.name} />
@@ -71,6 +75,7 @@ const CompanyFormCreate = ({ side = false }) => {
                             value={data.tradename} 
                             onChange={(e) => setData('tradename', e.target.value)}
                             maxLength={100}
+                            required
                         />
                         
                         <InputError message={errors.tradename} />
@@ -88,6 +93,7 @@ const CompanyFormCreate = ({ side = false }) => {
                             value={data.nif} 
                             onChange={(e) => setData('nif', e.target.value)}
                             maxLength={15}
+                            required
                         />
                         <InfoPopover code="company-nif" />
 

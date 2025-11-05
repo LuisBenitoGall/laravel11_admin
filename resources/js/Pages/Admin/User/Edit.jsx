@@ -20,14 +20,14 @@ import { useTranslation } from '@/Hooks/useTranslation';
 //Tabs:
 import UserPersonalData from './Partials/UserPersonalData';
 import UserPassword from './Partials/UserPassword.jsx';
-// import UserImages from './Partials/UserImages.jsx';
+import UserImages from './Partials/UserImages.jsx';
 // import UserContactData from './Partials/UserContactData.jsx';
 // import UserCompaniesData from './Partials/UserCompaniesData.jsx';
 
 //Utils:
 import { useHandleDelete } from '@/Utils/useHandleDelete.jsx';
 
-export default function Index({ auth, session, title, subtitle, availableLocales, user, roles, user_roles, profile }) {
+export default function Index({ auth, session, title, subtitle, availableLocales, user, roles, user_roles, images, profile }) {
     const __ = useTranslation();
     const props = usePage()?.props || {};
     const locale = props.locale || false;
@@ -53,6 +53,11 @@ export default function Index({ auth, session, title, subtitle, availableLocales
             setData(name, value);
         }
     };
+
+    const handleImageChange = () => {
+        // Forzar recarga de la página para actualizar las imágenes
+        //Inertia.reload({ only: ['user'] });
+    }
 
     //Confirmación de eliminación:
     const { handleDelete } = useHandleDelete('usuario', 'users.destroy', [user.id]);
@@ -153,7 +158,18 @@ export default function Index({ auth, session, title, subtitle, availableLocales
                                 return <UserPersonalData user={user} roles={roles} user_roles={user_roles} />;
                             case 'user-password':
                                 return <UserPassword user={user} />;
-                                // …
+                            case 'user-images':
+                                // imagePath: try common fields on the `user` object, fallback to 'users'
+                                const inferredImagePath = user?.image_path || user?.imagePath || 'users';
+                                return <UserImages
+                                    images={images ?? []}
+                                    uploadUrl={route('user-images.store')}
+                                    // pass an explicit function so DropzoneGallery can resolve the correct delete URL with the image id
+                                    deleteUrl={(img) => route('user-images.delete', img.id)}
+                                    entityId={user.id}
+                                    imagePath={inferredImagePath}
+                                    onChange={handleImageChange}
+                                />;
                             default:
                             return null;
                         }   

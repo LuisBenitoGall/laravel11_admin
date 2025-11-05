@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Session; 
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 //Traits:
@@ -26,13 +27,15 @@ class CustomerProviderResource extends JsonResource{
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 
         return [
+            // relation_id proviene del JOIN en las consultas (customer_providers.id AS relation_id)
+            'relation_id' => $this->relation_id ?? null,
             'id' => $this->id,
             'name' => $this->name,
             'slug' => $this->slug,
             'tradename' => $this->tradename,
             'acronym' => $this->acronym,
             'logo' => $this->logo,
-            'logo_url' => $this->logo? \Storage::url('companies/'.$this->logo): null,
+            'logo_url' => $this->logo? Storage::url('companies/'.$this->logo): null,
             'nif' => $this->nif,
             'is_ute' => $this->is_ute? true:false,
             'status' => $this->status,

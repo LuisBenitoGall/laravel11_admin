@@ -11,7 +11,7 @@ import TextInput from '@/Components/TextInput';
 //Hooks:
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function FilterRow({ columns, queryParams, visibleColumns, SearchFieldChanged }) {
+export default function FilterRow({ columns, queryParams, visibleColumns, SearchFieldChanged, indexRoute = 'users.index', indexParams = undefined }) {
     const __ = useTranslation();
     const txt_fechas_selec = __('fechas_selec');
     const txt_todos = __('todos');
@@ -107,7 +107,7 @@ export default function FilterRow({ columns, queryParams, visibleColumns, Search
                 page: 1
             };
     
-            router.get(route("users.index"), updatedParams, {
+            router.get(route(indexRoute, indexParams), updatedParams, {
                 preserveState: true,
                 replace: true
             });
@@ -125,7 +125,7 @@ export default function FilterRow({ columns, queryParams, visibleColumns, Search
             [colKey]: [null, null]
         }));
         
-        router.get(route('users.index'), updatedParams, {
+    router.get(route(indexRoute, indexParams), updatedParams, {
             preserveState: true,
             replace: true
         });

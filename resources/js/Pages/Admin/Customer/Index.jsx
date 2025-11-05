@@ -149,7 +149,7 @@ export default function Index({ auth, session, title, subtitle, companies, query
                                             <OverlayTrigger
                                                 key={"status-"+company.id}
                                                 placement="top"
-                                                overlay={<Tooltip className="ttp-top">{ company.status == 1 ? __('empresa_activa') : __('empresa_inactiva') }</Tooltip>}
+                                                overlay={<Tooltip className="ttp-top">{ company.status == 1 ? __('cliente_activo') : __('cliente_inactivo') }</Tooltip>}
                                             >
                                                 <StatusButton 
                                                     status={company.status} 
@@ -185,7 +185,7 @@ export default function Index({ auth, session, title, subtitle, companies, query
                                                     <button
                                                         type="button"
                                                         className="btn btn-sm btn-danger ms-1"
-                                                        onClick={() => handleDelete(company.id)}
+                                                        onClick={() => handleDelete(company.relation_id)}
                                                     >
                                                         <i className="la la-trash"></i>
                                                     </button>

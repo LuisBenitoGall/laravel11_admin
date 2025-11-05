@@ -84,7 +84,9 @@ class Company extends Model{
         
         //Guardando logo:
         $filename = self::saveCompanyLogo($request, $slug);
-
+        if($filename){
+            $co->logo = $filename;
+        }
         $co->save();
 
         //Cuenta de la empresa:

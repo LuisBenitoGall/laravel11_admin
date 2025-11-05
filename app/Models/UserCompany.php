@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class UserCompany extends Model{
     /**
      * 1. Session de empresas vinculadas al usuario.
+     * 2. Usuarios por empresa.
      */
 
     use HasFactory, SoftDeletes;
@@ -36,5 +37,20 @@ class UserCompany extends Model{
             }
         }
         return $companies;
+    }
+
+    /**
+     * 2. Usuarios por empresa.
+     */
+    public static function usersByCompany($company_id){
+        return User::select('users.id', 'users.name', 'users.surname', 'users.created_at', 'users.email', 'user_companies.position')
+        ->join('user_companies', 'user_companies.user_id', '=', 'users.id')
+        ->where('user_companies.company_id', $company_id)
+        ->with(['phones' => fn($q) => $q
+            ->select('id','phoneable_type','phoneable_id','e164','type','label','is_primary','is_whatsapp')
+            ->orderByDesc('is_primary')->orderBy('id')
+        ])
+        ->orderBy('users.name', 'ASC')
+        ->get();
     }
 }

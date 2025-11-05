@@ -23,29 +23,47 @@ export default function FormDatePickerInput({
     disabled = false,
     addon = true,
     addonElement = null,
+    // Autocomplete value for the input. Use a semantic token so password managers
+    // don't mistake this for a credential field. Default to 'bday' (birthday).
+    autoComplete = 'bday',
+    // Allow quick selection of month/year (useful for birth_date)
+    showMonthDropdown = true,
+    showYearDropdown = true,
+    scrollableYearDropdown = true,
+    yearDropdownItemNumber = 100,
 }) {
     const __ = useTranslation();
     const Icon = addonElement ?? (
         <i className="la la-calendar me-1" aria-hidden="true" />
     );
+    // If no maxDate provided, default to today (useful for birth dates)
+    const computedMaxDate = maxDate === null ? new Date() : maxDate;
+
     const picker = (
         <DatePicker
-        id={name}
-        name={name}
-        locale="es"
-        selected={selected}
-        onChange={(date) => onChange(name, date)}
-        dateFormat={dateFormat}
-        className="form-control text-end"
-        placeholderText={placeholder || __('fecha_selec')}
-        required={required}
-        disabled={disabled}
-        minDate={minDate}
-        maxDate={maxDate}
-        autoComplete="off"
-        
-        /* Render calendar in a body-level portal so it's not clipped by overflow:hidden/auto parents */
-        withPortal
+            id={name}
+            name={name}
+            locale="es"
+            selected={selected}
+            onChange={(date) => onChange(name, date)}
+            dateFormat={dateFormat}
+            className={`form-control text-end ${className}`}
+            placeholderText={placeholder || __('fecha_selec')}
+            required={required}
+            disabled={disabled}
+            minDate={minDate}
+            maxDate={computedMaxDate}
+            autoComplete={autoComplete}
+            /* Prevent LastPass/other password managers from interacting */
+            data-lpignore="true"
+            /* Allow quick month/year selection */
+            showMonthDropdown={showMonthDropdown}
+            showYearDropdown={showYearDropdown}
+            scrollableYearDropdown={scrollableYearDropdown}
+            yearDropdownItemNumber={yearDropdownItemNumber}
+            dropdownMode="select"
+            /* Render calendar in a body-level portal so it's not clipped by overflow:hidden/auto parents */
+            withPortal
         />
     );
 

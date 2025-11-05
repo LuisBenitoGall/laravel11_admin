@@ -1,14 +1,24 @@
 import React from 'react';
 import { Link } from '@inertiajs/react';
+import { parseISO, format as formatDate } from 'date-fns';
 
 export default function renderCellContent(value, column, rowData = {}) {
 	if (column.render && typeof column.render === 'function') {
 		return column.render({ value, rowData });
 	}
 
-	//Imágenes
+	//Imágenes: soportar varios shapes comunes (logo_url, avatar_url, avatar object, value as string path)
 	if (column.type === 'image') {
-		const logoUrl = rowData.logo_url ?? null;
+		const possible = [
+			rowData.logo_url,
+			rowData.logo,
+			rowData.avatar_url,
+			rowData.avatar?.url,
+			rowData.image,
+			value,
+		];
+
+		const logoUrl = possible.find(v => typeof v === 'string' && v.length) || null;
 
 		if (logoUrl) {
 			return (
@@ -62,6 +72,24 @@ export default function renderCellContent(value, column, rowData = {}) {
 		return '';
 	}
 
+	// Date formatting: if column.filter === 'date' or column.key looks like a date, format it
+	const looksLikeDateKey = typeof column.key === 'string' && /date|created_at|updated_at|birth/i.test(column.key);
+	if (column.filter === 'date' || looksLikeDateKey) {
+		if (typeof value === 'string' && value.length) {
+			try {
+				const dt = parseISO(value);
+				// fallback to original value if parse fails
+				return formatDate(dt, 'dd/MM/yyyy');
+			} catch (e) {
+				// not an ISO string, try Date constructor
+				try {
+					const dt2 = new Date(value);
+					if (!isNaN(dt2)) return formatDate(dt2, 'dd/MM/yyyy');
+				} catch (e2) {}
+			}
+		}
+	}
+
 	// Booleano-like helper
 	const isBooleanLike = (val) => {
 		if (typeof val === 'number') return val === 0 || val === 1;
@@ -103,6 +131,18 @@ export default function renderCellContent(value, column, rowData = {}) {
 	// HTML:
 	if (column.type === 'html' && typeof value === 'string') {
 		return <div dangerouslySetInnerHTML={{ __html: value }} />;
+	}
+
+	// Phones or arrays: render nicely
+	if (Array.isArray(value)) {
+		// If array of objects with 'phone' or 'number', map those
+		const items = value.map(v => {
+			if (v && typeof v === 'object') {
+				return v.phone ?? v.number ?? v.value ?? JSON.stringify(v);
+			}
+			return v;
+		}).filter(Boolean);
+		return items.join(', ');
 	}
 
 	if (value === null || value === undefined || value === '') {

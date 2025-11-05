@@ -24,6 +24,17 @@ class HomeController extends Controller{
         // ]);
 
         //Para el proyecto RFT se omite la home y se hace redirección al Login.
+        if (auth()->check()) {
+            // Opcional: si tu flujo exige empresa seleccionada
+            if (!session('currentCompany')) {
+                return redirect()->route('companies.index'); // o al selector que uses
+            }
+
+            // “Home” interna: el dashboard del admin
+            return redirect()->route('dashboard.index'); // /admin
+        }
+
+        // Invitado: al login
         return redirect()->route('login');
     }
 }

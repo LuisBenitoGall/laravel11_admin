@@ -35,7 +35,7 @@ export default function Index({ auth, session, title, subtitle, country, availab
         alfa3: country.alfa3 || '',
         flag: country.flag || '',
         status: country.status
-    })
+    });
 
     const handleChange = (e) => {
         const { name, type, checked, value, files } = e.target;

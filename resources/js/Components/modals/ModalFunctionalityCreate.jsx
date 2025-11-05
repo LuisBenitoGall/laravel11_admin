@@ -72,7 +72,7 @@ export default function ModalFunctionalityCreate({ show, onClose, onCreate, modu
             onClose={onClose}
             onConfirm={handleConfirm}
             title={__('funcionalidad_nueva')}
-            confirmText={__('guardar')}
+            confirmText={processing ? __('guardando') : __('guardar')}
             cancelText={__('cancelar')}
         >
             <div className="mb-3">

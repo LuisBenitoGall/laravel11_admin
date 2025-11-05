@@ -19,10 +19,12 @@ use Inertia\Response;
 use Carbon\Carbon;
 
 //Models:
+use App\Models\AccountingAccount;
 use App\Models\Company;
 use App\Models\CompanyAccount;
 use App\Models\CustomerProvider;
 use App\Models\UserColumnPreference;
+use App\Models\UserCompany;
 
 //Requests:
 use App\Http\Requests\CustomerFilterRequest;
@@ -52,6 +54,10 @@ class CustomerProviderController extends Controller{
      * 3.2. Helper empresas no vinculadas.
      * 4. Editar.
      * 5. Actualizar.
+     *
+     *
+     * Estado de cliente o proveedor.
+     * Eliminar relación cliente-proveedor.
      */
     
     use HasUserPermissionsTrait;
@@ -128,9 +134,10 @@ class CustomerProviderController extends Controller{
     private function dataQueryCustomers(CustomerFilterRequest $request){
         $user = auth()->user();
 
-        $query = Company::select('companies.*')
+        $query = Company::select('companies.*', 'customer_providers.id AS relation_id')
         ->join('customer_providers', 'companies.id', '=', 'customer_providers.customer_id')
-        ->where('customer_providers.provider_id', session('currentCompany'));
+        ->where('customer_providers.provider_id', session('currentCompany'))
+        ->whereNull('customer_providers.deleted_at');
 
         // Filtros dinámicos
         $filters = [
@@ -219,9 +226,10 @@ class CustomerProviderController extends Controller{
     private function dataQueryProviders(ProviderFilterRequest $request){
         $user = auth()->user();
 
-        $query = Company::select('companies.*')
+        $query = Company::select('companies.*', 'customer_providers.id AS relation_id')
         ->join('customer_providers', 'companies.id', '=', 'customer_providers.provider_id')
-        ->where('customer_providers.customer_id', session('currentCompany'));
+        ->where('customer_providers.customer_id', session('currentCompany'))
+        ->whereNull('customer_providers.deleted_at');
 
         // Filtros dinámicos
         $filters = [
@@ -342,7 +350,7 @@ class CustomerProviderController extends Controller{
     /**
      * 4. Guardar nuevo cliente.
      */
-    public function storeCustomer(Request $request, CompanyContext $ctx){
+    public function storeCustomer(CustomerStoreRequest $request, CompanyContext $ctx){
         $companyId = (int) $ctx->id();
         if($companyId <= 0){
             abort(422, __('no_hay_empresa_activa'));
@@ -350,8 +358,6 @@ class CustomerProviderController extends Controller{
 
         //Guardando empresa. El método del Model guarda también company_account, roles, workplace y user_company.
         $customer = Company::saveCompany($request);
-
-        
 
         //Guardar relación:
         $relation = CustomerProvider::firstOrCreate(
@@ -365,16 +371,41 @@ class CustomerProviderController extends Controller{
             ]
         );
 
-
-        //Cuenta contable:
+        //TODO: Cuenta contable:
         
-        return redirect()->route('customers.edit', $company->id)
+        return redirect()->route('customers.edit', $customer->id)
             ->with('msg', __('cliente_creado_msg'));
     }
     
     /**
      * 5. Guardar nuevo proveedor.
      */
+    public function storeProvider(CustomerStoreRequest $request, CompanyContext $ctx){
+        $companyId = (int) $ctx->id();
+        if($companyId <= 0){
+            abort(422, __('no_hay_empresa_activa'));
+        }
+
+        //Guardando empresa. El método del Model guarda también company_account, roles, workplace y user_company.
+        $provider = Company::saveCompany($request);
+
+        //Guardar relación:
+        $relation = CustomerProvider::firstOrCreate(
+            [
+                'customer_id' => $companyId,
+                'provider_id' => $provider->id
+            ],
+            [
+                'created_by' => Auth::id(),
+                'updated_by' => Auth::id()
+            ]
+        );
+
+        //TODO: Cuenta contable:
+        
+        return redirect()->route('providers.edit', $provider->id)
+            ->with('msg', __('proveedor_creado_msg'));
+    }
     
     /**
      * 6. Guardar nuevo cliente o proveedor por listado.
@@ -408,4 +439,125 @@ class CustomerProviderController extends Controller{
         return redirect()->route($side.'.index')->with('msg', $msg);
     }
 
+    /**
+     * 7. Editar cliente.
+     */
+    public function editCustomer(Company $customer, $tab = false){
+        // CompanyContext resolved manually to avoid controller injection issues when route provides optional params
+        $ctx = app(CompanyContext::class);
+        $providerId = (int) $ctx->id();
+        if($providerId <= 0){
+            abort(422, __('no_hay_empresa_activa'));
+        }  
+
+        $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
+
+        //Relación cliente:
+        $relation = CustomerProvider::where('customer_id', $customer->id)
+        ->where('provider_id', $providerId)
+        ->first();
+
+        //Usuarios:
+        $users = UserCompany::usersByCompany($customer->id);
+
+        $table = $users->map(function ($u) use($locale){
+            $primary = $u->phones->firstWhere('is_primary', true) ?: $u->phones->first();
+
+            return [
+                'id'            => $u->id,
+                'name'          => $u->name.' '.$u->surname,
+                'position'      => $u->position,
+                'created_at'    => Carbon::parse($u->created_at)->format($locale[4]),
+                'email'         => $u->email,
+                'avatar'        => $u->avatar && $u->avatar->image 
+                                    ? \Storage::url('users/'.$u->avatar->image): null,
+                'phone_primary' => $primary?->e164,
+                'whatsapp'      => (bool) optional($primary)->is_whatsapp,
+                'phones_count'  => $u->phones->count(),
+                'phones'        => $u->phones->map(fn($p) => [
+                    'e164'        => $p->e164,
+                    'type'        => $p->type,
+                    'label'       => $p->label,
+                    'is_primary'  => $p->is_primary,
+                    'is_whatsapp' => $p->is_whatsapp,
+                ])->values(),
+            ];
+        });
+
+        //Formateo de datos:
+        $relation->formatted_created_at = Carbon::parse($relation->created_at)->format($locale[4].' H:i:s');
+        $relation->formatted_updated_at = Carbon::parse($relation->updated_at)->format($locale[4].' H:i:s');
+
+        $permissions_ = $this->resolvePermissions([
+            'customers.create',
+            'customers.destroy',
+            'customers.edit',
+            'customers.index',
+            'customers.search',
+            'customers.show',
+            'customers.update',
+            'users.create'
+        ]);
+
+        return Inertia::render('Admin/Customer/Edit', [
+            "title" => __('clientes'),
+            "subtitle" => __('cliente_editar'),
+            "module" => $this->module,
+            "slug" => 'customers',
+            "availableLocales" => LocaleTrait::availableLocales(),
+            "customer" => $customer,
+            "relation" => $relation,
+            "users" => $users,
+            "rows" => $table,
+            "tab" => $tab,
+            "msg" => session('msg'),
+            "alert" => session('alert'),
+            "permissions" => $permissions_
+        ]);
+    }
+
+
+    /**
+     * Estado de cliente o proveedor.
+     */
+    public function status(Request $request, $side = false, CompanyContext $ctx){
+        if(!$side){
+            return response()->json([
+                'success' => false
+            ]);    
+        }
+
+        if($side == 'customer'){
+            $customer_id = $request->id;
+            $provider_id = (int) $ctx->id();
+        }elseif($side == 'provider'){
+            $customer_id = (int) $ctx->id();
+            $provider_id = $request->id;
+        }
+
+        $status = $request->status == 1? true:false;
+
+        CustomerProvider::where('customer_id', $customer_id)
+        ->where('provider_id', $provider_id)
+        ->update(['status' => $status]);
+
+        return response()->json([
+            'success' => true,
+            'message' => __('estado_actualizado_ok'),
+            'new_status' => $status
+        ]);
+    }
+
+    /**
+     * Eliminar relación cliente-proveedor.
+     */
+    public function destroy(CustomerProvider $relation, $side = false){
+        $relation->delete();
+
+        if($side == 'customer'){
+            return redirect()->route('customers.index')->with('msg', __('cliente_eliminado'));
+        }else{
+            return redirect()->route('providers.index')->with('msg', __('proveedor_eliminado'));
+        }
+    }
 }

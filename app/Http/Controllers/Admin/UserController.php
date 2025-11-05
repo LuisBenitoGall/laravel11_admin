@@ -21,9 +21,11 @@ use Carbon\Carbon;
 
 //Models:
 use App\Models\Company;
+use App\Models\Phone;
 use App\Models\User;
 use App\Models\UserColumnPreference;
 use App\Models\UserCompany;
+use App\Models\UserImage;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
@@ -237,17 +239,22 @@ class UserController extends Controller{
     public function store(UserStoreRequest $request){
         //Comprobamos si el rol dispone de permisos para declarar $isAdmin:
         $role = Role::find($request->input('role'));
+        $permissions = false;
 
-        if(!$role){
+        if(!$role && !$request->side){
             $alert = __('role_no_existe');
             return redirect()->route('users.create')->with(compact('alert'));
             exit;
         }
 
-        $permissions = $role->permissions;
+        if($role){
+            $permissions = $role->permissions;
+        }
+
+        $companyId = $request->company_id? $request->company_id:session('currentCompany');
 
         $isAdmin = false;
-        if($role->name == config('constants.SUPER_ADMIN_') || $permissions->count()){
+        if($role && $role->name == config('constants.SUPER_ADMIN_') || ($permissions && $permissions->count())){
             $isAdmin = true;
         }
 
@@ -259,20 +266,30 @@ class UserController extends Controller{
         $user->surname = $request->surname;
         $user->email = $request->email;
         $user->password = bcrypt($random_password);
+        $user->birthday = $request->birthday;
         $user->isAdmin = $isAdmin;
         $user->status = $status;
         $user->remember_token = $request->input('_token');
         $user->save();
 
         //Guardamos rol:
-        $user->assignRole($role->name);
+        if($request->input('role')){
+            $user->assignRole($role->name);
+        }
 
         //Vinculamos usuario a empresa:
         if($request->link_company){
             $uc = new UserCompany();
             $uc->user_id = $user->id;
-            $uc->company_id = session('currentCompany');
+            $uc->company_id = $companyId;
+            $uc->position = $request->position;
             $uc->save();
+        }
+
+        //Teléfonos:
+        if($request->phones){
+            $phones = request('phones', []); // puede ser ["600...", {"number":"+34 6...", "is_primary":true}, ...]
+            Phone::addOrUpdateFor($user, $phones, ['default_region' => 'ES']);
         }
 
         //Envío de password:
@@ -291,7 +308,13 @@ class UserController extends Controller{
             });
         }
 
-        return redirect()->route('users.edit', $user)->with('msg', __('usuario_creado_msg'));
+        if($request->side == 'customers'){
+            return redirect()->route('customers.edit', [$companyId, 'users'])->with('msg', __('usuario_creado_msg'));    
+        }elseif($request->side == 'providers'){
+            return redirect()->route('providers.edit', [$companyId, 'users'])->with('msg', __('usuario_creado_msg')); 
+        }else{
+            return redirect()->route('users.edit', $user)->with('msg', __('usuario_creado_msg'));
+        }
     }
 
     /**
@@ -316,6 +339,18 @@ class UserController extends Controller{
         //User roles:
         $user_roles = $user->roles;
 
+        //Imágenes:
+        $images = UserImage::select('id', 'image', 'featured', 'public')
+        ->where('user_id', $user->id)
+        ->get();
+
+        //Comprobamos vínculo del usuario, si pertenece a la empresa o a cliente o proveedor:
+        // $relation = UserCompany::select('id', 'company_id')
+        // ->where('user_id', $user->id)
+        // ->get();
+
+        //dd($relation);
+
         return Inertia::render('Admin/User/Edit', [
             "title" => __($this->option),
             "subtitle" => __('usuario_editar'),
@@ -325,6 +360,7 @@ class UserController extends Controller{
             "user" => $user,
             "roles" => $roles,
             "user_roles" => $user->roles,
+            "images" => $images,
             "profile" => $profile,      //Edición usuario en session.
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions

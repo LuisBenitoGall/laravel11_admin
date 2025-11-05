@@ -61,6 +61,7 @@ use App\Http\Controllers\Admin\CurrencyController;
 // use App\Http\Controllers\Admin\CustomerProductController;
 use App\Http\Controllers\Admin\CustomerProviderController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\UserImageController;
 // use App\Http\Controllers\Admin\DayTypeController;
 // use App\Http\Controllers\Admin\DayTypeConfigController;
 // use App\Http\Controllers\Admin\DayTypeUserConfigController;
@@ -137,6 +138,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 //Cambio idioma:
@@ -176,9 +178,11 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
     // ]);
 //});
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/login', function () {
+    return Inertia::render('login');
+})->middleware(['auth'])->name('login');
+
+//'verified'  incluir este parámetro en el middleware anterior si exigimos verificar email.
 
 
 //ADMIN:
@@ -324,12 +328,27 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
         Route::get('/companies/create', [CompanyController::class, 'create'])->name('companies.create')->middleware('permission:companies.create');
         Route::post('/companies/store', [CompanyController::class, 'store'])->name('companies.store')->middleware('permission:companies.store');
         Route::get('/companies/{company}/edit', [CompanyController::class, 'edit'])->name('companies.edit')->middleware('permission:companies.edit');
-        Route::put('/companies/{company}', [CompanyController::class, 'update'])->name('companies.update')->middleware('permission:companies.update');
+
+        // DEBUG: temporary POST debug route to inspect incoming requests when uploading files.
+        // This route is temporary and should be removed after debugging.
+        // Route::post('/companies/{company}', function (Request $request, $company) {
+        //     dd([
+        //         'route' => url()->current(),
+        //         'method' => $request->method(),
+        //         'headers' => $request->headers->all(),
+        //         'all' => $request->all(),
+        //         '_method_field' => $request->input('_method'),
+        //         'files' => array_keys($request->files->all()),
+        //     ]);
+        // });
+
+        Route::put('/companies/{company}', [CompanyController::class, 'update'])->name('companies.update'); //->middleware('permission:companies.update');
         Route::delete('/companies/{company}', [CompanyController::class, 'destroy'])->name('companies.destroy')->middleware('permission:companies.destroy');
         Route::delete('/companies/{company}/logo', [CompanyController::class, 'deleteLogo'])->name('companies.logo.delete')->middleware('permission:companies.edit');
         Route::post('/companies/status', [CompanyController::class, 'status'])->name('companies.status')->middleware('permission:companies.edit');
         Route::get('/companies/{company}/select', [CompanyController::class, 'selectCompany'])->name('companies.select-get')->middleware('permission:companies.index');
-        Route::post('/companies/select', [CompanyController::class, 'selectCompanyPost'])->name('companies.select')->withoutMiddleware(VerifyCsrfToken::class)->middleware('permission:companies.index');
+        Route::post('/companies/select', [CompanyController::class, 'selectCompanyPost'])->name('companies.select')->withoutMiddleware(VerifyCsrfToken::class);
+        //->middleware('permission:companies.index')
         Route::get('/companies/refresh-session', [CompanyController::class, 'refreshSession'])->name('companies.refresh-session')->middleware('permission:companies.index');
     //});
 
@@ -428,13 +447,14 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/customers', [CustomerProviderController::class, 'customers'])->name('customers.index')->middleware('permission:customers.index');
     Route::get('customers/create', [CustomerProviderController::class, 'create'])->name('customers.create')->defaults('side', 'customers')->middleware('permission:customers.create');
     Route::get('customers/import', [CustomerProviderController::class, 'import'])->name('customers.import')->defaults('side', 'customers')->middleware('permission:customers.create');
-    Route::post('customers', [CustomerProviderController::class, 'store'])->name('customers.store')->middleware('permission:customers.create');
+    Route::post('customers', [CustomerProviderController::class, 'storeCustomer'])->name('customers.store')->middleware('permission:customers.create');
     //Este método sirve tanto para clientes como proveedores:
     Route::post('/customer-provider/store-by-list', [CustomerProviderController::class, 'storeByList'])->name('customer-provider.store-by-list');
-    Route::get('customers/{cp}', [CustomerProviderController::class, 'show'])->name('customers.show')->middleware('permission:customers.show');
-    Route::get('customers/{cp}/edit', [CustomerProviderController::class, 'edit'])->name('customers.edit')->middleware('permission:customers.edit');
-    Route::put('customers/{cp}', [CustomerProviderController::class, 'update'])->name('customers.update')->middleware('permission:customers.update');
-    Route::delete('customers/{cp}', [CustomerProviderController::class, 'destroy'])->name('customers.destroy')->middleware('permission:customers.destroy');
+    Route::get('customers/{customer}', [CustomerProviderController::class, 'showCustomer'])->name('customers.show')->middleware('permission:customers.show');
+    Route::get('customers/{customer}/edit/{tab?}', [CustomerProviderController::class, 'editCustomer'])->name('customers.edit')->middleware('permission:customers.edit');
+    Route::put('customers/{relation}', [CustomerProviderController::class, 'update'])->name('customers.update')->middleware('permission:customers.update');
+    Route::delete('customers/{relation}', [CustomerProviderController::class, 'destroy'])->name('customers.destroy')->defaults('side', 'customer')->middleware('permission:customers.destroy');
+    Route::post('/customers/status', [CustomerProviderController::class, 'status'])->name('customers.status')->defaults('side', 'customer')->middleware('permission:customers.edit');
     
     //Deliveries:
     Route::get('/deliveries', [DeliveryController::class, 'index'])->name('deliveries.index')->middleware('permission:deliveries.index');
@@ -613,15 +633,16 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/protocols', [ProtocolController::class, 'index'])->name('protocols.index')->middleware('permission:protocols.index');
 
     //Providers:
-    Route::middleware('module_setted:companies')->group(function (){
+    //Route::middleware('module_setted:companies')->group(function (){
         Route::get('/providers', [CustomerProviderController::class, 'providers'])->name('providers.index')->middleware('permission:providers.index');
         Route::get('providers/create', [CustomerProviderController::class, 'create'])->name('providers.create')->defaults('side', 'providers')->middleware('permission:providers.create');
-        Route::post('providers', [CustomerProviderController::class, 'store'])->name('providers.store')->middleware('permission:providers.create');
-        Route::get('providers/{cp}', [CustomerProviderController::class, 'show'])->name('providers.show')->middleware('permission:providers.show');
-        Route::get('providers/{cp}/edit', [CustomerProviderController::class, 'edit'])->name('providers.edit')->middleware('permission:providers.edit');
-        Route::put('providers/{cp}', [CustomerProviderController::class, 'update'])->name('providers.update')->middleware('permission:providers.update');
-        Route::delete('providers/{cp}', [CustomerProviderController::class, 'destroy'])->name('providers.destroy')->middleware('permission:providers.destroy');
-    });
+        Route::post('providers', [CustomerProviderController::class, 'storeProvider'])->name('providers.store')->middleware('permission:providers.create');
+        Route::get('providers/{provider}', [CustomerProviderController::class, 'show'])->name('providers.show')->middleware('permission:providers.show');
+        Route::get('providers/{provider}/edit/{tab?}', [CustomerProviderController::class, 'edit'])->name('providers.edit')->middleware('permission:providers.edit');
+        Route::put('providers/{relation}', [CustomerProviderController::class, 'update'])->name('providers.update')->middleware('permission:providers.update');
+        Route::delete('providers/{relation}', [CustomerProviderController::class, 'destroy'])->name('providers.destroy')->defaults('side', 'provider')->middleware('permission:providers.destroy');
+        Route::post('/providers/status', [CustomerProviderController::class, 'status'])->name('providers.status')->defaults('side', 'provider')->middleware('permission:providers.edit');
+    //});
 
     //Provinces:
     Route::middleware('module_setted:settings')->group(function (){
@@ -743,6 +764,13 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     //User Column Preferences:  No requiere permisos.
     Route::get('/column-preferences', [UserColumnPreferenceController::class, 'index'])->name('column-preferences.index');
     Route::post('/column-preferences', [UserColumnPreferenceController::class, 'store'])->name('column-preferences.store');
+
+    //User Companies:
+    Route::delete('/user-companies/{user}/signature', [UserCompanyController::class, 'deleteSignature'])->name('users.signature.delete')->middleware('permission:user-companies.edit');
+
+    //User Images:
+    Route::post('/user-images/store', [UserImageController::class, 'store'])->name('user-images.store');
+    Route::delete('/user-images/{image}', [UserImageController::class, 'destroy'])->name('user-images.delete');
 
     //Users:
     Route::get('/users/{company_id?}', [UserController::class, 'index'])->name('users.index')->where('company_id', '[0-9]+')->middleware('permission:users.index');
