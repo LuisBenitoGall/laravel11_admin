@@ -97,6 +97,7 @@ use App\Http\Controllers\Admin\OrderPatternController;
 use App\Http\Controllers\Admin\OrderSettingController;
 use App\Http\Controllers\Admin\PaymentMethodController;
 use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\PhoneController;
 use App\Http\Controllers\Admin\PlanningController;
 use App\Http\Controllers\Admin\ProcedureController;
 use App\Http\Controllers\Admin\ProcedurePatternController;
@@ -129,6 +130,7 @@ use App\Http\Controllers\Admin\TownController;
 use App\Http\Controllers\Admin\UnitController;
 use App\Http\Controllers\Admin\UserColumnPreferenceController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\UserPreferenceController;
 use App\Http\Controllers\Admin\VehicleController;
 use App\Http\Controllers\Admin\WorkOrderController;
 use App\Http\Controllers\Admin\WorkOrderPatternController;
@@ -445,6 +447,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
 
     //Customers:
     Route::get('/customers', [CustomerProviderController::class, 'customers'])->name('customers.index')->middleware('permission:customers.index');
+    Route::get('/customers/filtered-data', [CustomerProviderController::class, 'filteredDataCustomers'])->name('customers.filtered-data')->middleware('permission:customers.index');
     Route::get('customers/create', [CustomerProviderController::class, 'create'])->name('customers.create')->defaults('side', 'customers')->middleware('permission:customers.create');
     Route::get('customers/import', [CustomerProviderController::class, 'import'])->name('customers.import')->defaults('side', 'customers')->middleware('permission:customers.create');
     Route::post('customers', [CustomerProviderController::class, 'storeCustomer'])->name('customers.store')->middleware('permission:customers.create');
@@ -583,6 +586,15 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
         Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->name('permissions.destroy')->middleware('permission:permissions.destroy');
     });
 
+    //Phones:
+    Route::get('/phones/{id}/get/{model}', [PhoneController::class, 'getBy'])->name('phones.get');
+    Route::post('/phones/store', [PhoneController::class, 'store'])->name('phones.store');
+    Route::get('/phones/{phone}/edit', [PhoneController::class, 'edit'])->name('phones.edit');
+    Route::put('/phones/{phone}', [PhoneController::class, 'update'])->name('phones.update');
+    Route::delete('/phones/{phone}', [PhoneController::class, 'destroy'])->name('phones.destroy');
+    Route::post('/phones/primary', [PhoneController::class, 'primary'])->name('phones.primary');
+    Route::post('/phones/verify', [PhoneController::class, 'verify'])->name('phones.verify');
+
     //Planning:
     Route::get('/planning', [PlanningController::class, 'index'])->name('planning.index')->middleware('permission:planning.index');
 
@@ -635,10 +647,12 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     //Providers:
     //Route::middleware('module_setted:companies')->group(function (){
         Route::get('/providers', [CustomerProviderController::class, 'providers'])->name('providers.index')->middleware('permission:providers.index');
+        Route::get('/providers/filtered-data', [CustomerProviderController::class, 'filteredDataProviders'])->name('providers.filtered-data')->middleware('permission:providers.index');
         Route::get('providers/create', [CustomerProviderController::class, 'create'])->name('providers.create')->defaults('side', 'providers')->middleware('permission:providers.create');
+        Route::get('providers/import', [CustomerProviderController::class, 'import'])->name('providers.import')->defaults('side', 'providers')->middleware('permission:providers.create');
         Route::post('providers', [CustomerProviderController::class, 'storeProvider'])->name('providers.store')->middleware('permission:providers.create');
-        Route::get('providers/{provider}', [CustomerProviderController::class, 'show'])->name('providers.show')->middleware('permission:providers.show');
-        Route::get('providers/{provider}/edit/{tab?}', [CustomerProviderController::class, 'edit'])->name('providers.edit')->middleware('permission:providers.edit');
+        Route::get('providers/{provider}', [CustomerProviderController::class, 'show'])->name('providers.showProvider')->middleware('permission:providers.show');
+        Route::get('providers/{provider}/edit/{tab?}', [CustomerProviderController::class, 'editProvider'])->name('providers.edit')->middleware('permission:providers.edit');
         Route::put('providers/{relation}', [CustomerProviderController::class, 'update'])->name('providers.update')->middleware('permission:providers.update');
         Route::delete('providers/{relation}', [CustomerProviderController::class, 'destroy'])->name('providers.destroy')->defaults('side', 'provider')->middleware('permission:providers.destroy');
         Route::post('/providers/status', [CustomerProviderController::class, 'status'])->name('providers.status')->defaults('side', 'provider')->middleware('permission:providers.edit');
@@ -771,13 +785,18 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     //User Images:
     Route::post('/user-images/store', [UserImageController::class, 'store'])->name('user-images.store');
     Route::delete('/user-images/{image}', [UserImageController::class, 'destroy'])->name('user-images.delete');
+    Route::post('/user-images/set-featured', [UserImageController::class, 'setFeatured'])->name('user-images.set-featured');
+
+    //User Preferences:
+    Route::post('user-preferences/store', [UserPreferenceController::class, 'store'])->name('user-preferences.store');
+    Route::get('user-preferences/destroy/{preference}', [UserPreferenceController::class, 'destroy'])->name('user-preferences.destroy');
 
     //Users:
     Route::get('/users/{company_id?}', [UserController::class, 'index'])->name('users.index')->where('company_id', '[0-9]+')->middleware('permission:users.index');
     Route::get('/users/filtered-data', [UserController::class, 'filteredData'])->name('users.filtered-data')->middleware('permission:users.index');
     Route::get('/users/create', [UserController::class, 'create'])->name('users.create')->middleware('permission:users.create');
     Route::post('/users/store', [UserController::class, 'store'])->name('users.store')->middleware('permission:users.create');
-    Route::get('/users/{user}/edit{profile?}', [UserController::class, 'edit'])->name('users.edit')->middleware('permission:users.edit');
+    Route::get('/users/{user}/edit/{profile?}', [UserController::class, 'edit'])->name('users.edit')->middleware('permission:users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update')->middleware('permission:users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('permission:users.destroy');
     Route::post('users/status', [UserController::class, 'status'])->name('users.status')->middleware('permission:users.edit');
@@ -798,8 +817,8 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
 
     //Workplaces:
     Route::middleware('module_setted:companies')->group(function (){
-        Route::get('/workplaces', [WorkplaceController::class, 'index'])->name('workplaces.index')->middleware('permission:workplaces.index');
-        Route::get('/workplaces/filtered-data', [WorkplaceController::class, 'filteredData'])->name('workplaces.filtered-data')->middleware('permission:workplaces.index');
+        Route::get('/workplaces/{company?}', [WorkplaceController::class, 'index'])->whereNumber('company')->name('workplaces.index')->middleware('permission:workplaces.index');
+        Route::get('/workplaces/filtered-data/{company?}', [WorkplaceController::class, 'filteredData'])->whereNumber('company')->name('workplaces.filtered-data')->middleware('permission:workplaces.index');
         Route::get('/workplaces/create', [WorkplaceController::class, 'create'])->name('workplaces.create')->middleware('permission:workplaces.create');
         Route::post('/workplaces/store', [WorkplaceController::class, 'store'])->name('workplaces.store')->middleware('permission:workplaces.create');
         Route::get('/workplaces/{workplace}/edit', [WorkplaceController::class, 'edit'])->name('workplaces.edit')->middleware('permission:workplaces.edit');

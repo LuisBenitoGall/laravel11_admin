@@ -1,7 +1,7 @@
 import React from 'react';
 import DropzoneGallery from '@/Components/DropzoneGallery';
 
-export default function UserImages({ images = [], uploadUrl = null, deleteUrl = null, onChange = () => {}, entityId = null, imagePath = null }) {
+export default function UserImages({ images = [], uploadUrl = null, deleteUrl = null, onChange = () => {}, entityId = null, imagePath = null, setFeaturedUrl = false }) {
     // images: array of objects { id, url, name }
 
     const handleChange = (nextImages) => {
@@ -15,6 +15,7 @@ export default function UserImages({ images = [], uploadUrl = null, deleteUrl = 
                 existingImages={images}
                 imagePath={imagePath}
                 uploadUrl={uploadUrl}
+                setFeaturedUrl={setFeaturedUrl}
                 deleteUrl={deleteUrl}
                 entityId={entityId}
                 uploadParamName={'file'}

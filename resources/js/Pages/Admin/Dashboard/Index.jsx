@@ -6,7 +6,10 @@ import { useCompanySession } from '@/Hooks/useCompanySession';
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function Index({ auth, session, title, subtitle }){
+//Partials:
+import FavoritesGrid from './Partials/FavoritesGrid';
+
+export default function Index({ auth, session, title, subtitle, favorites = [] }){
 	const __ = useTranslation();
 	const { currentCompany, companyModules, companySettings } = useCompanySession();
 	
@@ -25,9 +28,17 @@ export default function Index({ auth, session, title, subtitle }){
 			{/* Contenido */}
 			<div className="contents pb-4">
 				<div className="row">
-                    <div className="col-12">
+                    {/* <div className="col-12">
                         <h2>DASHBOARD</h2>
-					</div>
+					</div> */}
+
+                    {/* Favoritos */}
+                    <div className="col-12 my-5">
+                        <h2 className="mb-3">{'Mis opciones preferidas'}</h2>
+                        <FavoritesGrid favorites={favorites} />
+                    </div>
+
+
 
 					<pre>User: {JSON.stringify(auth.user, null, 2)}</pre>
 

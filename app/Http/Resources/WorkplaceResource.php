@@ -34,7 +34,7 @@ class WorkplaceResource extends JsonResource{
             'address' => $this->address,
             'cp' => $this->cp,
             'town_id' => $this->town_id,
-            'town' => $this->town(),
+            'town' => $this->town->name.' ('.$this->town->province->name.')',
             'nif' => $this->nif,
             'website' => $this->website,
             'description' => $this->description,

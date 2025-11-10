@@ -39,11 +39,11 @@ export default function CompanyUsersTab({
                 whatsapp: Boolean(primary?.is_whatsapp),
                 phones_count: phones.length,
                 phones: phones.map(p => ({
-                e164: p.e164,
-                type: p.type,
-                label: p.label,
-                is_primary: !!p.is_primary,
-                is_whatsapp: !!p.is_whatsapp,
+                    e164: p.e164,
+                    type: p.type,
+                    label: p.label,
+                    is_primary: !!p.is_primary,
+                    is_whatsapp: !!p.is_whatsapp,
                 })),
             };
         });

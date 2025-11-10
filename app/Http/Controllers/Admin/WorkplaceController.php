@@ -73,236 +73,231 @@ class WorkplaceController extends Controller{
     /**
      * 1. Listado de centros de trabajo.
      */
-    public function index(WorkplaceFilterRequest $request){
+    public function index(WorkplaceFilterRequest $request, ?int $company = null){
         $perPage = $request->input('per_page', config('constants.RECORDS_PER_PAGE_DEFAULT_'));
+        $workplaces = $this->dataQuery($request, $company)->paginate($perPage)->onEachSide(1);
 
-        $companies = $this->dataQuery($request)->paginate($perPage)->onEachSide(1);
+        if ($request->wantsJson()) {
+            return response()->json([
+                'workplaces' => [
+                    'data' => WorkplaceResource::collection($workplaces)->resolve(),
+                    'meta' => [
+                        'current_page' => $workplaces->currentPage(),
+                        'per_page'     => $workplaces->perPage(),
+                        'total'        => $workplaces->total(),
+                        'links'        => $workplaces->linkCollection(),
+                    ],
+                ],
+            ]);
+        }
 
         return Inertia::render('Admin/Workplace/Index', [
             "title" => __($this->option),
             "subtitle" => __('listado'),
             "module" => $this->module,
             "slug" => 'workplaces',
-            "workplaces" => WorkplaceResource::collection($companies),
+            "workplaces" => WorkplaceResource::collection($workplaces),
             "queryParams" => request()->query() ?: null,
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions,
             "columnPreferences" => UserColumnPreference::forUserAndTables(
-                auth()->user()->id,
-                ['tblWorkplaces'] 
-            )
+                auth()->id(),
+                ['tblWorkplaces']
+            ),
         ]);
     }
+
 
     /**
      * 1.1. Data para exportación.
      */
-    public function filteredData(WorkplaceFilterRequest $request){
-        $cacheKey = 'filtered_workplaces_' . md5(json_encode($request->all()));
+    public function filteredData(WorkplaceFilterRequest $request, ?int $company = null){
+        $cacheKey = 'filtered_workplaces_' . ($company ?: 'session') . '_' . md5(json_encode($request->all()));
 
-        $workplaces = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($request) {
-            return $this->dataQuery($request)->get();
+        $workplaces = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($request, $company) {
+            return $this->dataQuery($request, $company)->get();
         });
 
         return response()->json([
-            'workplaces' => WorkplaceResource::collection($workplaces)
+            'workplaces' => WorkplaceResource::collection($workplaces),
         ]);
-    }
+    }   
 
     /**
      * 1.2. Data Query.
      */
-    private function dataQuery(WorkplaceFilterRequest $request, $company_id = false){
-        $companyId = $company_id? $company_id:session('currentCompany');
+    private function dataQuery(WorkplaceFilterRequest $request, ?int $company_id = null){
+        $companyId = $company_id ?: session('currentCompany');
 
         $query = Workplace::where('company_id', $companyId);
 
-        // Filtros dinámicos
         $filters = [
             'name' => fn($q, $v) => $q->where('name', 'like', "%$v%"),
-            'nif' => fn($q, $v) => $q->where('nif', 'like', "%$v%")
+            'nif'  => fn($q, $v) => $q->where('nif', 'like', "%$v%"),
         ];
-
-        foreach($filters as $key => $callback){
-            if ($request->filled($key)) {
-                $callback($query, $request->input($key));
-            }
+        foreach ($filters as $key => $cb) {
+            if ($request->filled($key)) $cb($query, $request->input($key));
         }
 
-        // Filtros por rangos de fechas dinámicos
-        $dateFilters = [
-            'created_at' => ['date_from', 'date_to']
-        ];
+        $from = $request->input('date_from');
+        $to   = $request->input('date_to');
+        if ($from && $to)      $query->whereBetween('created_at', ["$from 00:00:00", "$to 23:59:59"]);
+        elseif ($from)         $query->where('created_at', '>=', "$from 00:00:00");
+        elseif ($to)           $query->where('created_at', '<=', "$to 23:59:59");
 
-        foreach ($dateFilters as $column => [$fromKey, $toKey]) {
-            $from = $request->input($fromKey);
-            $to = $request->input($toKey);
-
-            if ($from && $to) {
-                $query->whereBetween($column, ["$from 00:00:00", "$to 23:59:59"]);
-            } elseif ($from) {
-                $query->where($column, '>=', "$from 00:00:00");
-            } elseif ($to) {
-                $query->where($column, '<=', "$to 23:59:59");
-            }
-        }
-
-        // Ordenación
         $sortField = $request->input('sort_field', 'name');
         $sortDirection = $request->input('sort_direction', 'ASC');
-        $allowedSortFields = ['name', 'nif'];
+        $allowed = ['name','nif','created_at'];
+        if (!in_array($sortField, $allowed, true)) $sortField = 'name';
 
-        if (!in_array($sortField, $allowedSortFields)) {
-            $sortField = 'name';
+        return $query->orderBy($sortField, $sortDirection);
+    }
+
+
+        /**
+         * 2. Formulario nuevo centro de trabajo.
+         */
+        public function create($company_id = false){
+            $companyId = $company_id? $company_id:session('currentCompany');
+
+            $company = Company::select('id', 'name')->find($companyId);
+
+            return Inertia::render('Admin/Workplace/Create', [
+                "title" => __($this->option),
+                "subtitle" => __('centro_trabajo_nuevo'),
+                'module' => $this->module,
+                "slug" => 'workplaces',
+                "company" => $company,
+                "availableLocales" => LocaleTrait::availableLocales(),
+                "permissions" => $this->permissions
+            ]);    
         }
 
-        return $query->orderBy($sortField, $sortDirection);        
-    }
+        /**
+         * 3. Guardar nuevo centro de trabajo.
+         */
+        public function store(WorkplaceStoreRequest $request){
+            $workplace = Workplace::saveWorkplace($request);        
 
-    /**
-     * 2. Formulario nuevo centro de trabajo.
-     */
-    public function create($company_id = false){
-        $companyId = $company_id? $company_id:session('currentCompany');
+            return redirect()->route('workplaces.edit', $workplace->id)
+                ->with('msg', __('centro_trabajo_creado_msg'));
+        }
 
-        $company = Company::select('id', 'name')->find($companyId);
+        /**
+         * 4. Editar centro de trabajo.
+         */
+        public function edit(Workplace $workplace){
+            $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 
-        return Inertia::render('Admin/Workplace/Create', [
-            "title" => __($this->option),
-            "subtitle" => __('centro_trabajo_nuevo'),
-            'module' => $this->module,
-            "slug" => 'workplaces',
-            "company" => $company,
-            "availableLocales" => LocaleTrait::availableLocales(),
-            "permissions" => $this->permissions
-        ]);    
-    }
+            //Formateo de datos:
+            $workplace->formatted_created_at = Carbon::parse($workplace->created_at)->format($locale[4].' H:i:s');
+            $workplace->formatted_updated_at = Carbon::parse($workplace->updated_at)->format($locale[4].' H:i:s');
 
-    /**
-     * 3. Guardar nuevo centro de trabajo.
-     */
-    public function store(WorkplaceStoreRequest $request){
-        $workplace = Workplace::saveWorkplace($request);        
+            $countries = Country::where('status', 1)->orderBy('name', 'ASC')->get();
 
-        return redirect()->route('workplaces.edit', $workplace->id)
-            ->with('msg', __('centro_trabajo_creado_msg'));
-    }
+            return Inertia::render('Admin/Workplace/Edit', [
+                "title" => __($this->option),
+                "subtitle" => __('centro_trabajo_editar'),
+                "module" => $this->module,
+                "slug" => 'workplaces',
+                "availableLocales" => LocaleTrait::availableLocales(),
+                "workplace" => $workplace,
+                "countries" => $countries,
+                'msg' => session('msg'),
+                'alert' => session('alert'),
+                "permissions" => $this->permissions
+            ]);
+        }
 
-    /**
-     * 4. Editar centro de trabajo.
-     */
-    public function edit(Workplace $workplace){
-        $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
+        /**
+         * 5. Actualizar centro de trabajo.
+         */
+        public function update(WorkplaceUpdateRequest $request, Workplace $workplace){
+            try {
+                $validated = $request->validated();
 
-        //Formateo de datos:
-        $workplace->formatted_created_at = Carbon::parse($workplace->created_at)->format($locale[4].' H:i:s');
-        $workplace->formatted_updated_at = Carbon::parse($workplace->updated_at)->format($locale[4].' H:i:s');
+                // Name is required by the request — use it or fallback to input
+                $name = $validated['name'] ?? $request->input('name');
+                $slug = Str::slug($name ?? '');
 
-        $countries = Country::where('status', 1)->orderBy('name', 'ASC')->get();
+                $workplace->name = $name;
+                $workplace->slug = $slug;
 
-        return Inertia::render('Admin/Workplace/Edit', [
-            "title" => __($this->option),
-            "subtitle" => __('centro_trabajo_editar'),
-            "module" => $this->module,
-            "slug" => 'workplaces',
-            "availableLocales" => LocaleTrait::availableLocales(),
-            "workplace" => $workplace,
-            "countries" => $countries,
-            'msg' => session('msg'),
-            'alert' => session('alert'),
-            "permissions" => $this->permissions
-        ]);
-    }
+                // Use input() with sensible fallbacks to avoid undefined index notices
+                $workplace->address = $request->input('address', $workplace->address);
+                $workplace->cp = $request->input('cp', $workplace->cp);
+                $workplace->town_id = $request->input('town_id', $workplace->town_id);
+                $workplace->nif = $request->input('nif', $workplace->nif);
+                $workplace->website = $request->input('website', $workplace->website);
+                $workplace->description = $request->input('description', $workplace->description);
 
-    /**
-     * 5. Actualizar centro de trabajo.
-     */
-    public function update(WorkplaceUpdateRequest $request, Workplace $workplace){
-        try {
-            $validated = $request->validated();
+                //Guardando logo:
+                $filename = Workplace::saveWorkplaceLogo($request, $slug);
 
-            // Name is required by the request — use it or fallback to input
-            $name = $validated['name'] ?? $request->input('name');
-            $slug = Str::slug($name ?? '');
+                if($filename){
+                    $workplace->logo = $filename; 
+                }
 
-            $workplace->name = $name;
-            $workplace->slug = $slug;
+                $workplace->save();
 
-            // Use input() with sensible fallbacks to avoid undefined index notices
-            $workplace->address = $request->input('address', $workplace->address);
-            $workplace->cp = $request->input('cp', $workplace->cp);
-            $workplace->town_id = $request->input('town_id', $workplace->town_id);
-            $workplace->nif = $request->input('nif', $workplace->nif);
-            $workplace->website = $request->input('website', $workplace->website);
-            $workplace->description = $request->input('description', $workplace->description);
+                return redirect()->route('workplaces.edit', $workplace->id)
+                ->with('msg', __('centro_trabajo_actualizado_msg'));
+                
+            } catch (\Throwable $e) {
+                // Log full exception for easier debugging (message + stack)
+                Log::error('Error en update(): ' . $e->getMessage(), ['exception' => $e]);
+                abort(500, 'Error interno del servidor');
+            }
+        }
 
-            //Guardando logo:
-            $filename = Workplace::saveWorkplaceLogo($request, $slug);
-
-            if($filename){
-                $workplace->logo = $filename; 
+        /**
+         * 6. Eliminar centro de trabajo.
+         */
+        public function destroy(Workplace $workplace){
+            $workplace_id = $workplace->id;
+            
+            //Eliminar logo:
+            if ($workplace->logo && Storage::disk('public')->exists('workplaces/' . $workplace->logo)) {
+                Storage::disk('public')->delete('workplaces/' . $workplace->logo);
             }
 
+            $workplace->delete();
+
+            return redirect()->route('workplaces.index')->with('msg', __('centro_eliminado'));
+        }
+
+        /**
+         * 6.1. Eliminar logo del centro.
+         */
+        public function deleteLogo(Workplace $workplace){
+            if ($workplace->logo && Storage::disk('public')->exists('workplaces/' . $workplace->logo)){
+                Storage::disk('public')->delete('workplaces/' . $workplace->logo);
+            }
+
+            $workplace->logo = null;
             $workplace->save();
 
             return redirect()->route('workplaces.edit', $workplace->id)
-            ->with('msg', __('centro_trabajo_actualizado_msg'));
-            
-        } catch (\Throwable $e) {
-            // Log full exception for easier debugging (message + stack)
-            Log::error('Error en update(): ' . $e->getMessage(), ['exception' => $e]);
-            abort(500, 'Error interno del servidor');
-        }
-    }
-
-    /**
-     * 6. Eliminar centro de trabajo.
-     */
-    public function destroy(Workplace $workplace){
-        $workplace_id = $workplace->id;
-        
-        //Eliminar logo:
-        if ($workplace->logo && Storage::disk('public')->exists('workplaces/' . $workplace->logo)) {
-            Storage::disk('public')->delete('workplaces/' . $workplace->logo);
+                ->with('msg', __('logo_eliminado'));
         }
 
-        $workplace->delete();
+        /**
+         * 7. Actualizar estado.
+         */
+        public function status(Request $request){
+            $workplace = Workplace::find($request->id);
 
-        return redirect()->route('workplaces.index')->with('msg', __('centro_eliminado'));
-    }
+            if(!$workplace){
+                return response()->json(['error' => __('centro_no_encontrado')], 404);
+            }
 
-    /**
-     * 6.1. Eliminar logo del centro.
-     */
-    public function deleteLogo(Workplace $workplace){
-        if ($workplace->logo && Storage::disk('public')->exists('workplaces/' . $workplace->logo)){
-            Storage::disk('public')->delete('workplaces/' . $workplace->logo);
+            $workplace->status = !$workplace->status;
+            $workplace->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => __('estado_actualizado_ok'),
+                'new_status' => $workplace->status
+            ]);
         }
-
-        $workplace->logo = null;
-        $workplace->save();
-
-        return redirect()->route('workplaces.edit', $workplace->id)
-            ->with('msg', __('logo_eliminado'));
     }
-
-    /**
-     * 7. Actualizar estado.
-     */
-    public function status(Request $request){
-        $workplace = Workplace::find($request->id);
-
-        if(!$workplace){
-            return response()->json(['error' => __('centro_no_encontrado')], 404);
-        }
-
-        $workplace->status = !$workplace->status;
-        $workplace->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => __('estado_actualizado_ok'),
-            'new_status' => $workplace->status
-        ]);
-    }
-}

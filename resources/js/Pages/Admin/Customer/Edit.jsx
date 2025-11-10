@@ -20,15 +20,15 @@ import { useTranslation } from '@/Hooks/useTranslation';
 //Modals:
 import ModalUserCreate from '@/Components/modals/ModalUserCreate';
 
-
 //Partials:
 import CompanyInfoTab from '@/Pages/Admin/Company/Partials/CompanyInfoTab';
 import CompanyUsersTab from '@/Pages/Admin/Company/Partials/CompanyUsersTab';
+import CompanyWorkplacesTab from '@/Pages/Admin/Company/Partials/CompanyWorkplacesTab';
 
 //Utils:
 import { useHandleDelete } from '@/Utils/useHandleDelete.jsx';
 
-export default function Index({ auth, session, title, subtitle, customer, relation, users, rows, tab, availableLocales }){
+export default function Index({ auth, session, title, subtitle, customer, relation, users, rows, salutations, tab, availableLocales }){
     const __ = useTranslation();
     const props = usePage()?.props || {};
     const locale = props.locale || false;
@@ -165,6 +165,16 @@ export default function Index({ auth, session, title, subtitle, customer, relati
                             )
                         },
                         {
+                            key: 'workplaces',
+                            label: __('centros_trabajo'),
+                            content: (
+                                <CompanyWorkplacesTab 
+                                    companyId={customer}
+                                    side={'customers'}
+                                />    
+                            )
+                        },
+                        {
                             key: 'users',
                             label: __('usuarios'),
                             content: (
@@ -188,6 +198,7 @@ export default function Index({ auth, session, title, subtitle, customer, relati
                     onCreate={refreshUsersTable}
                     companyId={customer.id}
                     side={'customers'}
+                    salutations={salutations}
                 />
             </div>
         </AdminAuthenticatedLayout>

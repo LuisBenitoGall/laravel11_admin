@@ -103,6 +103,12 @@ En el archivo config/constants.php se definen constantes personalizadas.
 	- Snippet cabecera prompts: estilo Laravel 11 + PHP 8.2 + Pint/Larastan level X
 
 
+## GIT:
+	- Limpiar archivos para mergear en producción:
+		git reset --hard
+		git clean -fd
+
+
 
 
 

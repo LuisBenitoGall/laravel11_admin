@@ -18,6 +18,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 //Concerns:
 use App\Concerns\HasCategories;
+use App\Concerns\HasSalutation;
 
 //Traits:
 use App\Traits\HasCompanyPermissions;
@@ -38,6 +39,7 @@ class User extends Authenticatable implements MustVerifyEmail{
     
     use HasFactory, Notifiable, SoftDeletes, HasRoles, HasCompanyPermissions;
     use HasCategories;
+    use HasSalutation;
 
     /**
      * The attributes that are mass assignable.
@@ -47,6 +49,7 @@ class User extends Authenticatable implements MustVerifyEmail{
     protected $fillable = [
         'name',
         'surname',
+        'salutation',
         'email',
         'password',
         'birthday',
@@ -57,6 +60,8 @@ class User extends Authenticatable implements MustVerifyEmail{
     ];
 
     protected $categoryModuleSlug = 'users';
+
+    protected $appends = ['salutation_label', 'salutation_abbr'];
 
     /**
      * The attributes that should be hidden for serialization.

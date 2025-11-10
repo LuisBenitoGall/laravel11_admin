@@ -27,7 +27,7 @@ import UserImages from './Partials/UserImages.jsx';
 //Utils:
 import { useHandleDelete } from '@/Utils/useHandleDelete.jsx';
 
-export default function Index({ auth, session, title, subtitle, availableLocales, user, roles, user_roles, images, profile }) {
+export default function Index({ auth, session, title, subtitle, availableLocales, user, roles, user_roles, images, relatedCompanies, salutations, profile }) {
     const __ = useTranslation();
     const props = usePage()?.props || {};
     const locale = props.locale || false;
@@ -74,16 +74,88 @@ export default function Index({ auth, session, title, subtitle, availableLocales
 
     //Acciones:
     const actions = [];
-    if (permissions?.['users.index']) {
-        actions.push({
-            text: __('usuarios_volver'),
-            icon: 'la-angle-left',
-            url: 'users.index',
-            modal: false
-        });
+    // Si existen relatedCompanies, mostramos botones de regreso a la empresa correspondiente(s)
+    if (Array.isArray(relatedCompanies) && relatedCompanies.length > 0) {
+        // Si hay una sola relación, mostramos un único botón de regreso a la empresa
+        if (relatedCompanies.length === 1) {
+            const rc = relatedCompanies[0];
+            let routeName = null;
+            let permName = null;
+            if (rc.relation === 'customer') {
+                routeName = 'customers.edit';
+                permName = 'customers.edit';
+            } else if (rc.relation === 'provider') {
+                routeName = 'providers.edit';
+                permName = 'providers.edit';
+            }
+
+            if (routeName && permissions?.[permName]) {
+                actions.push({
+                    text: __('volver_a') + ' ' + rc.name,
+                    icon: 'la-angle-left',
+                    url: routeName,
+                    params: [rc.id, 'users'],
+                    modal: false
+                });
+            } else if (permissions?.['users.index']) {
+                // fallback al listado global de usuarios
+                actions.push({
+                    text: __('usuarios_volver'),
+                    icon: 'la-angle-left',
+                    url: 'users.index',
+                    modal: false
+                });
+            }
+        } else {
+            // Varias relaciones: mostramos un botón por cada empresa (si tiene permiso)
+            relatedCompanies.forEach((rc) => {
+                let routeName = null;
+                let permName = null;
+                if (rc.relation === 'customer') {
+                    routeName = 'customers.edit';
+                    permName = 'customers.edit';
+                } else if (rc.relation === 'provider') {
+                    routeName = 'providers.edit';
+                    permName = 'providers.edit';
+                }
+
+                if (routeName && permissions?.[permName]) {
+                    actions.push({
+                        text: rc.name,
+                        icon: 'la-angle-left',
+                        url: routeName,
+                        params: [rc.id, 'users'],
+                        modal: false
+                    });
+                }
+            });
+
+            // Si no se añadió ningún botón por permisos, fallback al listado de usuarios
+            if (actions.length === 0 && permissions?.['users.index']) {
+                actions.push({
+                    text: __('usuarios_volver'),
+                    icon: 'la-angle-left',
+                    url: 'users.index',
+                    modal: false
+                });
+            }
+        }
+    } else {
+        // No hay relaciones: botón por defecto al listado de usuarios
+        if (permissions?.['users.index']) {
+            actions.push({
+                text: __('usuarios_volver'),
+                icon: 'la-angle-left',
+                url: 'users.index',
+                modal: false
+            });
+        }
     }
 
-    if (permissions?.['users.create'] && profile === false) {
+    // Mostrar acción 'nuevo usuario' sólo si el usuario editado no tiene relaciones de customer/provider
+    const hasCustomerOrProviderRelation = Array.isArray(relatedCompanies) && relatedCompanies.some(rc => rc.relation === 'customer' || rc.relation === 'provider');
+
+    if (permissions?.['users.create'] && profile === false && !hasCustomerOrProviderRelation) {
         actions.push({
             text: __('usuario_nuevo'),
             icon: 'la-plus',
@@ -155,7 +227,7 @@ export default function Index({ auth, session, title, subtitle, availableLocales
                     {(activeKey) => {
                         switch (activeKey) {
                             case 'user-personal-data':
-                                return <UserPersonalData user={user} roles={roles} user_roles={user_roles} />;
+                                return <UserPersonalData user={user} roles={roles} user_roles={user_roles} salutations={salutations} />;
                             case 'user-password':
                                 return <UserPassword user={user} />;
                             case 'user-images':
@@ -164,8 +236,10 @@ export default function Index({ auth, session, title, subtitle, availableLocales
                                 return <UserImages
                                     images={images ?? []}
                                     uploadUrl={route('user-images.store')}
-                                    // pass an explicit function so DropzoneGallery can resolve the correct delete URL with the image id
-                                    deleteUrl={(img) => route('user-images.delete', img.id)}
+                                    // pass a function that resolves the route using id when available, otherwise filename
+                                    deleteUrl={(img) => route('user-images.delete', { image: img.id ?? img.image })}
+                                    // pass set-featured route so the gallery shows the "set featured" button
+                                    setFeaturedUrl={route('user-images.set-featured')}
                                     entityId={user.id}
                                     imagePath={inferredImagePath}
                                     onChange={handleImageChange}

@@ -1,17 +1,18 @@
 import { useEffect, useRef } from 'react';
 import { useForm, usePage } from '@inertiajs/react';
 
-// Components
-import ReusableModal from '@/Components/modals/ModalTemplate';
-import InputError from '@/Components/InputError';
-import TextInput from '@/Components/TextInput';
+// Components:
 import Checkbox from '@/Components/Checkbox';
 import DatePickerToForm from '@/Components/DatePickerToForm';
+import InputError from '@/Components/InputError';
+import ReusableModal from '@/Components/modals/ModalTemplate';
+import SelectInput from '@/Components/SelectInput';
+import TextInput from '@/Components/TextInput';
 
 // Hooks
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function ModalUserCreate({ show, onClose, onCreate, companyId, side }) {
+export default function ModalUserCreate({ show, onClose, onCreate, companyId, side, salutations }) {
     const __ = useTranslation();
     const pageProps = usePage()?.props || {};
 
@@ -28,6 +29,7 @@ export default function ModalUserCreate({ show, onClose, onCreate, companyId, si
         send_pwd: false,
         birthday: null,
         position: '',
+        salutation: null,
         phones: [''],
         company_id: companyId || null,
         side: side || ''
@@ -121,18 +123,43 @@ export default function ModalUserCreate({ show, onClose, onCreate, companyId, si
                     </div>
                 </div>
 
-                {/* Fecha de nacimiento */}
+                
                 <div className="mb-3">
                     <div className="position-relative">
-                        <DatePickerToForm
-                            name="birthday"
-                            selected={data.birthday ? new Date(data.birthday) : null}
-                            onChange={(name, date) => setData(name, date ? date.toISOString().split('T')[0] : null)}
-                            dateFormat="dd/MM/yyyy"
-                            label={'fecha_nacimiento'}
-                            required={false}
-                        />
-                        <InputError message={errors.birthday} />
+                        <div className="row">
+                            {/* Fecha de nacimiento */}
+                            <div className="col-lg-6">
+                                <DatePickerToForm
+                                    name="birthday"
+                                    selected={data.birthday ? new Date(data.birthday) : null}
+                                    onChange={(name, date) => setData(name, date ? date.toISOString().split('T')[0] : null)}
+                                    dateFormat="dd/MM/yyyy"
+                                    label={'fecha_nacimiento'}
+                                    required={false}
+                                />
+                                <InputError message={errors.birthday} />
+                            </div>
+
+                            {/* Tratamiento */}
+                            <div className="col-lg-6">
+                                <label htmlFor="salutation" className="form-label">{ __('tratamiento') }</label>
+                                <SelectInput
+                                    className="form-select"
+                                    name="salutation"
+                                    value={data.salutation}
+                                    onChange={(e) => setData('salutation', e.target.value)}
+                                >
+                                    <option value="">{ __('opcion_selec') }</option>
+                                    {salutations.map(option => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </SelectInput>
+                                <InputError message={errors.salutation} />                                
+    
+                            </div>
+                        </div>
                     </div>
                 </div>
             

@@ -33,10 +33,10 @@ export default function Index({ auth, session, title, subtitle, companies, query
         { key: 'tradename', label: __('nombre_comercial'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_comercial_filtrar') },
         { key: 'created_at', label: __('fecha_alta'), sort: true, filter: 'date', class_th: 'text-center', class_td: 'text-end', placeholder: __('fecha_alta'), dateKeys: ['date_from', 'date_to'] },
         { key: 'nif', label: __('nif'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('nif_filtrar') },
-        { key: 'is_ute', label: __('ute'), sort: true, filter: 'select', options: [
-            { value: '1', label: __('si') },
-            { value: '0', label: __('no') }
-        ], class_th: 'text-center', class_td: 'text-center', placeholder: __('ute_filtrar') },
+        // { key: 'is_ute', label: __('ute'), sort: true, filter: 'select', options: [
+        //     { value: '1', label: __('si') },
+        //     { value: '0', label: __('no') }
+        // ], class_th: 'text-center', class_td: 'text-center', placeholder: __('ute_filtrar') },
         { key: 'logo', label: __('logo'), sort: false, filter: '', type: 'image', icon: 'building', class_th: 'text-center', class_td: 'text-center', placeholder: '' }
     ];    
 
@@ -71,6 +71,15 @@ export default function Index({ auth, session, title, subtitle, companies, query
             text: __('proveedor_nuevo'),
             icon: 'la-plus',
             url: 'providers.create',
+            modal: false
+        });
+    }
+
+    if (permissions?.['providers.create']) {
+        actions.push({
+            text: __('proveedores_importar'),
+            icon: 'la-file-import',
+            url: 'providers.import',
             modal: false
         });
     }
@@ -136,37 +145,37 @@ export default function Index({ auth, session, title, subtitle, companies, query
                                     {/* Acciones */}
                                     <td className="text-end">
                                         {/* Estado */}
-                                        {permissions?.['companies.edit'] && (
+                                        {permissions?.['providers.edit'] && (
                                             <OverlayTrigger
                                                 key={"status-"+company.id}
                                                 placement="top"
-                                                overlay={<Tooltip className="ttp-top">{ company.status == 1 ? __('empresa_activa') : __('empresa_inactiva') }</Tooltip>}
+                                                overlay={<Tooltip className="ttp-top">{ company.status == 1 ? __('proveedor_activo') : __('proveedor_inactivo') }</Tooltip>}
                                             >
                                                 <StatusButton 
                                                     status={company.status} 
                                                     id={company.id} 
-                                                    updateRoute='companies.status'
-                                                    reloadUrl={route('companies.index')}
-                                                    reloadResource="companies"
+                                                    updateRoute='providers.status'
+                                                    reloadUrl={route('providers.index')}
+                                                    reloadResource="providers"
                                                 />
                                             </OverlayTrigger>
                                         )}
 
                                         {/* Editar */}
-                                        {permissions?.['companies.edit'] && (
+                                        {permissions?.['providers.edit'] && (
                                             <OverlayTrigger
                                                 key={"edit-"+company.id}
                                                 placement="top"
                                                 overlay={<Tooltip className="ttp-top">{ __('editar') }</Tooltip>}
                                             >
-                                                <Link href={route('companies.edit', company.id)} className="btn btn-sm btn-info ms-1">
+                                                <Link href={route('providers.edit', company.id)} className="btn btn-sm btn-info ms-1">
                                                     <i className="la la-edit"></i>
                                                 </Link>
                                             </OverlayTrigger>
                                         )}
 
                                         {/* Eliminar */}
-                                        {permissions?.['companies.destroy'] && (
+                                        {permissions?.['providers.destroy'] && (
                                             <OverlayTrigger
                                                 key={"delete-"+company.id}
                                                 placement="top"

@@ -6,15 +6,17 @@ import DatePicker from 'react-datepicker';
 import DatePickerToForm from '@/Components/DatePickerToForm';
 import FileInput from '@/Components/FileInput';
 import InputError from '@/Components/InputError';
+import ManagePhones from '@/Components/ManagePhones';
 import PrimaryButton from '@/Components/PrimaryButton';
 import RadioButton from '@/Components/RadioButton';
+import SelectInput from '@/Components/SelectInput';
 import TextInput from '@/Components/TextInput';
 
 //Hooks:
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function UserPersonalData({ user, roles = {}, user_roles = {} }) {
+export default function UserPersonalData({ user, roles = {}, user_roles = {}, salutations = [] }) {
     const __ = useTranslation();
     const props = usePage()?.props || {};
     const locale = props.locale || false;
@@ -34,9 +36,11 @@ export default function UserPersonalData({ user, roles = {}, user_roles = {} }) 
 
     // Set formulario:
     const { data, setData, put, processing, errors } = useForm({
-        role:      currentRole,
+        // si no tiene role y no es admin, asignamos por defecto 'Invitados'
+        role:      currentRole || (user?.isAdmin == 1 ? '' : 'Invitados'),
         name:      user.name || '',
         surname:   user.surname || '',
+        salutation: user.salutation || '',
         email:     user.email || '',
         nif:       user.nif || '',
         birthday:  user.birthday ? new Date(user.birthday) : null,
@@ -102,24 +106,50 @@ export default function UserPersonalData({ user, roles = {}, user_roles = {} }) 
             {/* Formulario */}
             <form onSubmit={handleSubmit}>
                 <div className="row gy-3 mb-3">
-                    {/* Rol */}
-                    <div className="col-12">
-                        <div className="position-relative">
-                            <label htmlFor="role" className="form-label">{ __('role') }*</label>    
-                            <RadioButton
-                                name="role"
-                                value={data.role}
-                                onChange={(e) => setData('role', e.target.value)}
-                                options={arrRoles}
-                                required
-                            />
+                    {/* Rol: sólo para usuarios con acceso */}
+                    {user?.isAdmin == 1 ? (
+                        <div className="col-12">
+                            <div className="position-relative">
+                                <label htmlFor="role" className="form-label">{ __('role') }*</label>    
+                                <RadioButton
+                                    name="role"
+                                    value={data.role}
+                                    onChange={(e) => setData('role', e.target.value)}
+                                    options={arrRoles}
+                                    required
+                                />
 
-                            <InputError message={errors.role} />
+                                <InputError message={errors.role} />
+                            </div>
+                        </div>
+                    ) : (
+                        // Si no es admin, incluimos el role como campo oculto (por defecto 'Invitados')
+                        <input type="hidden" name="role" value={data.role} />
+                    )}
+
+                    {/* Tratamiento */}
+                    <div className="col-md-2">
+                        <div>
+                            <label htmlFor="salutation" className="form-label">{ __('tratamiento') }</label>
+                            <SelectInput
+                                className="form-select"
+                                name="salutation"
+                                value={data.salutation}
+                                onChange={(e) => setData('salutation', e.target.value)}
+                            >
+                                <option value="">{ __('opcion_selec') }</option>
+                                {salutations.map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </SelectInput>
+                            <InputError message={errors.salutation} />
                         </div>
                     </div>
 
                     {/* Nombre */}
-                    <div className="col-md-6">
+                    <div className="col-md-5">
                         <div>
                             <label htmlFor="name" className="form-label">{ __('nombre') }*</label>
                             <TextInput 
@@ -138,7 +168,7 @@ export default function UserPersonalData({ user, roles = {}, user_roles = {} }) 
                     </div>
 
                     {/* Apellidos */}
-                    <div className="col-md-6">
+                    <div className="col-md-5">
                         <div>
                             <label htmlFor="surname" className="form-label">{ __('apellidos') }*</label>
                             <TextInput 
@@ -215,43 +245,45 @@ export default function UserPersonalData({ user, roles = {}, user_roles = {} }) 
                     </div>
                     <div className="w-100 m-0"></div>
 
-                    {/* Firma */}
-                    <div className="col-md-6">
-                        <div>
-                            <label htmlFor="signature" className="form-label">{ __('firma') }</label>
-                            {user.signature ? (
-                                <div className="d-flex align-items-start">
-                                    <img
-                                        src={`/storage/signatures/${user.signature}`}
-                                        alt={user.name}
-                                        className="img-thumbnail me-3"
-                                        style={{ maxWidth: '300px', objectFit: 'contain' }}
+                    {/* Firma: sólo para usuarios con acceso */}
+                    {user?.isAdmin == 1 && (
+                        <div className="col-md-6">
+                            <div>
+                                <label htmlFor="signature" className="form-label">{ __('firma') }</label>
+                                {user.signature ? (
+                                    <div className="d-flex align-items-start">
+                                        <img
+                                            src={`/storage/signatures/${user.signature}`}
+                                            alt={user.name}
+                                            className="img-thumbnail me-3"
+                                            style={{ maxWidth: '300px', objectFit: 'contain' }}
+                                        />
+
+                                        <button 
+                                            type="button" 
+                                            className="ms-2 btn btn-sm btn-danger" 
+                                            onClick={handleDeleteSignature}
+                                        >
+                                            <i className="la la-trash"></i>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <FileInput 
+                                        name="signature"
+                                        accept="image/*"
+                                        onChange={handleChange}
+                                        error={errors.signature} 
                                     />
+                                )}
 
-                                    <button 
-                                        type="button" 
-                                        className="ms-2 btn btn-sm btn-danger" 
-                                        onClick={handleDeleteSignature}
-                                    >
-                                        <i className="la la-trash"></i>
-                                    </button>
-                                </div>
-                            ) : (
-                                <FileInput 
-                                    name="signature"
-                                    accept="image/*"
-                                    onChange={handleChange}
-                                    error={errors.signature} 
-                                />
-                            )}
-
-                            <p className='pt-1 text-warning small'>
-                                <span className='me-5'>{ __('imagen_formato') }</span>
-                                <span className='me-5'>{ __('imagen_peso_max') }: 1MB</span>
-                                { __('imagen_medidas_recomendadas') }: 400x400px
-                            </p>
+                                <p className='pt-1 text-warning small'>
+                                    <span className='me-5'>{ __('imagen_formato') }</span>
+                                    <span className='me-5'>{ __('imagen_peso_max') }: 1MB</span>
+                                    { __('imagen_medidas_recomendadas') }: 400x400px
+                                </p>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 <div className='mt-4 text-end'>
@@ -260,6 +292,13 @@ export default function UserPersonalData({ user, roles = {}, user_roles = {} }) 
                     </PrimaryButton>	
                 </div>
             </form>
+
+            {/* Teléfonos */}
+            <ManagePhones 
+                phoneableType="User"
+                phoneableId={user.id}
+                defaultWaMessage={__('whatsapp_mensaje')}
+            />
         </div>
     );
 }

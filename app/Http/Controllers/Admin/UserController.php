@@ -15,12 +15,17 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use App\Support\CompanyContext;
 use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
 
+//Concerns:
+use App\Concerns\HasSalutation;
+
 //Models:
 use App\Models\Company;
+use App\Models\CustomerProvider;
 use App\Models\Phone;
 use App\Models\User;
 use App\Models\UserColumnPreference;
@@ -79,7 +84,9 @@ class UserController extends Controller{
                 'users.index',
                 'users.search',
                 'users.show',
-                'users.update'
+                'users.update',
+                'customers.edit',
+                'providers.edit'
             ]);   
         } 
     }  
@@ -110,7 +117,7 @@ class UserController extends Controller{
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions,
             "columnPreferences" => UserColumnPreference::forUserAndTables(
-                auth()->user()->id,
+                Auth::id(),
                 ['tblUsers'] 
             )
         ]);
@@ -264,6 +271,7 @@ class UserController extends Controller{
         $user = new User();
         $user->name = $request->name;
         $user->surname = $request->surname;
+        $user->salutation = $request->salutation;
         $user->email = $request->email;
         $user->password = bcrypt($random_password);
         $user->birthday = $request->birthday;
@@ -275,6 +283,11 @@ class UserController extends Controller{
         //Guardamos rol:
         if($request->input('role')){
             $user->assignRole($role->name);
+        }
+
+        //Role para invitados:
+        if(!$isAdmin){
+            $user->assignRole(config('constants.ROLE_INVITADO_NAME_'));
         }
 
         //Vinculamos usuario a empresa:
@@ -328,6 +341,12 @@ class UserController extends Controller{
      * 5. Editar usuario. 
      */
     public function edit(User $user, $profile = false){
+        $ctx = app(CompanyContext::class);
+        $companyId = (int) $ctx->id();
+        if($companyId <= 0){
+            abort(422, __('no_hay_empresa_activa'));
+        }
+
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 
         //Formateo de datos:
@@ -345,11 +364,49 @@ class UserController extends Controller{
         ->get();
 
         //Comprobamos vínculo del usuario, si pertenece a la empresa o a cliente o proveedor:
-        // $relation = UserCompany::select('id', 'company_id')
-        // ->where('user_id', $user->id)
-        // ->get();
+        // Obtener company_ids distintos de la compañía en session + datos de empresa y pivot.id
+        $relations = UserCompany::query()
+        ->where('user_id', $user->id)
+        ->where('company_id', '!=', $companyId)
+        ->with('company') // asume relación userCompany->company
+        ->get(['id', 'company_id']); // id = pivot id
 
-        //dd($relation);
+        // Construimos mapa de relaciones entre la compañía en sesión y las otras empresas
+        $otherCompanyIds = $relations->pluck('company_id')->unique()->values()->all();
+
+        $cpRecords = [];
+        if (!empty($otherCompanyIds)) {
+            $cpRecords = CustomerProvider::where(function($q) use ($companyId, $otherCompanyIds) {
+                $q->where('provider_id', $companyId)->whereIn('customer_id', $otherCompanyIds);
+            })->orWhere(function($q) use ($companyId, $otherCompanyIds) {
+                $q->where('customer_id', $companyId)->whereIn('provider_id', $otherCompanyIds);
+            })->get();
+        }
+
+        // Mapa company_id => relation ('client'|'supplier')
+        $relationMap = [];
+        foreach ($cpRecords as $cp) {
+            if ($cp->provider_id == $companyId) {
+                $relationMap[$cp->customer_id] = 'customer';
+            } elseif ($cp->customer_id == $companyId) {
+                $relationMap[$cp->provider_id] = 'provider';
+            }
+        }
+
+        $relatedCompanies = $relations->map(function($uc) use ($relationMap) {
+            $company = $uc->company; // eager loaded
+            if (!$company) return null;
+
+            return [
+                'id' => $company->id,
+                'name' => $company->name,
+                'pivot_id' => $uc->id,
+                'relation' => $relationMap[$company->id] ?? null,
+            ];
+        })->filter()->values()->all();
+
+        //Tratamientos:
+        $salutations = HasSalutation::comboOptions();
 
         return Inertia::render('Admin/User/Edit', [
             "title" => __($this->option),
@@ -361,6 +418,8 @@ class UserController extends Controller{
             "roles" => $roles,
             "user_roles" => $user->roles,
             "images" => $images,
+            "relatedCompanies" => $relatedCompanies,
+            'salutations' => $salutations,
             "profile" => $profile,      //Edición usuario en session.
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions
@@ -383,8 +442,6 @@ class UserController extends Controller{
 
             $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 
-            //dd($request->all());
-
             //Tratamiento de fechas:
             //$rawStart = $request->birthday;
             $birthday = $request->birthday !== ''
@@ -396,6 +453,7 @@ class UserController extends Controller{
 
             $user->name = $request->name;
             $user->surname = $request->surname;
+            $user->salutation = $request->salutation;
             $user->email = $request->email;
             $user->birthday = $birthday;
             $user->nif = $request->nif;

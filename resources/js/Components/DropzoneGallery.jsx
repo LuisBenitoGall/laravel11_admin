@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 import axios from 'axios';
 
 //Hooks:
@@ -10,6 +11,8 @@ export default function DropzoneGallery({
     imagePath = null,
     uploadUrl,
     deleteUrl = null,
+    // URL or function to set an image as featured (default false hides the button)
+    setFeaturedUrl = false,
     uploadParamName = 'file',
     maxFiles = 20,
     maxFileSize = 3 * 1024 * 1024, // 3MB
@@ -51,6 +54,43 @@ export default function DropzoneGallery({
 
     const totalCount = images.length + Object.keys(uploadingMap).length;
 
+    // Helper to build a public URL from a bare filename or image value
+    const buildPublicUrl = (val) => {
+        if (!val) return '';
+        if (typeof val !== 'string') return '';
+        if (val.startsWith('http') || val.startsWith('/') || val.startsWith('data:') || val.includes('/')) return val;
+        const prefix = imagePath ? `/storage/${imagePath.replace(/\/$/, '')}/` : '/storage/';
+        return `${prefix}${val}`;
+    };
+
+    const normalizeImage = (raw) => {
+        // raw can be a string (filename), or an object
+        if (!raw) return null;
+        if (typeof raw === 'string') {
+            return { image: raw, url: buildPublicUrl(raw), __key: `tmp_${raw}_${Date.now()}` };
+        }
+        // copy to avoid mutating original
+        const obj = { ...raw };
+        // prefer url/path/preview fields
+        if (!obj.url) {
+            if (obj.path) obj.url = obj.path;
+            else if (obj.preview) obj.url = obj.preview;
+            else if (obj.file && obj.file.url) obj.url = obj.file.url;
+            else if (obj.filename) obj.url = buildPublicUrl(obj.filename);
+            else if (obj.image) obj.url = buildPublicUrl(obj.image);
+        }
+        // ensure a stable key for React lists
+        if (!obj.__key) obj.__key = obj.id ? `id_${obj.id}` : `tmp_${Math.random().toString(36).slice(2,8)}_${Date.now()}`;
+        return obj;
+    };
+
+    // Keep local images state normalized when existingImages prop changes
+    useEffect(() => {
+        if (!Array.isArray(existingImages)) return;
+        const next = existingImages.map(i => normalizeImage(i)).filter(Boolean);
+        setImages(next);
+    }, [existingImages, imagePath]);
+
     const isAcceptable = (file) => {
         if (!acceptedTypes.includes(file.type)) return false;
         if (file.size > maxFileSize) return false;
@@ -77,9 +117,9 @@ export default function DropzoneGallery({
         const tempId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
         setUploadingMap(prev => ({ ...prev, [tempId]: { progress: 0, file } }));
 
-        if (!autoUpload || !uploadUrl) {
+            if (!autoUpload || !uploadUrl) {
             // If not auto-upload, just add as a local preview object
-            const localObj = { __tmp: tempId, name: file.name, url: URL.createObjectURL(file), file };
+            const localObj = { __tmp: tempId, __key: `tmp_${tempId}`, name: file.name, url: URL.createObjectURL(file), file };
             setImages(prev => { const next = prev.concat(localObj); onChange(next); return next; });
             setUploadingMap(prev => { const copy = { ...prev }; delete copy[tempId]; return copy; });
             return;
@@ -102,6 +142,8 @@ export default function DropzoneGallery({
                 }
             });
 
+            // TEMP DEBUG removed
+
             // Try to normalize response to an array of image objects
             let added = [];
             if (!res || !res.data) {
@@ -121,7 +163,8 @@ export default function DropzoneGallery({
             }
 
             setImages(prev => {
-                const next = prev.concat(added);
+                const normalized = added.map(a => normalizeImage(a)).filter(Boolean);
+                const next = prev.concat(normalized);
                 onChange(next);
                 return next;
             });
@@ -140,6 +183,7 @@ export default function DropzoneGallery({
             text: __('imagen_eliminar_confirm') ?? '¿Quieres eliminar esta imagen?',
             icon: 'warning',
             onConfirm: async () => {
+                // debug logs removed
                 // If it's a temporary local file (not uploaded), just remove
                 if (img.__tmp) {
                     setImages(prev => {
@@ -149,6 +193,8 @@ export default function DropzoneGallery({
                     });
                     return;
                 }
+
+                // allow deletion even if img.id is missing — deleteUrl resolver should handle filename fallback
 
                 if (!deleteUrl) {
                     // just remove locally
@@ -160,14 +206,17 @@ export default function DropzoneGallery({
                     return;
                 }
 
-                // Debug: log deleteUrl and img so we can see what's being passed
-                console.debug('DropzoneGallery handleDelete deleteUrl:', deleteUrl);
-                console.debug('DropzoneGallery handleDelete img object:', img);
-
                 // compute url — ensure we pass img.id when resolving named routes
                 let url = null;
                 if (typeof deleteUrl === 'function') {
-                    url = deleteUrl(img);
+                    // Call the function in a try/catch because Ziggy.route(...) may throw if params are missing.
+                    try {
+                        url = deleteUrl(img);
+                    } catch (e) {
+                        console.error('Error resolviendo deleteUrl function', e);
+                        setError('No se pudo resolver la ruta de borrado. Comprueba que la imagen tiene id.');
+                        return;
+                    }
                 } else if (typeof deleteUrl === 'string') {
                     // allow explicit :id placeholder
                     if (deleteUrl.includes(':id')) {
@@ -201,10 +250,15 @@ export default function DropzoneGallery({
                         return;
                     }
 
-                    console.debug('DropzoneGallery deleting URL:', url);
+                    // debug logs removed
+
                     await axios.delete(url, { data: {} });
                     setImages(prev => {
-                        const next = prev.filter(i => i.id !== img.id);
+                        const next = prev.filter(i => {
+                            if (img.id) return i.id !== img.id;
+                            // fallback: compare filename, url or temporary key
+                            return (i.image && i.image !== img.image) && (i.url && i.url !== img.url) && (i.__key && i.__key !== img.__key);
+                        });
                         onChange(next);
                         return next;
                     });
@@ -214,7 +268,6 @@ export default function DropzoneGallery({
                     const status = err?.response?.status;
                     if (status === 405 || status === 404) {
                         try {
-                            console.debug('DropzoneGallery attempting fallback POST _method=DELETE to', url);
                             // send form data to allow Laravel method spoofing
                             const form = new FormData();
                             form.append('_method', 'DELETE');
@@ -222,7 +275,10 @@ export default function DropzoneGallery({
                             // if success, remove locally
                             if (res2 && (res2.status === 200 || res2.status === 204 || res2.status === 202)) {
                                 setImages(prev => {
-                                    const next = prev.filter(i => i.id !== img.id);
+                                    const next = prev.filter(i => {
+                                        if (img.id) return i.id !== img.id;
+                                        return (i.image && i.image !== img.image) && (i.url && i.url !== img.url) && (i.__key && i.__key !== img.__key);
+                                    });
                                     onChange(next);
                                     return next;
                                 });
@@ -236,6 +292,54 @@ export default function DropzoneGallery({
                 }
             }
         });
+    };
+
+    const handleSetFeatured = async (img) => {
+        if (!setFeaturedUrl) return;
+
+        // Resolve URL similarly to deleteUrl: accept function or string (Ziggy)
+        let url = null;
+        if (typeof setFeaturedUrl === 'function') {
+            try {
+                url = setFeaturedUrl(img);
+            } catch (e) {
+                console.error('Error resolviendo setFeaturedUrl function', e);
+                setError('No se pudo resolver la ruta para establecer como principal');
+                return;
+            }
+        } else if (typeof setFeaturedUrl === 'string') {
+            // try generating via Ziggy with a named param 'image'
+            try {
+                url = resolveUrl(setFeaturedUrl, { image: img.id ?? img.image });
+            } catch (e) {
+                // fallback to raw string
+                url = setFeaturedUrl;
+            }
+        }
+
+        if (!url) {
+            setError('Url para marcar como principal inválida');
+            return;
+        }
+
+        try {
+            const payload = img.id ? { id: img.id } : { image: img.image };
+            const res = await axios.post(url, payload);
+
+            // Update local state: set featured true for this image, false for others
+            setImages(prev => {
+                const next = prev.map(i => {
+                    if (img.id && i.id === img.id) return { ...i, featured: true };
+                    if (!img.id && i.image && img.image && i.image === img.image) return { ...i, featured: true };
+                    return { ...i, featured: false };
+                });
+                onChange(next);
+                return next;
+            });
+        } catch (err) {
+            console.error('Set featured error', err);
+            setError('Error marcando imagen principal');
+        }
     };
 
     useEffect(() => {
@@ -331,9 +435,38 @@ export default function DropzoneGallery({
                                     style={{ width: '100%', height: 120, objectFit: 'cover', cursor: 'pointer' }}
                                     onClick={() => openViewer(src, img.name ?? '')}
                                 />
-                                <button type="button" className="btn btn-sm btn-danger position-absolute" style={{ top: 6, right: 6 }} onClick={() => handleDelete(img)}>
-                                    <i className="la la-trash"></i>
-                                </button>
+                                <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                    <OverlayTrigger
+                                        placement="left"
+                                        overlay={
+                                            <Tooltip id={`tooltip-delete-${img.__key ?? img.id}`}>
+                                                {__('imagen_eliminar') ?? 'Eliminar imagen'}
+                                            </Tooltip>
+                                        }
+                                    >
+                                        <button type="button" className="btn btn-sm btn-danger" onClick={() => handleDelete(img)}>
+                                            <i className="la la-trash"></i>
+                                        </button>
+                                    </OverlayTrigger>
+
+                                    {setFeaturedUrl && (
+                                        <OverlayTrigger
+                                            placement="left"
+                                            overlay={
+                                                <Tooltip id={`tooltip-featured-${img.__key ?? img.id}`}>
+                                                    {img.featured ? (__('imagen_destacada') ?? 'Principal') : (__('imagen_destacada_marcar') ?? 'Marcar principal')}
+                                                </Tooltip>
+                                            }
+                                        >
+                                            <button type="button"
+                                                className={`btn btn-sm ${img.featured ? 'btn-warning' : 'btn-light'}`}
+                                                onClick={() => handleSetFeatured(img)}
+                                            >
+                                                <i className="la la-star" style={{ color: img.featured ? '#fff' : '#333' }}></i>
+                                            </button>
+                                        </OverlayTrigger>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     );

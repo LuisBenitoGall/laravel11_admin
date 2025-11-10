@@ -60,13 +60,13 @@ export default function Sidebar(auth) {
         //     return;
         // }
 
-    //     axios.get('/secondary-menu')
-    //         .then(response => {
-    //             const filteredModules = response.data.filter(module => companyModules.includes(module.id));
-    //             setModules(filteredModules);
-    //         })
-    //         .catch(error => console.error('Error fetching secondary menu:', error));
-    // }, [JSON.stringify(companyModules), currentCompany?.id]);
+        //     axios.get('/secondary-menu')
+        //         .then(response => {
+        //             const filteredModules = response.data.filter(module => companyModules.includes(module.id));
+        //             setModules(filteredModules);
+        //         })
+        //         .catch(error => console.error('Error fetching secondary menu:', error));
+        // }, [JSON.stringify(companyModules), currentCompany?.id]);
 
         axios.get('/secondary-menu')
         .then(({ data }) => {
@@ -279,11 +279,11 @@ export default function Sidebar(auth) {
                                                     <span>{txt_empresas_mis}</span>
                                                 </NavLink>
                                             </li>
-                                            <li>
+                                            {/* <li>
                                                 <NavLink href={route('business-areas.index')} className={`nav-link menu-link ${currentSlug === 'business-areas' ? 'active text-white' : ''}`}>
                                                     <span>{txt_areas_negocio}</span>
                                                 </NavLink>
-                                            </li>
+                                            </li> */}
                                             <li>
                                                 <NavLink href={route('cost-centers.index')} className={`nav-link menu-link ${currentSlug === 'cost-centers' ? 'active text-white' : ''}`}>
                                                     <span>{txt_centros_coste}</span>

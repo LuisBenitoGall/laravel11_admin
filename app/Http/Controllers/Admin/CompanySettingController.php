@@ -36,7 +36,7 @@ class CompanySettingController extends Controller{
     use LocaleTrait;
 
     private $module = 'companies';
-    private $option = 'configuracion';
+    private $option = 'empresas';
     protected array $permissions = [];
 
     public function __construct(){
@@ -61,7 +61,7 @@ class CompanySettingController extends Controller{
             "title" => __($this->option),
             "subtitle" => __('configuracion'),
             "module" => $this->module,
-            "slug" => 'companies',
+            "slug" => 'company-settings',
             "queryParams" => request()->query() ?: null,
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions,

@@ -19,6 +19,8 @@ return [
         ['destroy', 'Eliminar ']
     ],
     'PERMISSIONS_OFF_' => ['accounts', 'modules', 'permissions', 'currencies', 'banks', 'countries', 'contents', 'units'],    //Permisos exclusivos para los Super Admin.
+    'ROLE_INVITADO_' => 2,          //para usuarios NO Admin
+    'ROLE_INVITADO_NAME_' => 'Invitado',
 	'ROLE_SUPERADMIN_' => 1,        //id role con permisos absolutos (extraído de la tabla 'roles').
 	'RECORDS_PER_PAGE_DEFAULT_' => 10,
 	'SUPER_ADMIN_' => 'Super Admin',

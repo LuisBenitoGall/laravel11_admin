@@ -1,5 +1,5 @@
 import React from 'react';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { OverlayTrigger, Table, Tooltip } from 'react-bootstrap';
 
 // Components
@@ -236,9 +236,9 @@ export default function TableUsers({
                                     placement="top"
                                     overlay={<Tooltip className="ttp-top">{__('editar')}</Tooltip>}
                                 >
-                                    <a href={route(`${entityName}.edit`, user.id)} className="btn btn-sm btn-info ms-1">
+                                    <Link href={route(`${entityName}.edit`, user.id)} className="btn btn-sm btn-info ms-1">
                                         <i className="la la-edit" />
-                                    </a>
+                                    </Link>
                                 </OverlayTrigger>
 
                                 <OverlayTrigger

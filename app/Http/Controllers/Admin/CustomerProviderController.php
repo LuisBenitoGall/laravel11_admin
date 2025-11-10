@@ -17,6 +17,10 @@ use App\Support\CompanyContext;
 use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
+use File;
+
+//Concerns:
+use App\Concerns\HasSalutation;
 
 //Models:
 use App\Models\AccountingAccount;
@@ -54,10 +58,11 @@ class CustomerProviderController extends Controller{
      * 3.2. Helper empresas no vinculadas.
      * 4. Editar.
      * 5. Actualizar.
-     *
-     *
-     * Estado de cliente o proveedor.
-     * Eliminar relación cliente-proveedor.
+     * 6. Guardar nuevo cliente o proveedor por listado.
+     * 7. Editar cliente.
+     * 8. Editar proveedor.
+     * 9. Estado de cliente o proveedor.
+     * 10. Eliminar relación cliente-proveedor.
      */
     
     use HasUserPermissionsTrait;
@@ -463,9 +468,11 @@ class CustomerProviderController extends Controller{
         $table = $users->map(function ($u) use($locale){
             $primary = $u->phones->firstWhere('is_primary', true) ?: $u->phones->first();
 
+            $salutation = $u->salutation? HasSalutation::salutationAbbrOf($u->salutation):'';
+
             return [
                 'id'            => $u->id,
-                'name'          => $u->name.' '.$u->surname,
+                'name'          => $salutation.' '.ucwords($u->name).' '.ucwords($u->surname),
                 'position'      => $u->position,
                 'created_at'    => Carbon::parse($u->created_at)->format($locale[4]),
                 'email'         => $u->email,
@@ -483,6 +490,9 @@ class CustomerProviderController extends Controller{
                 ])->values(),
             ];
         });
+
+        //Tratamientos:
+        $salutations = HasSalutation::comboOptions();
 
         //Formateo de datos:
         $relation->formatted_created_at = Carbon::parse($relation->created_at)->format($locale[4].' H:i:s');
@@ -509,6 +519,7 @@ class CustomerProviderController extends Controller{
             "relation" => $relation,
             "users" => $users,
             "rows" => $table,
+            "salutations" => $salutations,
             "tab" => $tab,
             "msg" => session('msg'),
             "alert" => session('alert'),
@@ -516,9 +527,91 @@ class CustomerProviderController extends Controller{
         ]);
     }
 
+    /**
+     * 8. Editar proveedor.
+     */
+    public function editProvider(Company $provider, $tab = false){
+        // CompanyContext resolved manually to avoid controller injection issues when route provides optional params
+        $ctx = app(CompanyContext::class);
+        $customerId = (int) $ctx->id();
+        if($customerId <= 0){
+            abort(422, __('no_hay_empresa_activa'));
+        }  
+
+        $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
+
+        //Relación proveedor:
+        $relation = CustomerProvider::where('customer_id', $customerId)
+        ->where('provider_id', $provider->id)
+        ->first();
+
+        //Usuarios:
+        $users = UserCompany::usersByCompany($provider->id);
+
+        $table = $users->map(function ($u) use($locale){
+            $primary = $u->phones->firstWhere('is_primary', true) ?: $u->phones->first();
+
+            $salutation = $u->salutation? HasSalutation::salutationAbbrOf($u->salutation):'';
+
+            return [
+                'id'            => $u->id,
+                'name'          => $salutation.' '.ucwords($u->name).' '.ucwords($u->surname),
+                'position'      => $u->position,
+                'created_at'    => Carbon::parse($u->created_at)->format($locale[4]),
+                'email'         => $u->email,
+                'avatar'        => $u->avatar && $u->avatar->image 
+                                    ? \Storage::url('users/'.$u->avatar->image): null,
+                'phone_primary' => $primary?->e164,
+                'whatsapp'      => (bool) optional($primary)->is_whatsapp,
+                'phones_count'  => $u->phones->count(),
+                'phones'        => $u->phones->map(fn($p) => [
+                    'e164'        => $p->e164,
+                    'type'        => $p->type,
+                    'label'       => $p->label,
+                    'is_primary'  => $p->is_primary,
+                    'is_whatsapp' => $p->is_whatsapp,
+                ])->values(),
+            ];
+        });
+
+        //Tratamientos:
+        $salutations = HasSalutation::comboOptions();
+
+        //Formateo de datos:
+        $relation->formatted_created_at = Carbon::parse($relation->created_at)->format($locale[4].' H:i:s');
+        $relation->formatted_updated_at = Carbon::parse($relation->updated_at)->format($locale[4].' H:i:s');
+
+        $permissions_ = $this->resolvePermissions([
+            'providers.create',
+            'providers.destroy',
+            'providers.edit',
+            'providers.index',
+            'providers.search',
+            'providers.show',
+            'providers.update',
+            'users.create'
+        ]);
+
+        return Inertia::render('Admin/Provider/Edit', [
+            "title" => __('proveedores'),
+            "subtitle" => __('proveedor_editar'),
+            "module" => $this->module,
+            "slug" => 'providers',
+            "availableLocales" => LocaleTrait::availableLocales(),
+            "provider" => $provider,
+            "relation" => $relation,
+            "users" => $users,
+            "rows" => $table,
+            "salutations" => $salutations,
+            "tab" => $tab,
+            "msg" => session('msg'),
+            "alert" => session('alert'),
+            "permissions" => $permissions_
+        ]);
+    }
 
     /**
-     * Estado de cliente o proveedor.
+     * 9. Estado de cliente o proveedor.
      */
     public function status(Request $request, $side = false, CompanyContext $ctx){
         if(!$side){
@@ -549,7 +642,7 @@ class CustomerProviderController extends Controller{
     }
 
     /**
-     * Eliminar relación cliente-proveedor.
+     * 10. Eliminar relación cliente-proveedor.
      */
     public function destroy(CustomerProvider $relation, $side = false){
         $relation->delete();

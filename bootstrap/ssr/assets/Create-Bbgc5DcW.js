@@ -1,0 +1,88 @@
+import { jsxs, jsx } from "react/jsx-runtime";
+import { A as AdminAuthenticated } from "./AdminAuthenticatedLayout-DT2NIV1N.js";
+import { usePage, useForm, Head } from "@inertiajs/react";
+import "react";
+import { C as Checkbox } from "./Checkbox-B7oBdKeZ.js";
+import { T as TextInput } from "./TextInput-CzxrbIpp.js";
+import { I as InputError } from "./InputError-DME5vguS.js";
+import { P as PrimaryButton } from "./PrimaryButton-B91ets3U.js";
+import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
+import "axios";
+import "@inertiajs/inertia";
+import "./Header-kwxCeG5H.js";
+import "react-bootstrap";
+import "./useSweetAlert-D4PAsWYN.js";
+import "sweetalert2";
+import "./Sidebar-BV0-sS1Z.js";
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import "./NavLink-k73-0cwm.js";
+import "./Dropdown-DLZR1XDp.js";
+import "@headlessui/react";
+function Create({ auth, session, title, subtitle, company }) {
+  var _a;
+  const __ = useTranslation();
+  const props = ((_a = usePage()) == null ? void 0 : _a.props) || {};
+  const permissions = props.permissions || {};
+  const { data, setData, post, errors, processing } = useForm({
+    name: "",
+    status: 1
+  });
+  const handleChange = (e) => {
+    const { name, type, checked, value } = e.target;
+    if (type === "checkbox") {
+      setData(name, checked ? 1 : 0);
+    } else {
+      setData(name, value);
+    }
+  };
+  function handleSubmit(e) {
+    e.preventDefault();
+    post(route("cost-centers.store"));
+  }
+  const actions = [];
+  if (permissions == null ? void 0 : permissions["cost-centers.index"]) {
+    actions.push({
+      text: __("centros_volver"),
+      icon: "la-angle-left",
+      url: "cost-centers.index",
+      modal: false
+    });
+  }
+  return /* @__PURE__ */ jsxs(AdminAuthenticated, { user: auth.user, title, subtitle, actions, children: [
+    /* @__PURE__ */ jsx(Head, { title }),
+    /* @__PURE__ */ jsxs("div", { className: "contents pb-4", children: [
+      /* @__PURE__ */ jsx("div", { className: "row", children: /* @__PURE__ */ jsx("div", { className: "col-12", children: /* @__PURE__ */ jsxs("h2", { children: [
+        __("centro_coste_nuevo"),
+        " ",
+        /* @__PURE__ */ jsx("u", { children: company.name })
+      ] }) }) }),
+      /* @__PURE__ */ jsx("form", { onSubmit: handleSubmit, children: /* @__PURE__ */ jsxs("div", { className: "row gy-3", children: [
+        /* @__PURE__ */ jsxs("div", { className: "col-lg-6", children: [
+          /* @__PURE__ */ jsxs("label", { className: "form-label", children: [
+            __("centro_coste"),
+            "*"
+          ] }),
+          /* @__PURE__ */ jsx(TextInput, { value: data.name, onChange: (e) => setData("name", e.target.value), maxLength: 150, required: true }),
+          /* @__PURE__ */ jsx(InputError, { message: errors.name })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "col-lg-2 text-center", children: [
+          /* @__PURE__ */ jsx("label", { htmlFor: "status", className: "form-label", children: __("estado") }),
+          /* @__PURE__ */ jsx("div", { className: "pt-1 position-relative", children: /* @__PURE__ */ jsx(
+            Checkbox,
+            {
+              className: "xl",
+              name: "status",
+              checked: !!data.status,
+              onChange: handleChange
+            }
+          ) }),
+          /* @__PURE__ */ jsx(InputError, { message: errors.status })
+        ] }),
+        /* @__PURE__ */ jsx("div", { className: "mt-4 text-end", children: /* @__PURE__ */ jsx(PrimaryButton, { disabled: processing, className: "btn btn-rdn", children: processing ? __("procesando") + "..." : __("guardar") }) })
+      ] }) })
+    ] })
+  ] });
+}
+export {
+  Create as default
+};
