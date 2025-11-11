@@ -18,6 +18,7 @@ class CostCenterResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'slug' => $this->slug,
+            'code' => $this->code,
             'status' => $this->status,
             'deleted_at' => $this->deleted_at,
             'created_at' => optional($this->created_at)->toDateTimeString(),

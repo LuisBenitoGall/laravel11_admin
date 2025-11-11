@@ -17,6 +17,7 @@ class CostCenter extends Model{
         'company_id',
         'name',
         'slug',
+        'code',
         'status',
     ];
 

@@ -17,6 +17,7 @@ use App\Models\CompanyModule;
 use App\Models\CompanySetting;
 // use App\Models\Employee;
 // use App\Models\Module;
+use App\Models\User;
 use App\Models\UserCompany;
 
 class AuthenticatedSessionController extends Controller{
@@ -39,6 +40,11 @@ class AuthenticatedSessionController extends Controller{
         $request->authenticate();   //Va a app\Http\Requests\Auth\LoginRequest.php
 
         $request->session()->regenerate();
+
+        // Nota: la inclusión del campo `avatar` para Inertia se gestiona en
+        // HandleInertiaRequests::share(), por lo que no necesitamos mutar el
+        // objeto Auth::user() aquí y evitamos llamadas a métodos no tipados
+        // por el analizador.
 
         //Empresas vinculadas al usuario:
         $companies = UserCompany::userCompanies();

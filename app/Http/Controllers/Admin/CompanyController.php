@@ -76,7 +76,8 @@ class CompanyController extends Controller{
                 'companies.index',
                 'companies.search',
                 'companies.show',
-                'companies.update'
+                'companies.update',
+                'workplaces.index',
             ]);   
         } 
     }   
@@ -239,16 +240,6 @@ class CompanyController extends Controller{
         $company->created_by_name = optional($company->createdBy)->full_name ?? false;
         $company->updated_by_name = optional($company->updatedBy)->full_name ?? false;
 
-        $permissions = $this->resolvePermissions([
-            'companies.create',
-            'companies.destroy',
-            'companies.edit',
-            'companies.index',
-            'companies.search',
-            'companies.show',
-            'companies.update'
-        ]);
-
         return Inertia::render('Admin/Company/Edit', [
             "title" => __($this->option),
             "subtitle" => __('empresa_editar'),
@@ -258,7 +249,7 @@ class CompanyController extends Controller{
             "company" => $company,
             'msg' => session('msg'),
             'alert' => session('alert'),
-            "permissions" => $permissions
+            "permissions" => $this->permissions
         ]);
     }
 

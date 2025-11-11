@@ -17,7 +17,7 @@ import LocationSelects from '@/Components/LocationSelects';
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function Edit({ auth, session, title, subtitle, workplace, countries }){
+export default function Edit({ auth, session, title, subtitle, workplace, company, countries }){
     const __ = useTranslation();
     const props = usePage()?.props || {};
     const { showConfirm } = useSweetAlert();
@@ -73,7 +73,7 @@ export default function Edit({ auth, session, title, subtitle, workplace, countr
             preserveScroll: true,
             onSuccess: () => console.log('Centro actualizado'),
             onError: (errors) => console.error('Errores:', errors),
-            onFinish: () => console.log('Petición finalizada'),
+            onFinish: () => console.log('Petición finalizada')
         });
     }
 
@@ -111,6 +111,7 @@ export default function Edit({ auth, session, title, subtitle, workplace, countr
             text: __('centros_volver'),
             icon: 'la-angle-left',
             url: 'workplaces.index',
+            params: workplace.company_id,
             modal: false
         });
     }
@@ -120,6 +121,7 @@ export default function Edit({ auth, session, title, subtitle, workplace, countr
             text: __('centro_nuevo'),
             icon: 'la-plus',
             url: 'workplaces.create',
+            params: workplace.company_id,
             modal: false
         });
     }
@@ -149,6 +151,10 @@ export default function Edit({ auth, session, title, subtitle, workplace, countr
 
                     {/* Info */}
                     <div className="col-12 mt-2 mb-4">
+                        <span className="text-muted me-5">
+                            {__('empresa')}: <strong>{company.name}</strong> 
+                        </span>
+
                         <span className="text-muted me-5">
                             {__('creado')}: <strong>{workplace.formatted_created_at}</strong> 
                         </span>

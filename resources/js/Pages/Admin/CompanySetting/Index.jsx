@@ -20,7 +20,7 @@ import TableExporter from '@/Components/TableExporter';
 import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function Index({ auth, session, title, subtitle, companies, queryParams: rawQueryParams = {}, availableLocales }) {
+export default function Index({ auth, session, title, subtitle, company, queryParams: rawQueryParams = {}, availableLocales }) {
     const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
     const __ = useTranslation();
 
@@ -36,8 +36,16 @@ export default function Index({ auth, session, title, subtitle, companies, query
         >
             <Head title={title} />
 
-            <div className="contents">
+            <div className="contents pb-4">
+                <div className="row">
+                    <div className="col-12">
+                        <h2>{__('configuracion')} <u>{company.name}</u></h2>
+                    </div>
 
+
+
+                    <h1 className="text-warning text-center py-5">Módulo en construcción</h1>
+                </div>
 
             
             </div>

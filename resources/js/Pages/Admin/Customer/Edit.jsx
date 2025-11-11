@@ -23,7 +23,6 @@ import ModalUserCreate from '@/Components/modals/ModalUserCreate';
 //Partials:
 import CompanyInfoTab from '@/Pages/Admin/Company/Partials/CompanyInfoTab';
 import CompanyUsersTab from '@/Pages/Admin/Company/Partials/CompanyUsersTab';
-import CompanyWorkplacesTab from '@/Pages/Admin/Company/Partials/CompanyWorkplacesTab';
 
 //Utils:
 import { useHandleDelete } from '@/Utils/useHandleDelete.jsx';
@@ -106,6 +105,26 @@ export default function Index({ auth, session, title, subtitle, customer, relati
         });
     }
 
+    if (permissions?.['workplaces.index']) {
+        actions.push({
+            text: __('centros_trabajo'),
+            icon: 'la-map-marker-alt',
+            url: 'workplaces.index',
+            params: [customer.id],
+            modal: false,
+        });
+    }
+
+    if (permissions?.['cost-centers.index']) {
+        actions.push({
+            text: __('centros_coste'),
+            icon: 'la-comment-dollar',
+            url: 'cost-centers.index',
+            params: [customer.id],
+            modal: false,
+        });
+    }
+
     if (permissions?.['customers.destroy']) {
         actions.push({
             text: __('eliminar'),
@@ -162,16 +181,6 @@ export default function Index({ auth, session, title, subtitle, customer, relati
                                     updateRoute={'companies.update'}
                                     updateParams={[customer.id]}
                                 />
-                            )
-                        },
-                        {
-                            key: 'workplaces',
-                            label: __('centros_trabajo'),
-                            content: (
-                                <CompanyWorkplacesTab 
-                                    companyId={customer}
-                                    side={'customers'}
-                                />    
                             )
                         },
                         {

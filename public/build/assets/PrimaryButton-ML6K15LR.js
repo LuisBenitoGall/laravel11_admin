@@ -1,1 +1,0 @@
-import{j as a}from"./app-D2BBDCFC.js";function m({className:r="",disabled:t,children:n,...o}){return a.jsx("button",{...o,className:`btn btn-primary text-white ${t&&"opacity-25"} `+r,disabled:t,children:n})}export{m as P};

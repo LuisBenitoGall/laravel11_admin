@@ -29,9 +29,10 @@ class DashboardController extends Controller{
      */
     public function index(CompanyContext $ctx){
         $companyId = (int) $ctx->id();
-        if($companyId <= 0){
-            abort(422, __('no_hay_empresa_activa'));
-        }
+        //En el dashboard se omite la validación de companyId pues si hay más de una empresa no existe la variable hasta seleccionar alguna.
+        // if($companyId <= 0){
+        //     abort(422, __('no_hay_empresa_activa'));
+        // }
 
         $favorites = \App\Models\UserPreference::forUser(Auth::id())
         ->forCompany($companyId)

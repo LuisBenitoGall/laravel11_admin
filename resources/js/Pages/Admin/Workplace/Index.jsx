@@ -16,16 +16,22 @@ import StatusButton from '@/Components/StatusButton';
 import TableExporter from '@/Components/TableExporter';
 
 //Hooks:
-import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
 
 //Utils:
 import renderCellContent from '@/Utils/renderCellContent.jsx';
 
-export default function Index({ auth, session, title, subtitle, workplaces, queryParams: rawQueryParams = {}, availableLocales }) {
+export default function Index({ auth, session, title, subtitle, company, side, returnRoutes, workplaces, queryParams: rawQueryParams = {}, availableLocales }) {
     const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
     const __ = useTranslation();
+
+    const labelFromRoute = (rr, __) => {
+        if (rr?.label) return rr.label;
+        if (String(rr?.name).includes('customers.edit')) return __('cliente_volver');
+        if (String(rr?.name).includes('providers.edit')) return __('proveedor_volver');
+        return __('volver');
+    };
 
     //Columnas:
     const columns = [
@@ -54,20 +60,34 @@ export default function Index({ auth, session, title, subtitle, workplaces, quer
         indexRoute: 'workplaces.index',
         destroyRoute: 'workplaces.destroy',
         filteredDataRoute: 'workplaces.filtered-data',
+        routeParams: [company?.id],
         labelName: 'centro_trabajo',
         queryParams
     });
 
     //Acciones:
     const actions = [];
+    
+    returnRoutes.forEach(rr => {
+        actions.push({
+            text: labelFromRoute(rr, __),
+            icon: 'la-angle-left',
+            url: rr.name,               // p.ej. 'customers.edit' | 'providers.edit'
+            params: rr.params ?? company?.id ?? null,
+            modal: false
+        });
+    });
+
     if (permissions?.['workplaces.create']) {
         actions.push({
             text: __('centro_trabajo_nuevo'),
             icon: 'la-plus',
             url: 'workplaces.create',
+            params: company?.id ?? null,
             modal: false
         });
     }
+
 
     return (
         <AdminAuthenticatedLayout
@@ -79,8 +99,14 @@ export default function Index({ auth, session, title, subtitle, workplaces, quer
             <Head title={title} />
 
             <div className="contents">
-                {/* Controles */}
                 <div className="row">
+                    <div className="col-12">
+                        <h2>
+                            {__('centros_trabajo')} <u>{ company.name }</u>
+                        </h2>
+                    </div>
+
+                    {/* Controles */}
                     <div className="controls d-flex align-items-center">
                         <ColumnFilter columns={columns} visibleColumns={visibleColumns} toggleColumn={toggleColumnVisibility} />
                         <RecordsPerPage perPage={perPage} setPerPage={setPerPage} />

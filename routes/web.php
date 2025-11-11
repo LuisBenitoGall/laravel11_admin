@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\ModuleSetted;
+
 //Frontend:
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Frontend\HomeController;
@@ -35,6 +37,7 @@ use App\Http\Controllers\Admin\BusinessAreaController;
 // use App\Http\Controllers\Admin\CashController;
 // use App\Http\Controllers\Admin\CashConceptController;
 // use App\Http\Controllers\Admin\CashPatternController;
+use App\Http\Controllers\Admin\CategorizableController;
 use App\Http\Controllers\Admin\CategoryController;
 // use App\Http\Controllers\Admin\ChatController;
 // use App\Http\Controllers\Admin\ChatRoomController;
@@ -323,6 +326,30 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
         Route::post('business-areas/status', [BusinessAreaController::class, 'status'])->name('business-areas.status')->middleware('permission:business-areas.status');
     });
 
+    //Categories. Rutas genéricas para categorías por módulo.
+    //El parámetro {environment} decide el “contexto”: sectors | customers | providers | crm | ...
+    //Reutiliza el mismo CategoryController.
+    Route::prefix('{environment}')
+    ->whereIn('environment', ['sectors','customers','providers','crm'])
+    ->group(function () {
+        Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
+
+        // formulario de creación
+        Route::get('/categories/create', [CategoryController::class, 'create'])->name('categories.create');
+
+        // formulario de edición
+        Route::get('/categories/{category}/edit', [CategoryController::class, 'edit'])->name('categories.edit');
+
+        Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
+        Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+        Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+
+        Route::patch('/categories/{category}/toggle', [CategoryController::class, 'toggle'])->name('categories.toggle');
+        Route::patch('/categories/{category}/move', [CategoryController::class, 'move'])->name('categories.move');
+        Route::post('/categories/bulk', [CategoryController::class, 'bulk'])->name('categories.bulk');
+        Route::put('/categories/{category}/translations', [CategoryController::class, 'updateTranslations'])->name('categories.translations.update');
+    });
+
     //Company: no puede llevar middleware module_setted pues antes de seleccionar empresa no están definidos los módulos vinculados.
     //Route::middleware('module_setted:companies')->group(function (){
         Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index')->middleware('permission:companies.index');
@@ -364,11 +391,30 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/company-modules', [CompanyModuleController::class, 'index'])->name('company-modules.index')->middleware('permission:company-modules.index');
     Route::post('/company-modules/toggle/{module_id}', [CompanyModuleController::class, 'toggle'])->name('company-modules.toggle');
 
+    //Company Sectors. Los sectores empresariales se vinculan a Category:
+    Route::get('/company-sectors', [CategoryController::class, 'index'])->name('company-sectors.index')->defaults('environment', 'sectors')->middleware('permission:companies.create');
+    // Route::get('/company-sectors/tree', [CategoryController::class, 'tree'])->name('company-sectors.tree')->defaults('environment', 'sectors')->middleware([ModuleSetted::class.':companies']);
+
+    // Route::get('/company-sectors', fn () => redirect()->route('categories.index', 'sectors'))
+    //     ->name('company-sectors.index')
+    //     ->middleware([ModuleSetted::class . ':companies']);
+
+    // Route::get('/company-sectors/tree', [CategoryController::class, 'tree'])
+    //     ->name('company-sectors.tree')
+    //     ->defaults('environment', 'sectors')
+    //     ->middleware([ModuleSetted::class . ':companies']);
+
+
+
+
+
     //Company Settings:
-    Route::get('/company-settings', [CompanySettingController::class, 'index'])->name('company-settings.index')->middleware('permission:company-settings.index');
+    Route::middleware('module_setted:companies')->group(function (){
+        Route::get('/company-settings', [CompanySettingController::class, 'index'])->name('company-settings.index')->middleware('permission:company-settings.index');
+    });
 
     //Concourse Patterns:
-    Route::get('/concourse-patterns', [ConcoursePatternController::class, 'index'])->name('concourse-patterns.index')->middleware('permission:concourse-patterns.index');
+    Route::get('/concourse-patterns', [ConcoursePatternController::class, 'index'])->defaults('module', 'sectors')->name('concourse-patterns.index')->middleware('permission:concourse-patterns.index');
 
     //Contents:
     Route::middleware('module_setted:settings')->group(function (){
@@ -389,9 +435,9 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
 
     //Cost Centers:
     Route::middleware('module_setted:companies')->group(function (){
-        Route::get('/cost-centers', [CostCenterController::class, 'index'])->name('cost-centers.index')->middleware('permission:cost-centers.index');
-        Route::get('/cost-centers/filtered-data', [CostCenterController::class, 'filteredData'])->name('cost-centers.filtered-data')->middleware('permission:cost-centers.index');
-        Route::get('/cost-centers/create', [CostCenterController::class, 'create'])->name('cost-centers.create')->middleware('permission:cost-centers.create');
+        Route::get('/cost-centers/{company_id?}', [CostCenterController::class, 'index'])->name('cost-centers.index')->middleware('permission:cost-centers.index');
+        Route::get('/cost-centers/filtered-data/{company?}', [CostCenterController::class, 'filteredData'])->name('cost-centers.filtered-data')->middleware('permission:cost-centers.index');
+        Route::get('/cost-centers/create/{company_id?}', [CostCenterController::class, 'create'])->name('cost-centers.create')->middleware('permission:cost-centers.create');
         Route::post('/cost-centers/store', [CostCenterController::class, 'store'])->name('cost-centers.store')->middleware('permission:cost-centers.create');
         Route::get('/cost-centers/{cost_center}/edit', [CostCenterController::class, 'edit'])->name('cost-centers.edit')->middleware('permission:cost-centers.edit');
         Route::put('/cost-centers/{cost_center}/update', [CostCenterController::class, 'update'])->name('cost-centers.update')->middleware('permission:cost-centers.update');
@@ -817,9 +863,9 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
 
     //Workplaces:
     Route::middleware('module_setted:companies')->group(function (){
-        Route::get('/workplaces/{company?}', [WorkplaceController::class, 'index'])->whereNumber('company')->name('workplaces.index')->middleware('permission:workplaces.index');
+        Route::get('/workplaces/{company_id?}', [WorkplaceController::class, 'index'])->whereNumber('company_id')->name('workplaces.index')->middleware('permission:workplaces.index');
         Route::get('/workplaces/filtered-data/{company?}', [WorkplaceController::class, 'filteredData'])->whereNumber('company')->name('workplaces.filtered-data')->middleware('permission:workplaces.index');
-        Route::get('/workplaces/create', [WorkplaceController::class, 'create'])->name('workplaces.create')->middleware('permission:workplaces.create');
+        Route::get('/workplaces/create/{company_id?}', [WorkplaceController::class, 'create'])->name('workplaces.create')->middleware('permission:workplaces.create');
         Route::post('/workplaces/store', [WorkplaceController::class, 'store'])->name('workplaces.store')->middleware('permission:workplaces.create');
         Route::get('/workplaces/{workplace}/edit', [WorkplaceController::class, 'edit'])->name('workplaces.edit')->middleware('permission:workplaces.edit');
         Route::put('/workplaces/{workplace}/update', [WorkplaceController::class, 'update'])->name('workplaces.update')->middleware('permission:workplaces.update');

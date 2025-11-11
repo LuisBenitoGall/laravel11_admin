@@ -35,9 +35,23 @@ class HandleInertiaRequests extends Middleware{
     public function share(Request $request): array{
         return [
             ...parent::share($request),
-            'auth' => [
-                'user' => $request->user(),
-            ],
+            'auth' => function () use ($request) {
+                $user = $request->user();
+                if (!$user) return ['user' => null];
+
+                try {
+                    // cargar relación avatar (featured + public) y construir URL pública
+                    $avatarModel = $user->avatar; // lazy-load
+                    $avatarUrl = ($avatarModel && isset($avatarModel->image)) ? '/storage/users/' . ltrim($avatarModel->image, '/') : null;
+                } catch (\Throwable $e) {
+                    $avatarUrl = null;
+                }
+
+                // Devolvemos el usuario como array y añadimos avatar como key simple
+                return [
+                    'user' => array_merge($user->toArray(), ['avatar' => $avatarUrl]),
+                ];
+            },
             'ziggy' => fn () => [
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),

@@ -25,6 +25,9 @@ abstract class Controller{
      * 3. Generar .json de funcionalidades.
      * 4. Comprobar si empresa tiene módulo activo.
      */
+    
+    use AuthorizesRequests;
+    use ValidatesRequests;
 
     /**
      * 1. Session módulos por empresa.

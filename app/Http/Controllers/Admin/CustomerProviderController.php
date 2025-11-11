@@ -89,7 +89,10 @@ class CustomerProviderController extends Controller{
                 'providers.index',
                 'providers.search',
                 'providers.show',
-                'providers.update'
+                'providers.update',
+
+                'cost-centers.index',
+                'workplaces.index'
             ]);   
         } 
     }  
@@ -506,7 +509,9 @@ class CustomerProviderController extends Controller{
             'customers.search',
             'customers.show',
             'customers.update',
-            'users.create'
+            'users.create',
+            'cost-centers.index',
+            'workplaces.index'
         ]);
 
         return Inertia::render('Admin/Customer/Edit', [
@@ -589,7 +594,9 @@ class CustomerProviderController extends Controller{
             'providers.search',
             'providers.show',
             'providers.update',
-            'users.create'
+            'users.create',
+            'cost-centers.index',
+            'workplaces.index'
         ]);
 
         return Inertia::render('Admin/Provider/Edit', [

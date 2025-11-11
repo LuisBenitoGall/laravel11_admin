@@ -33,6 +33,7 @@ export default function Sidebar(auth) {
     const txt_permisos = __('permisos');
     const txt_proveedores = __('proveedores');
     const txt_roles = __('roles');
+    const txt_sectores = __('sectores');
     const txt_stock_movimientos = __('stock_movimientos');
     const txt_unidades = __('unidades');
     const txt_usuarios = __('usuarios');
@@ -307,6 +308,11 @@ export default function Sidebar(auth) {
                                             <li>
                                                 <NavLink href={route('providers.index')} className={`nav-link menu-link ${currentSlug === 'providers' ? 'active text-white' : ''}`}>
                                                     <span>{txt_proveedores}</span>
+                                                </NavLink>
+                                            </li>
+                                            <li>
+                                                <NavLink href={route('company-sectors.index')} className={`nav-link menu-link ${currentSlug === 'company-sectors' ? 'active text-white' : ''}`}>
+                                                    <span>{txt_sectores}</span>
                                                 </NavLink>
                                             </li>
                                         </ul>

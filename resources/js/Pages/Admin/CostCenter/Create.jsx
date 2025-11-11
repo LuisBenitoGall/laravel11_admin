@@ -19,6 +19,8 @@ export default function Create({ auth, session, title, subtitle, company }){
     // Set formulario:
     const { data, setData, post, errors, processing } = useForm({ 
         name: '', 
+        company_id: company.id,
+        code: '',
         status: 1 
     });
 
@@ -31,7 +33,7 @@ export default function Create({ auth, session, title, subtitle, company }){
         }
     };
 
-    // Envío formulario:
+    //Envío formulario:
     function handleSubmit(e){
         e.preventDefault();
         post(route('cost-centers.store'));
@@ -44,6 +46,7 @@ export default function Create({ auth, session, title, subtitle, company }){
             text: __('centros_volver'), 
             icon: 'la-angle-left', 
             url: 'cost-centers.index', 
+            params: company?.id ?? null,
             modal: false 
         }); 
     }
@@ -65,6 +68,12 @@ export default function Create({ auth, session, title, subtitle, company }){
                             <label className="form-label">{__('centro_coste')}*</label>
                             <TextInput value={data.name} onChange={(e) => setData('name', e.target.value)} maxLength={150} required />
                             <InputError message={errors.name} />
+                        </div>
+
+                        <div className="col-lg-4">
+                            <label className="form-label">{__('codigo')}</label>
+                            <TextInput value={data.code} onChange={(e) => setData('code', e.target.value)} maxLength={50} />
+                            <InputError message={errors.code} />
                         </div>
 
                         <div className="col-lg-2 text-center">

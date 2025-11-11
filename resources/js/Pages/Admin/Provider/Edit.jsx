@@ -105,6 +105,26 @@ export default function Index({ auth, session, title, subtitle, provider, relati
         });
     }
 
+    if (permissions?.['workplaces.index']) {
+        actions.push({
+            text: __('centros_trabajo'),
+            icon: 'la-map-marker-alt',
+            url: 'workplaces.index',
+            params: [provider.id],
+            modal: false,
+        });
+    }
+
+    if (permissions?.['cost-centers.index']) {
+        actions.push({
+            text: __('centros_coste'),
+            icon: 'la-comment-dollar',
+            url: 'cost-centers.index',
+            params: [provider.id],
+            modal: false,
+        });
+    }
+
     if (permissions?.['providers.destroy']) {
         actions.push({
             text: __('eliminar'),

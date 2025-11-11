@@ -19,6 +19,7 @@ export default function Create({ auth, session, title, subtitle, company, availa
     // Set formulario:
     const { data, setData, post, reset, errors, processing } = useForm({
         name: '',
+        company_id: company.id,
         status: 1
     });
 
@@ -46,6 +47,7 @@ export default function Create({ auth, session, title, subtitle, company, availa
             text: __('centros_volver'),
             icon: 'la-angle-left',
             url: 'workplaces.index',
+            params: company?.id ?? null,
             modal: false
         });
     }

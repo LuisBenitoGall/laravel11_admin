@@ -16,7 +16,6 @@ import StatusButton from '@/Components/StatusButton';
 import TableExporter from '@/Components/TableExporter';
 
 //Hooks:
-//import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
 
@@ -33,10 +32,10 @@ export default function Index({ auth, session, title, subtitle, companies, query
         { key: 'tradename', label: __('nombre_comercial'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_comercial_filtrar') },
         { key: 'created_at', label: __('fecha_alta'), sort: true, filter: 'date', class_th: 'text-center', class_td: 'text-end', placeholder: __('fecha_alta'), dateKeys: ['date_from', 'date_to'] },
         { key: 'nif', label: __('nif'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('nif_filtrar') },
-        { key: 'is_ute', label: __('ute'), sort: true, filter: 'select', options: [
-            { value: '1', label: __('si') },
-            { value: '0', label: __('no') }
-        ], class_th: 'text-center', class_td: 'text-center', placeholder: __('ute_filtrar') },
+        // { key: 'is_ute', label: __('ute'), sort: true, filter: 'select', options: [
+        //     { value: '1', label: __('si') },
+        //     { value: '0', label: __('no') }
+        // ], class_th: 'text-center', class_td: 'text-center', placeholder: __('ute_filtrar') },
         { key: 'logo', label: __('logo'), sort: false, filter: '', type: 'image', icon: 'building', class_th: 'text-center', class_td: 'text-center', placeholder: '' }
     ];    
 

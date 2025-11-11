@@ -33,18 +33,18 @@ export default function Index({ auth, session, title, subtitle, favorites = [] }
 					</div> */}
 
                     {/* Favoritos */}
-                    <div className="col-12 my-5">
-                        <h2 className="mb-3">{'Mis opciones preferidas'}</h2>
+                    <div className="col-12 my-3">
+                        <h2 className="mb-3">{__('favoritos_mis')}</h2>
                         <FavoritesGrid favorites={favorites} />
                     </div>
 
 
 
-					<pre>User: {JSON.stringify(auth.user, null, 2)}</pre>
+					{/* <pre>User: {JSON.stringify(auth.user, null, 2)}</pre>
 
 					<pre><strong>Empresa activa:</strong> {JSON.stringify(currentCompany, null, 2)}</pre>
 					<pre><strong>Módulos:</strong> {JSON.stringify(companyModules, null, 2)}</pre>
-					<pre><strong>Configuración empresa:</strong> {JSON.stringify(companySettings, null, 2)}</pre>
+					<pre><strong>Configuración empresa:</strong> {JSON.stringify(companySettings, null, 2)}</pre> */}
 				</div>
 			</div>
 		</AdminAuthenticatedLayout>

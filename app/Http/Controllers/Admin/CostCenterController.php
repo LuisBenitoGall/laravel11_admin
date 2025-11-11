@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use App\Support\CompanyContext;
 use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
@@ -21,6 +22,7 @@ use File;
 //Models:
 use App\Models\Company;
 use App\Models\CostCenter;
+use App\Models\CustomerProvider;
 use App\Models\UserColumnPreference;
 
 //Requests:
@@ -72,20 +74,57 @@ class CostCenterController extends Controller{
     /**
      * 1. Listado de centros de coste.
      */
-    public function index(CostCenterFilterRequest $request){
+    public function index(CostCenterFilterRequest $request, ?int $company_id = null){
+        $ctx = app(CompanyContext::class);
+        $currentId = (int) $ctx->id();
+        if($currentId <= 0){
+            abort(422, __('no_hay_empresa_activa'));
+        }
+
+        $company = Company::find($company_id ?: $currentId);
+        if (!$company) {
+            abort(404, __('empresa_no_encontrada'));
+        }
+
+        $side = null;            // 'customers' | 'providers' | 'both' | null
+        $returnRoutes = [];
+
+        if($company->id !== $currentId){
+            $side = CustomerProvider::sideForCompanyPair($currentId, $company->id);
+
+            // Prepara rutas de retorno según el lado detectado
+            if ($side === 'customers' || $side === 'both') {
+                $returnRoutes[] = [
+                    'name' => 'customers.edit',
+                    'params' => $company->id,
+                    'label' => __('volver_a').' '.$company->name,
+                ];
+            }
+            if ($side === 'providers' || $side === 'both') {
+                $returnRoutes[] = [
+                    'name' => 'providers.edit',
+                    'params' => $company->id,
+                    'label' => __('volver_a').' '.$company->name,
+                ];
+            }
+        }
+
         $perPage = $request->input('per_page', config('constants.RECORDS_PER_PAGE_DEFAULT_'));
-        $costCenters = $this->dataQuery($request)->paginate($perPage)->onEachSide(1);
+        $costCenters = $this->dataQuery($request, $company->id)->paginate($perPage)->onEachSide(1);
 
         return Inertia::render('Admin/CostCenter/Index', [
-            'title' => __($this->option),
-            'subtitle' => __('listado'),
-            'module' => $this->module,
-            'slug' => 'cost-centers',
-            'costCenters' => CostCenterResource::collection($costCenters),
-            'queryParams' => request()->query() ?: null,
-            'availableLocales' => LocaleTrait::availableLocales(),
-            'permissions' => $this->permissions,
-            'columnPreferences' => UserColumnPreference::forUserAndTables(
+            "title" => __($this->option),
+            "subtitle" => __('listado'),
+            "module" => $this->module,
+            "slug" => "cost-centers",
+            "company" => $company,
+            "side" => $side,
+            "returnRoutes" => $returnRoutes,
+            "costCenters" => CostCenterResource::collection($costCenters),
+            "queryParams" => request()->query() ?: null,
+            "availableLocales" => LocaleTrait::availableLocales(),
+            "permissions" => $this->permissions,
+            "columnPreferences" => UserColumnPreference::forUserAndTables(
                 auth()->user()->id,
                 ['tblCostCenters']
             )
@@ -95,11 +134,11 @@ class CostCenterController extends Controller{
     /**
      * 1.1. Data para exportación.
      */
-    public function filteredData(CostCenterFilterRequest $request){
-        $cacheKey = 'filtered_cost_centers_' . md5(json_encode($request->all()));
+    public function filteredData(CostCenterFilterRequest $request, ?int $company = null){
+        $cacheKey = 'filtered_cost_centers__' . ($company ?: 'session') . '_' . md5(json_encode($request->all()));
 
-        $centers = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($request) {
-            return $this->dataQuery($request)->get();
+        $centers = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($request, $company) {
+            return $this->dataQuery($request, $company)->get();
         });
 
         return response()->json([
@@ -110,13 +149,14 @@ class CostCenterController extends Controller{
     /**
      * 1.2. Data Query.
      */
-    private function dataQuery(CostCenterFilterRequest $request, $company_id = false){
+    private function dataQuery(CostCenterFilterRequest $request, ?int $company_id = null){
         $companyId = $company_id ? $company_id : session('currentCompany');
 
         $query = CostCenter::where('company_id', $companyId);
 
         $filters = [
             'name' => fn ($q, $v) => $q->where('name', 'like', "%$v%"),
+            'code' => fn ($q, $v) => $q->where('code', 'like', "%$v%")
         ];
 
         foreach ($filters as $key => $callback) {
@@ -144,7 +184,7 @@ class CostCenterController extends Controller{
 
         $sortField = $request->input('sort_field', 'name');
         $sortDirection = $request->input('sort_direction', 'ASC');
-        $allowedSortFields = ['name', 'created_at'];
+        $allowedSortFields = ['name', 'code', 'created_at'];
 
         if (!in_array($sortField, $allowedSortFields)) {
             $sortField = 'name';
@@ -181,10 +221,13 @@ class CostCenterController extends Controller{
         $name = $validated['name'] ?? $request->input('name');
         $slug = Str::slug($name ?? '');
 
+        $companyId = $request->company_id? $request->company_id:session('currentCompany');
+
         $center = CostCenter::create([
-            'company_id' => session('currentCompany'),
+            'company_id' => $companyId,
             'name' => $name,
             'slug' => $slug,
+            'code' => $request->code,
             'status' => $validated['status'] ?? 1,
         ]);
 
@@ -200,16 +243,19 @@ class CostCenterController extends Controller{
         $cost_center->formatted_created_at = Carbon::parse($cost_center->created_at)->format($locale[4] . ' H:i:s');
         $cost_center->formatted_updated_at = Carbon::parse($cost_center->updated_at)->format($locale[4] . ' H:i:s');
 
+        $company = Company::select('id', 'name', 'tradename')->find($cost_center->company_id);
+
         return Inertia::render('Admin/CostCenter/Edit', [
-            'title' => __($this->option),
-            'subtitle' => __('editar'),
-            'module' => $this->module,
-            'slug' => 'cost-centers',
-            'availableLocales' => LocaleTrait::availableLocales(),
-            'costCenter' => $cost_center,
-            'msg' => session('msg'),
-            'alert' => session('alert'),
-            'permissions' => $this->permissions
+            "title" => __($this->option),
+            "subtitle" => __('editar'),
+            "module" => $this->module,
+            "slug" => "cost-centers",
+            "availableLocales" => LocaleTrait::availableLocales(),
+            "costCenter" => $cost_center,
+            "company" => $company,
+            "msg" => session('msg'),
+            "alert" => session('alert'),
+            "permissions" => $this->permissions
         ]);
     }
 
@@ -225,6 +271,7 @@ class CostCenterController extends Controller{
 
             $cost_center->name = $name;
             $cost_center->slug = $slug;
+            $cost_center->code = $request->code;
             $cost_center->status = $request->input('status', $cost_center->status);
 
             $cost_center->save();

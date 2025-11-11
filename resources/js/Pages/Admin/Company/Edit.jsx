@@ -99,10 +99,33 @@ export default function Index({ auth, session, title, subtitle, availableLocales
     };
 
     //Acciones:
-    const actions = [
-        {text: __('empresas_volver'), icon: 'la-angle-left', url: 'companies.index', modal: false},
-        {text: __('empresa_nueva'), icon: 'la-plus', url: 'companies.create', modal: false}
-    ];
+    const actions = [];
+    if (permissions?.['companies.index']) {
+        actions.push({
+            text: __('empresas_volver'),
+            icon: 'la-angle-left',
+            url: 'companies.index',
+            modal: false
+        });
+    }
+
+    if (permissions?.['companies.create']) {
+        actions.push({
+            text: __('empresa_nueva'),
+            icon: 'la-plus',
+            url: 'companies.create',
+            modal: false
+        });
+    }
+       
+    if (permissions?.['workplaces.index']) {
+        actions.push({
+            text: __('centros_trabajo'),
+            icon: 'la-map-marker-alt',
+            url: 'workplaces.index',
+            modal: false
+        });
+    }   
 
     return (
         <AdminAuthenticatedLayout

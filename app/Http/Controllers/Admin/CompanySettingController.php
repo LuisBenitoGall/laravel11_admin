@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use App\Support\CompanyContext;
 use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
@@ -57,11 +58,23 @@ class CompanySettingController extends Controller{
      * 1. Página de configuración de empresa.
      */
     public function index(Request $request){
+        $ctx = app(CompanyContext::class);
+        $currentId = (int) $ctx->id();
+        if($currentId <= 0){
+            abort(422, __('no_hay_empresa_activa'));
+        }
+
+        $company = Company::find($currentId);
+        if (!$company) {
+            abort(404, __('empresa_no_encontrada'));
+        }
+
         return Inertia::render('Admin/CompanySetting/Index', [
             "title" => __($this->option),
             "subtitle" => __('configuracion'),
             "module" => $this->module,
             "slug" => 'company-settings',
+            "company" => $company,
             "queryParams" => request()->query() ?: null,
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions,

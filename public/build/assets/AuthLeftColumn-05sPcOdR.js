@@ -1,0 +1,1 @@
+import{j as s}from"./app-DRj95fl3.js";const l=()=>s.jsx("div",{className:"col-lg-6 left-column",children:s.jsxs("div",{className:"p-lg-5 p-4 auth-one-bg h-100",children:[s.jsx("div",{className:"bg-overlay"}),s.jsx("div",{className:"position-relative h-100 d-flex flex-column"})]})});export{l as A};
