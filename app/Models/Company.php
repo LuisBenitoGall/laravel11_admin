@@ -70,7 +70,7 @@ class Company extends Model{
     /**
      * 3. Guardar empresa.
      */
-    public static function saveCompany($request){
+    public static function saveCompany($request, $with_account = true){
         $slug = Str::slug($request->name);
 
         $co = new Company();
@@ -90,29 +90,31 @@ class Company extends Model{
         $co->save();
 
         //Cuenta de la empresa:
-        if($request->account_id){
-            $accountId = $request->account_id;
-            $price = '0';
+        if($with_account){
+            if($request->account_id){
+                $accountId = $request->account_id;
+                $price = '0';
 
-        }else{
-            $account = Account::select('id', 'rate')
-            ->where('slug', 'free')
-            ->where('status', 1)
-            ->first();
+            }else{
+                $account = Account::select('id', 'rate')
+                ->where('slug', 'free')
+                ->where('status', 1)
+                ->first();
 
-            $accountId = $account->id;
-            $price = $account->rate;
+                $accountId = $account->id;
+                $price = $account->rate;
+            }
+
+            CompanyAccount::create([
+                'company_id' => $co->id,
+                'guardian' => NULL,
+                'account_id' => $accountId,
+                'start_date' => Carbon::now(),
+                'end_date' => config('constants.UNDEFINED_DATE_'),
+                'price' => $price,
+                'status' => 1
+            ]);
         }
-
-        CompanyAccount::create([
-            'company_id' => $co->id,
-            'guardian' => NULL,
-            'account_id' => $accountId,
-            'start_date' => Carbon::now(),
-            'end_date' => config('constants.UNDEFINED_DATE_'),
-            'price' => $price,
-            'status' => 1
-        ]);
 
         //Roles de la empresa:
 

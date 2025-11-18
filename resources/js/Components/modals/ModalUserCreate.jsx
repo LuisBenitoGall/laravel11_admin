@@ -12,7 +12,7 @@ import TextInput from '@/Components/TextInput';
 // Hooks
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function ModalUserCreate({ show, onClose, onCreate, companyId, side, salutations }) {
+export default function ModalUserCreate({ show, onClose, onCreate, companyId, side, salutations, contact_types, crm_account }) {
     const __ = useTranslation();
     const pageProps = usePage()?.props || {};
 
@@ -29,10 +29,13 @@ export default function ModalUserCreate({ show, onClose, onCreate, companyId, si
         send_pwd: false,
         birthday: null,
         position: '',
-        salutation: null,
+        salutation: '',
+        department: '',
+        contact_type: '',
         phones: [''],
         company_id: companyId || null,
-        side: side || ''
+        side: side || '',
+        crm_account_id: crm_account? crm_account.id:null
     });
 
     useEffect(() => {
@@ -123,7 +126,38 @@ export default function ModalUserCreate({ show, onClose, onCreate, companyId, si
                     </div>
                 </div>
 
-                
+                <div className="mb-3">
+                    <div className="position-relative">
+                        <div className="row">
+                            {/* Departamento */}   
+                            <div className="col-lg-6">
+                                <label htmlFor="department" className="form-label">{ __('departamento') }</label>
+                                <TextInput type="text" value={data.department} onChange={(e) => setData('department', e.target.value)} required />
+                                <InputError message={errors.department} />
+                            </div>
+
+                            {/* Tipo de contacto */}    
+                            <div className="col-lg-6">
+                                <label htmlFor="contact_type" className="form-label">{ __('contacto_tipo') }</label>
+                                <SelectInput
+                                    className="form-select"
+                                    name="contact_type"
+                                    value={data.contact_type}
+                                    onChange={(e) => setData('contact_type', e.target.value)}
+                                >
+                                    <option value="">{ __('opcion_selec') }</option>
+                                    {contact_types.map(option => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </SelectInput>
+                                <InputError message={errors.contact_type} />  
+                            </div>
+                        </div>
+                    </div>                        
+                </div>
+
                 <div className="mb-3">
                     <div className="position-relative">
                         <div className="row">
@@ -157,7 +191,6 @@ export default function ModalUserCreate({ show, onClose, onCreate, companyId, si
                                     ))}
                                 </SelectInput>
                                 <InputError message={errors.salutation} />                                
-    
                             </div>
                         </div>
                     </div>

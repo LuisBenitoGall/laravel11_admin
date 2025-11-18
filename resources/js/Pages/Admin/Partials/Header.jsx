@@ -12,7 +12,7 @@ export default function Header({ user, title, subtitle, actions, companies, curr
     const props = usePage()?.props || {};
     const locale = props.locale || false;
     const languages = props.languages || [];
-console.log(user);
+
     // Config top menu
     const menuLocales = props.menuLocales;
     const menuChat = props.menuChat;

@@ -203,7 +203,7 @@ export default function Index({ auth, session, title, subtitle, availableLocales
                         </div>
                     </div>
 
-                    <div className='mt-4 text-end'>
+                    <div className="mt-4 text-end">
                         <PrimaryButton disabled={processing} className='btn btn-rdn'>
                             {processing ? __('procesando')+'...':__('guardar')}
                         </PrimaryButton>	

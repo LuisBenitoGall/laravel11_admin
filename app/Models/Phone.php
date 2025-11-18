@@ -68,8 +68,8 @@ class Phone extends Model{
             }
 
             $ownerKey = [
-                'phoneable_type' => get_class($owner),
-                'phoneable_id'   => $owner->getKey(),
+                'phoneable_type' => $owner->getMorphClass(),  // respeta morphMap
+                'phoneable_id'   => $owner->getKey()
             ];
 
             $createdOrUpdated = [];
@@ -378,8 +378,8 @@ class Phone extends Model{
      * Scope helper para owner.
      */
     public function scopeForOwner($query, Model $owner){
-        return $query->where('phoneable_type', get_class($owner))
-                     ->where('phoneable_id', $owner->getKey());
+        return $query->where('phoneable_type', $owner->getMorphClass())
+        ->where('phoneable_id', $owner->getKey());
     }
 
     public function phones(){

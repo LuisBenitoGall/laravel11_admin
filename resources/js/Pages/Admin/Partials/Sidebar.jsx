@@ -20,6 +20,7 @@ export default function Sidebar(auth) {
     const txt_clientes = __('clientes');
     const txt_configuracion = __('configuracion');
     const txt_contables_grupos = __('contables_grupos');
+    const txt_contactos = __('contactos');
     const txt_contenidos = __('contenidos');
     const txt_cuenta = __('cuenta');
     const txt_cuenta_mi = __('cuenta_mi');
@@ -34,6 +35,7 @@ export default function Sidebar(auth) {
     const txt_proveedores = __('proveedores');
     const txt_roles = __('roles');
     const txt_sectores = __('sectores');
+    const txt_sectores_directorio = __('sectores_directorio');
     const txt_stock_movimientos = __('stock_movimientos');
     const txt_unidades = __('unidades');
     const txt_usuarios = __('usuarios');
@@ -258,6 +260,12 @@ export default function Sidebar(auth) {
                                                     <span>{txt_usuarios_listados}</span>
                                                 </NavLink>
                                             </li>
+
+                                            <li>
+                                                <NavLink href={route('users.contacts')} className={`nav-link menu-link ${currentSlug === 'contacts' ? 'active text-white' : ''}`}>
+                                                    <span>{txt_contactos}</span>
+                                                </NavLink>
+                                            </li>
                                         </ul>
                                     </div>
                                 </li>
@@ -278,6 +286,11 @@ export default function Sidebar(auth) {
                                             <li>
                                                 <NavLink href={route('companies.index')} className={`nav-link menu-link ${currentSlug === 'companies' ? 'active text-white' : ''}`}>
                                                     <span>{txt_empresas_mis}</span>
+                                                </NavLink>
+                                            </li>
+                                            <li>
+                                                <NavLink href={route('companies.sectors')} className={`nav-link menu-link ${currentSlug === 'sectors' ? 'active text-white' : ''}`}>
+                                                    <span>{txt_sectores_directorio}</span>
                                                 </NavLink>
                                             </li>
                                             {/* <li>

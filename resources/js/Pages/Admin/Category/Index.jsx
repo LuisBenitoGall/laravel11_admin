@@ -1,6 +1,9 @@
+// resources/js/Pages/Admin/Category/Index.jsx
 import AdminAuthenticatedLayout from '@/Layouts/Admin/AdminAuthenticatedLayout';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { useState, useEffect, useMemo } from 'react';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
+import axios from 'axios';
 
 import ColumnFilter from '@/Components/ColumnFilter';
 import FilterRow from '@/Components/FilterRow';
@@ -26,8 +29,26 @@ export default function Index({
     queryParams: rawQueryParams = {},
     availableLocales
 }) {
-    const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
-    const __ = useTranslation();
+  const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
+  const __ = useTranslation();
+
+  // Soporta paginado o array plano
+  const rows = Array.isArray(categories?.data)
+    ? categories.data
+    : (Array.isArray(categories) ? categories : []);
+
+  const meta = categories?.meta ?? null;
+  const safeTotal = meta?.total ?? rows.length;
+  const safeCurrentPage = meta?.current_page ?? 1;
+  const safePerPage = meta?.per_page ?? rows.length;
+  const safeLinks = meta?.links ?? [];
+
+  // Mapa slug -> name para pintar breadcrumbs bonitos
+  const slugToName = useMemo(() => {
+    const m = new Map();
+    rows.forEach(r => { if (r?.slug) m.set(String(r.slug), r.name || r.slug); });
+    return m;
+  }, [rows]);
 
     // Columnas
     const columns = [
@@ -38,27 +59,45 @@ export default function Index({
             filter: 'text',
             type: 'link',
             link: 'categories.edit',
-            routeParams: [environment],                 // <- usar environment
+            buildParams: (row) => ({ environment, category: row.id }),
             placeholder: __('categorias_filtrar')
         },
         {
-            key: 'depth',
-            label: __('nivel'),
-            sort: true,
-            filter: 'number',
-            class_th: 'text-center',
-            class_td: 'text-center',
-            placeholder: __('nivel_filtrar')
+            key: 'breadcrumb',
+            label: __('ruta'),
+            sort: false,
+            filter: '',
+            class_th: '',
+            class_td: 'text-muted',
+            render: ({ rowData }) => {
+                const parts = (rowData?.path || '')
+                .split('/')
+                .filter(Boolean);
+                // quitamos el último segmento (la categoría actual)
+                parts.pop();
+                if (!parts.length) return '—';
+                const pretty = parts.map(s => slugToName.get(s) || s).join(' > ');
+                return <span className="text-muted">{pretty}</span>;
+            }
         },
-        {
-            key: 'position',
-            label: __('posicion'),
-            sort: true,
-            filter: 'number',
-            class_th: 'text-center',
-            class_td: 'text-center',
-            placeholder: __('posicion_filtrar')
-        },
+        // {
+        //     key: 'depth',
+        //     label: __('nivel'),
+        //     sort: true,
+        //     filter: 'number',
+        //     class_th: 'text-center',
+        //     class_td: 'text-center',
+        //     placeholder: __('nivel_filtrar')
+        // },
+        // {
+        //     key: 'position',
+        //     label: __('posicion'),
+        //     sort: true,
+        //     filter: 'number',
+        //     class_th: 'text-center',
+        //     class_td: 'text-center',
+        //     placeholder: __('posicion_filtrar')
+        // },
         {
             key: 'created_at',
             label: __('fecha_alta'),
@@ -70,17 +109,6 @@ export default function Index({
             dateKeys: ['date_from', 'date_to']
         }
     ];
-
-    // Soporta paginado o array plano
-    const rows = Array.isArray(categories?.data)
-        ? categories.data
-        : (Array.isArray(categories) ? categories : []);
-
-    const meta = categories?.meta ?? null;
-    const safeTotal = meta?.total ?? rows.length;
-    const safeCurrentPage = meta?.current_page ?? 1;
-    const safePerPage = meta?.per_page ?? rows.length;
-    const safeLinks = meta?.links ?? [];
 
     // Gestión tabla
     const {
@@ -101,7 +129,7 @@ export default function Index({
         indexRoute: 'categories.index',
         destroyRoute: 'categories.destroy',
         filteredDataRoute: 'categories.filtered-data',
-        routeParams: [environment],                    // <- clave para Ziggy
+        routeParams: { environment },           // objeto, nunca array
         labelName: 'categoria',
         queryParams
     });
@@ -110,20 +138,20 @@ export default function Index({
     const actions = [];
     if (permissions?.['companies.edit']) {
         actions.push({
-            text: __('categoria_nueva'),
-            icon: 'la-plus',
-            url: 'categories.create',
-            modal: false,
-            params: [environment]
+        text: __('categoria_nueva'),
+        icon: 'la-plus',
+        url: 'categories.create',
+        modal: false,
+        params: { environment }
         });
     }
 
     return (
         <AdminAuthenticatedLayout
-            user={auth.user}
-            title={title}
-            subtitle={subtitle}
-            actions={actions}
+        user={auth.user}
+        title={title}
+        subtitle={subtitle}
+        actions={actions}
         >
             <Head title={title} />
 
@@ -132,15 +160,15 @@ export default function Index({
                 <div className="row">
                     <div className="controls d-flex align-items-center">
                         <ColumnFilter
-                            columns={columns}
-                            visibleColumns={visibleColumns}
-                            toggleColumn={toggleColumnVisibility}
+                        columns={columns}
+                        visibleColumns={visibleColumns}
+                        toggleColumn={toggleColumnVisibility}
                         />
                         <RecordsPerPage perPage={perPage} setPerPage={setPerPage} />
                         <TableExporter
-                            filename={__('categorias')}
-                            columns={columns}
-                            fetchData={filteredData}
+                        filename={__('categorias')}
+                        columns={columns}
+                        fetchData={filteredData}
                         />
                     </div>
                 </div>
@@ -151,118 +179,117 @@ export default function Index({
                         <thead>
                             <tr>
                                 {columns.map(col => (
-                                    <th
-                                        key={col.key}
-                                        className={`${col.class_th ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}
-                                    >
-                                        {__(col.label)}
-                                        {col.sort && (
-                                            <SortControl
-                                                name={col.key}
-                                                sortable={true}
-                                                sort_field={queryParams.sort_field}
-                                                sort_direction={queryParams.sort_direction}
-                                                sortChanged={sortChanged}
-                                            />
-                                        )}
-                                    </th>
+                                <th
+                                    key={col.key}
+                                    className={`${col.class_th ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}
+                                >
+                                    {__(col.label)}
+                                    {col.sort && (
+                                    <SortControl
+                                        name={col.key}
+                                        sortable={true}
+                                        sort_field={queryParams.sort_field}
+                                        sort_direction={queryParams.sort_direction}
+                                        sortChanged={sortChanged}
+                                    />
+                                    )}
+                                </th>
                                 ))}
                                 <th className="text-center">{__('acciones')}</th>
                             </tr>
                         </thead>
 
                         <FilterRow
-                            columns={columns}
-                            queryParams={queryParams}
-                            visibleColumns={visibleColumns}
-                            SearchFieldChanged={SearchFieldChanged}
+                        columns={columns}
+                        queryParams={queryParams}
+                        visibleColumns={visibleColumns}
+                        SearchFieldChanged={SearchFieldChanged}
                         />
 
                         <tbody>
                             {rows.map(category => (
                                 <tr key={`category-${category.id}`}>
-                                    {columns.map(col => (
-                                        <td
-                                            key={col.key}
-                                            className={`${col.class_td ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}
-                                        >
-                                            {renderCellContent(
-                                                category[col.key],
-                                                col,
-                                                { ...category, __routeParams: [environment] } // <- env
-                                            )}
-                                        </td>
-                                    ))}
-
-                                    {/* Acciones */}
-                                    <td className="text-end">
-                                        {/* Estado */}
-                                        {permissions?.['categories.edit'] && (
-                                            <OverlayTrigger
-                                                key={`status-${category.id}`}
-                                                placement="top"
-                                                overlay={
-                                                    <Tooltip className="ttp-top">
-                                                        {category.status == 1 ? __('categoria_activa') : __('categoria_inactiva')}
-                                                    </Tooltip>
-                                                }
-                                            >
-                                                <span>
-                                                    <StatusButton
-                                                        status={category.status}
-                                                        id={category.id}
-                                                        updateRoute="categories.toggle"
-                                                        updateRouteParams={[environment, category.id]} // <- env
-                                                        reloadUrl={route('categories.index', environment)} // <- env
-                                                        reloadResource="categories"
-                                                    />
-                                                </span>
-                                            </OverlayTrigger>
-                                        )}
-
-                                        {/* Editar */}
-                                        {permissions?.['categories.edit'] && (
-                                            <OverlayTrigger
-                                                key={`edit-${category.id}`}
-                                                placement="top"
-                                                overlay={<Tooltip className="ttp-top">{__('editar')}</Tooltip>}
-                                            >
-                                                <Link
-                                                    href={route('categories.edit', [environment, category.id])} // <- env
-                                                    className="btn btn-sm btn-info ms-1"
-                                                >
-                                                    <i className="la la-edit" />
-                                                </Link>
-                                            </OverlayTrigger>
-                                        )}
-
-                                        {/* Eliminar */}
-                                        {permissions?.['categories.destroy'] && (
-                                            <OverlayTrigger
-                                                key={`delete-${category.id}`}
-                                                placement="top"
-                                                overlay={<Tooltip className="ttp-top">{__('eliminar')}</Tooltip>}
-                                            >
-                                                <span>
-                                                    <button
-                                                        type="button"
-                                                        className="btn btn-sm btn-danger ms-1"
-                                                        onClick={() => handleDelete(category.id, [environment])} // <- env
-                                                    >
-                                                        <i className="la la-trash" />
-                                                    </button>
-                                                </span>
-                                            </OverlayTrigger>
-                                        )}
+                                {columns.map(col => (
+                                    <td
+                                    key={col.key}
+                                    className={`${col.class_td ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}
+                                    >
+                                    {renderCellContent(
+                                        // para 'breadcrumb' no hay value en el objeto, pero el render propio lo ignora
+                                        category[col.key],
+                                        col,
+                                        { ...category, __routeParams: { environment, category: category.id } }
+                                    )}
                                     </td>
+                                ))}
+
+                                {/* Acciones */}
+                                <td className="text-end">
+                                    {/* Estado */}
+                                    {permissions?.['categories.edit'] && (
+                                        <OverlayTrigger
+                                            key={`status-${category.id}`}
+                                            placement="top"
+                                            overlay={
+                                            <Tooltip className="ttp-top">
+                                                {category.status == 1 ? __('categoria_activa') : __('categoria_inactiva')}
+                                            </Tooltip>
+                                            }
+                                        >
+                                            <StatusButton
+                                                status={category.status}
+                                                id={category.id}
+                                                updateRoute="categories.status"
+                                                routeParams={{ environment }}
+                                                reloadUrl={route('categories.index', { environment })}
+                                                reloadResource="categories"
+                                            />
+                                        </OverlayTrigger>
+                                    )}
+
+                                    {/* Editar */}
+                                    {permissions?.['categories.edit'] && (
+                                    <OverlayTrigger
+                                        key={`edit-${category.id}`}
+                                        placement="top"
+                                        overlay={<Tooltip className="ttp-top">{__('editar')}</Tooltip>}
+                                    >
+                                        <Link
+                                        href={route('categories.edit', { environment, category: category.id })}
+                                        className="btn btn-sm btn-info ms-1"
+                                        >
+                                        <i className="la la-edit" />
+                                        </Link>
+                                    </OverlayTrigger>
+                                    )}
+
+                                    {/* Eliminar */}
+                                    {permissions?.['categories.destroy'] && (
+                                    <OverlayTrigger
+                                        key={`delete-${category.id}`}
+                                        placement="top"
+                                        overlay={<Tooltip className="ttp-top">{__('eliminar')}</Tooltip>}
+                                    >
+                                        <span>
+                                        <button
+                                            type="button"
+                                            className="btn btn-sm btn-danger ms-1"
+                                            onClick={() => handleDelete(category.id, { environment })}
+                                        >
+                                            <i className="la la-trash" />
+                                        </button>
+                                        </span>
+                                    </OverlayTrigger>
+                                    )}
+                                </td>
                                 </tr>
                             ))}
 
                             {rows.length === 0 && (
                                 <tr>
-                                    <td colSpan={columns.length + 1} className="text-center py-5">
-                                        {__('sin_resultados')}
-                                    </td>
+                                <td colSpan={columns.length + 1} className="text-center py-5">
+                                    {__('sin_resultados')}
+                                </td>
                                 </tr>
                             )}
                         </tbody>
@@ -277,17 +304,17 @@ export default function Index({
                         currentPage={safeCurrentPage}
                         perPage={safePerPage}
                         onPageChange={(page) => {
-                            router.get(
-                                route('categories.index', environment), // <- env
-                                {
-                                    ...queryParams,
-                                    page,
-                                    per_page: perPage,
-                                    sort_field: sortParams.sort_field,
-                                    sort_direction: sortParams.sort_direction
-                                },
-                                { preserveState: true }
-                            );
+                        router.get(
+                            route('categories.index', { environment }),
+                            {
+                            ...queryParams,
+                            page,
+                            per_page: perPage,
+                            sort_field: sortParams.sort_field,
+                            sort_direction: sortParams.sort_direction
+                            },
+                            { preserveState: true }
+                        );
                         }}
                     />
                 )}

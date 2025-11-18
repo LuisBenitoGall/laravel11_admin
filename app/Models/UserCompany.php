@@ -16,7 +16,7 @@ class UserCompany extends Model{
 
     protected $table = 'user_companies';
 
-    protected $fillable = ['user_id', 'company_id', 'position'];
+    protected $fillable = ['user_id', 'company_id', 'position', 'department'];
 
     // Relaciones útiles
     public function user()    { return $this->belongsTo(User::class); }
@@ -43,7 +43,7 @@ class UserCompany extends Model{
      * 2. Usuarios por empresa.
      */
     public static function usersByCompany($company_id){
-        return User::select('users.id', 'users.name', 'users.surname', 'users.salutation', 'users.created_at', 'users.email', 'user_companies.position')
+        return User::select('users.id', 'users.name', 'users.surname', 'users.salutation', 'users.created_at', 'users.email', 'user_companies.position', 'user_companies.department')
         ->join('user_companies', 'user_companies.user_id', '=', 'users.id')
         ->where('user_companies.company_id', $company_id)
         ->with(['phones' => fn($q) => $q

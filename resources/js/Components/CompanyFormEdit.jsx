@@ -6,6 +6,7 @@ import Checkbox from '@/Components/Checkbox';
 import FileInput from '@/Components/FileInput';
 import InfoPopover from '@/Components/InfoPopover';
 import InputError from '@/Components/InputError';
+import ManagePhones from '@/Components/ManagePhones';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 
@@ -54,11 +55,11 @@ export default function CompanyFormEdit({ company = {}, side = false, updateRout
         formData.append('_method', 'PUT');
 
         Object.entries(data).forEach(([key, value]) => {
-            if (key === 'logo' && value instanceof File) {
+            if(key === 'logo' && value instanceof File){
                 formData.append(key, value);
-            } else if (typeof value === 'object' && value !== null) {
+            }else if(typeof value === 'object' && value !== null){
                 formData.append(key, JSON.stringify(value));
-            } else if (value !== null && typeof value !== 'undefined') {
+            }else if(value !== null && typeof value !== 'undefined'){
                 formData.append(key, value);
             }
         });
@@ -101,85 +102,98 @@ export default function CompanyFormEdit({ company = {}, side = false, updateRout
     };
 
     return (
-        <form onSubmit={handleSubmit}>
-            <div className="row gy-3">
-                <div className="col-lg-6">
-                    <label className="form-label">{ __('razon_social') }*</label>
-                    <TextInput
-                        type="text"
-                        placeholder={__('empresa_nombre')}
-                        value={data.name}
-                        onChange={(e) => setData('name', e.target.value)}
-                        maxLength={100}
-                        required
-                    />
-                    <InputError message={errors.name} />
+        <>
+            <form onSubmit={handleSubmit}>
+                <div className="row gy-3">
+                    {/* Razón social */}
+                    <div className="col-lg-6">
+                        <label className="form-label">{ __('razon_social') }*</label>
+                        <TextInput
+                            type="text"
+                            placeholder={__('empresa_nombre')}
+                            value={data.name}
+                            onChange={(e) => setData('name', e.target.value)}
+                            maxLength={100}
+                            required
+                        />
+                        <InputError message={errors.name} />
+                    </div>
+
+                    {/* Nombre comercial */}
+                    <div className="col-lg-6">
+                        <label className="form-label">{ __('nombre_comercial') }*</label>
+                        <TextInput
+                            type="text"
+                            placeholder={__('nombre_comercial')}
+                            value={data.tradename}
+                            onChange={(e) => setData('tradename', e.target.value)}
+                            maxLength={100}
+                            required
+                        />
+                        <InputError message={errors.tradename} />
+                    </div>
+
+                    {/* NIF */}
+                    <div className="col-lg-3">
+                        <label className="form-label">{ __('nif') }*</label>
+                        <TextInput
+                            type="text"
+                            placeholder={__('nif')}
+                            value={data.nif}
+                            onChange={(e) => setData('nif', e.target.value)}
+                            maxLength={15}
+                            required
+                        />
+                        <InfoPopover code="company-nif" />
+                        <InputError message={errors.nif} />
+                    </div>
+
+                    {/* Logo */}
+                    <div className="offset-lg-1 col-lg-8">
+                        <label className="form-label">{ __('logo') }</label>
+
+                        {company.logo ? (
+                            <div className="d-flex align-items-start">
+                                <img
+                                    src={company.logo_url ?? computeLogoSrc(company.logo)}
+                                    alt={company.name}
+                                    className="img-thumbnail me-3"
+                                    style={{ maxWidth: '300px', objectFit: 'contain' }}
+                                />
+
+                                <button
+                                    type="button"
+                                    className="ms-2 btn btn-sm btn-danger"
+                                    onClick={handleDeleteLogo}
+                                >
+                                    <i className="la la-trash"></i>
+                                </button>
+                            </div>
+                        ) : (
+                            <FileInput name="logo" accept="image/*" onChange={handleChange} error={errors.logo} />
+                        )}
+
+                        <p className='pt-1 text-warning small'>
+                            <span className='me-5'>{ __('imagen_formato') }</span>
+                            <span className='me-5'>{ __('imagen_peso_max') }: 1MB</span>
+                            { __('imagen_medidas_recomendadas') }: 400x400px
+                        </p>
+                    </div>
+
+                    <div className='mt-4 text-end'>
+                        <PrimaryButton disabled={processing} className='btn btn-rdn'>
+                            {processing ? __('procesando')+'...':__('guardar')}
+                        </PrimaryButton>
+                    </div>
                 </div>
+            </form>
 
-                <div className="col-lg-6">
-                    <label className="form-label">{ __('nombre_comercial') }*</label>
-                    <TextInput
-                        type="text"
-                        placeholder={__('nombre_comercial')}
-                        value={data.tradename}
-                        onChange={(e) => setData('tradename', e.target.value)}
-                        maxLength={100}
-                        required
-                    />
-                    <InputError message={errors.tradename} />
-                </div>
-
-                <div className="col-lg-3">
-                    <label className="form-label">{ __('nif') }*</label>
-                    <TextInput
-                        type="text"
-                        placeholder={__('nif')}
-                        value={data.nif}
-                        onChange={(e) => setData('nif', e.target.value)}
-                        maxLength={15}
-                        required
-                    />
-                    <InfoPopover code="company-nif" />
-                    <InputError message={errors.nif} />
-                </div>
-
-                <div className="offset-lg-1 col-lg-8">
-                    <label className="form-label">{ __('logo') }</label>
-
-                    {company.logo ? (
-                        <div className="d-flex align-items-start">
-                            <img
-                                src={company.logo_url ?? computeLogoSrc(company.logo)}
-                                alt={company.name}
-                                className="img-thumbnail me-3"
-                                style={{ maxWidth: '300px', objectFit: 'contain' }}
-                            />
-
-                            <button
-                                type="button"
-                                className="ms-2 btn btn-sm btn-danger"
-                                onClick={handleDeleteLogo}
-                            >
-                                <i className="la la-trash"></i>
-                            </button>
-                        </div>
-                    ) : (
-                        <FileInput name="logo" accept="image/*" onChange={handleChange} error={errors.logo} />
-                    )}
-
-                    <p className='pt-1 text-warning small'>
-                        <span className='me-5'>{ __('imagen_formato') }</span>
-                        <span className='me-5'>{ __('imagen_peso_max') }: 1MB</span>
-                        { __('imagen_medidas_recomendadas') }: 400x400px
-                    </p>
-                </div>
-
-                <div className='mt-4 text-end'>
-                    <PrimaryButton disabled={processing} className='btn btn-rdn'>
-                        {processing ? __('procesando')+'...':__('guardar')}
-                    </PrimaryButton>
-                </div>
-            </div>
-        </form>
+            {/* Teléfonos */}
+            <ManagePhones 
+                phoneableType="Company"
+                phoneableId={company.id}
+                defaultWaMessage={__('whatsapp_mensaje')}
+            />
+        </>
     );
 }

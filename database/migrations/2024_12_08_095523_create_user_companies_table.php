@@ -18,6 +18,7 @@ return new class extends Migration {
                   ->cascadeOnDelete();
 
             $table->string('position', 150)->nullable();
+            $table->string('department', 150)->nullable();
 
             $table->softDeletes();
             $table->timestamps();

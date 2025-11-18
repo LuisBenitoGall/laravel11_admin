@@ -111,7 +111,7 @@ export default function Index({ auth, session, title, subtitle, availableLocales
 						{/* NIF */}
 						<div className="col-lg-3">
 							<div className='position-relative'>
-    							<label htmlFor="nif" className="form-label">{ __('nif') }*</label>
+    							<label htmlFor="nif" className="form-label">{ __('nif') }</label>
     							<TextInput 
 									className="" 
 									type="text"
@@ -124,39 +124,6 @@ export default function Index({ auth, session, title, subtitle, availableLocales
 
 								<InputError message={errors.nif} />
 							</div>
-						</div>
-
-						{/* UTE */}
-						<div className="col-lg-1 text-center">
-							<div className="position-relative">
-								<label htmlFor="is_ute" className="form-label">{ __('ute') }</label>
-								<div className='pt-1 position-relative'>
-									<Checkbox 
-										className="xl"
-										name="is_ute"
-										checked={data.is_ute}
-										onChange={(e) => setData('is_ute', e.target.checked)}
-									/>
-
-									<InfoPopover code="company-ute" style={{ left: 'calc(50% + 13px)', top: '8px' }}/>
-								</div>
-							</div>
-                        </div>
-
-						{/* Auto-vincularse a empresa */}
-						<div className="col-lg-2 text-center">
-							<div>
-								<label htmlFor="auto_link" className="form-label">{ __('vincularse') }</label>
-								<div className='pt-1 position-relative'>
-									<Checkbox 
-										className="xl"
-										name="auto_link"
-										checked={data.auto_link}
-										onChange={(e) => setData('auto_link', e.target.checked)}
-									/>
-								</div>
-								<InfoPopover code="company-auto-link" style={{ left: 'calc(50% + 13px)', top: '8px' }}/>
-							</div>	
 						</div>
 
 						{/* Logo */}

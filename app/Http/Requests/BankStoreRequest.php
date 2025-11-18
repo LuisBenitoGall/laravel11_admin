@@ -49,7 +49,7 @@ class BankStoreRequest extends FormRequest{
         ];
     }
 
-    protected function failedAuthorization() {
+    protected function failedAuthorization(){
         throw new CustomAuthorizationException(__('permiso_carente_aviso'));
     }
 }

@@ -36,6 +36,7 @@ class UserUpdateRequest extends FormRequest{
                     ->ignore($userId)        
                     ->whereNull('deleted_at')
             ],
+            'birthday' => ['nullable','date_format:Y-m-d','before:today'],
             'signature' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:1024'
         ];
     }

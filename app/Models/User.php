@@ -61,7 +61,7 @@ class User extends Authenticatable implements MustVerifyEmail{
 
     protected $categoryModuleSlug = 'users';
 
-    protected $appends = ['salutation_label', 'salutation_abbr'];
+    protected $appends = ['salutation_label', 'salutation_abbr', 'full_name'];
 
     /**
      * The attributes that should be hidden for serialization.
@@ -81,7 +81,7 @@ class User extends Authenticatable implements MustVerifyEmail{
     protected function casts(): array{
         return [
             'email_verified_at' => 'datetime',
-            'birthday'          => 'date',
+            'birthday'          => 'date:Y-m-d',
             'password'          => 'hashed',
             'isAdmin'           => 'boolean',
             'status'            => 'integer'
@@ -92,7 +92,7 @@ class User extends Authenticatable implements MustVerifyEmail{
      * 2. Empresas del usuario.
      */
     public function companies(){
-        $data = Company::select('companies.id', 'companies.name', 'companies.tradename', 'companies.logo', 'companies.nif', 'companies.status')
+        $data = Company::select('companies.id', 'companies.name', 'companies.tradename', 'companies.logo', 'companies.nif', 'companies.status', 'user_companies.position')
             ->join('user_companies', 'companies.id', '=', 'user_companies.company_id')
             ->where('user_companies.user_id', $this->id)
             ->where('companies.status', 1)
@@ -106,7 +106,8 @@ class User extends Authenticatable implements MustVerifyEmail{
      */
     public function companiesRelation(){
         return $this->belongsToMany(Company::class, 'user_companies')
-                ->where('companies.status', 1);
+            ->withPivot('position')
+            ->where('companies.status', 1);
     }
 
     /**
@@ -135,7 +136,13 @@ class User extends Authenticatable implements MustVerifyEmail{
      * 6. Nombre y apellidos del usuario.
      */
     public function getFullNameAttribute(){
-        return "{$this->name} {$this->surname}";
+        $salutation = $this->salutation? HasSalutation::salutationAbbrOf($this->salutation):false;
+
+        if($salutation){
+            return "{$salutation} {$this->name} {$this->surname}";
+        }else{
+            return "{$this->name} {$this->surname}";    
+        }
     }
 
     /**

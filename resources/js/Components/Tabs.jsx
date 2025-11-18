@@ -20,7 +20,15 @@ export default function Tabs({
         const index = source.findIndex(tab => tab.key === defaultActive);
         return index >= 0 ? index : 0;
     }, [defaultActive, source]);
-	const [activeIndex, setActiveIndex] = useState(initialIndex);
+	
+    const [activeIndex, setActiveIndex] = useState(initialIndex);
+
+    // Validar que activeIndex no se salga del rango cuando source cambie
+    useEffect(() => {
+        if (activeIndex >= source.length) {
+            setActiveIndex(0);
+        }
+    }, [source.length, activeIndex]);
 
 	// useEffect(() => {
 	// 	// Guardar en sessionStorage cada vez que cambie
@@ -58,9 +66,9 @@ export default function Tabs({
         <div className="tab-content px-2 py-4">
             <div className="tab-pane fade show active">
                 {isDeclarative
-                    ? source[activeIndex].content
+                    ? (source[activeIndex]?.content || null)
                     : typeof children === 'function'
-                        ? children(source[activeIndex].key)
+                        ? children(source[activeIndex]?.key)
                         : null}
             </div>
         </div>

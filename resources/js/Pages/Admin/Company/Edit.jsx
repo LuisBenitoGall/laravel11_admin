@@ -5,11 +5,14 @@ import { Tooltip } from 'react-tooltip';
 import { useEffect, useState } from 'react';
 
 //Components:
+import CategoryAssigner from '@/Components/CategoryAssigner';
 import Checkbox from '@/Components/Checkbox';
 import FileInput from '@/Components/FileInput';
 import InfoPopover from '@/Components/InfoPopover';
 import InputError from '@/Components/InputError';
+import ManagePhones from '@/Components/ManagePhones';
 import PrimaryButton from '@/Components/PrimaryButton';
+import Tabs from '@/Components/Tabs';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
 
@@ -17,13 +20,31 @@ import TextInput from '@/Components/TextInput';
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function Index({ auth, session, title, subtitle, availableLocales, company }){
+//Modals:
+import ModalUserCreate from '@/Components/modals/ModalUserCreate';
+
+//Tabs:
+import CompanyInfoTab from './Partials/CompanyInfoTab';
+import CompanyUsersTab from './Partials/CompanyUsersTab.jsx';
+import CrmAccountAddressTab from '../CrmAccount/Partials/CrmAccountAddressTab.jsx';
+
+export default function Index({ auth, session, title, subtitle, availableLocales, company, crm_account, users, rows, salutations, contact_types, countries, currencies, tab }){
     const __ = useTranslation();
     const props = usePage()?.props || {};
     const locale = props.locale || false;
     const languages = props.languages || [];
     const { showConfirm } = useSweetAlert();
     const permissions = props.permissions || {};
+
+    // Normalizamos queryParams por si vienen de CrmAccountController (para filtros/orden/export)
+    const rawQueryParams = props.queryParams || {};
+    const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
+
+    const isCrmAccount = crm_account !== false;
+
+    // Si el tab solicitado no está disponible (crm_account === false y tab es 'users' o 'categories'), usar 'info'
+    const validTab = (!isCrmAccount && (tab === 'users' || tab === 'categories')) ? 'info' : (tab || 'info');
+    const [activeTab, setActiveTab] = useState(validTab);
     
     // Set formulario:
     const {data, setData, errors, processing} = useForm({
@@ -45,7 +66,7 @@ export default function Index({ auth, session, title, subtitle, availableLocales
     };
 
     // Envío formulario:
-	function handleSubmit(e){
+    function handleSubmit(e){
         e.preventDefault();
 
         const formData = new FormData();
@@ -98,6 +119,13 @@ export default function Index({ auth, session, title, subtitle, availableLocales
         return `/storage/companies/${r.replace(/^\/+/, '')}`;
     };
 
+    //Modals:
+    const [showModalUserCreate, setShowModalUserCreate] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
+    const handleOpenModalUserCreate = () => setShowModalUserCreate(true);
+    const handleCloseModalUserCreate = () => setShowModalUserCreate(false);
+    const refreshUsersTable = () => setRefreshKey(prev => prev + 1);
+
     //Acciones:
     const actions = [];
     if (permissions?.['companies.index']) {
@@ -105,6 +133,15 @@ export default function Index({ auth, session, title, subtitle, availableLocales
             text: __('empresas_volver'),
             icon: 'la-angle-left',
             url: 'companies.index',
+            modal: false
+        });
+    }
+
+    if (permissions?.['crm-accounts.index']) {
+        actions.push({
+            text: __('cuentas_volver'),
+            icon: 'la-angle-left',
+            url: 'crm-accounts.index',
             modal: false
         });
     }
@@ -127,6 +164,41 @@ export default function Index({ auth, session, title, subtitle, availableLocales
         });
     }   
 
+    if (permissions?.['crm-accounts.edit'] && isCrmAccount) {
+        actions.push({
+            text: __('contacto_nuevo'),
+            icon: 'la-plus',
+            url: '',
+            modal: true,
+            onClick: handleOpenModalUserCreate
+        });
+    }
+
+    if (permissions?.['crm-accounts.destroy'] && isCrmAccount) {
+        actions.push({
+            text: __('eliminar'),
+            icon: 'la-trash',
+            method: 'delete',
+            url: 'crm-accounts.destroy',
+            params: [crm_account.id],
+            title: __('cuenta_eliminar'),
+            message: __('cuenta_eliminar_confirm'),
+            modal: false
+        });
+    }
+
+    // Environment para categorías de clientes: usamos 'sectors' para mapear a module 'companies'
+    const envForCategories = 'sectors';
+
+    // Endpoints que consume CategoryAssigner
+    const categoryEndpoints = {
+        list: route('categorizables.list'),                               // GET  ?environment=&type=&id=
+        assign: route('categorizables.assign'),                           // POST body {environment,type,id,category_ids}
+        unassign: route('categorizables.unassign'),                       // POST body {environment,type,id,category_ids}
+        tree: route('categories.tree', { environment: envForCategories }),// GET  ?environment=
+        create: route('categories.store', { environment: envForCategories }) // POST body {environment,name,parent_id?}
+    };
+
     return (
         <AdminAuthenticatedLayout
             user={auth.user}
@@ -137,7 +209,7 @@ export default function Index({ auth, session, title, subtitle, availableLocales
             <Head title={title} />
 
             {/* Contenido */}
-			<div className="contents pb-4">
+            <div className="contents pb-4">
                 <div className="row">
                     <div className="col-12">
                         <h2>
@@ -174,107 +246,83 @@ export default function Index({ auth, session, title, subtitle, availableLocales
                     </div>
                 </div>
 
-				{/* Formulario */}
-                <form onSubmit={handleSubmit}>
-                    <div className="row gy-3">
-                        {/* Razón social */}
-                        <div className="col-lg-6">
-                            <div>
-                                <label htmlFor="name" className="form-label">{ __('razon_social') }*</label>
-                                <TextInput 
-                                    className="" 
-                                    type="text"
-                                    placeholder={__('empresa_nombre')} 
-                                    value={data.name} 
-                                    onChange={(e) => setData('name', e.target.value)}
-                                    maxLength={100}
+                {/* Tabs */}
+                <Tabs 
+                    tabs={[
+                        {
+                            key: 'info',
+                            label: __('informacion_general'),
+                            content: (
+                                <CompanyInfoTab
+                                    company={company}
+                                    side={'companies'}
+                                    updateRoute={'companies.update'}
+                                    updateParams={[company.id]}
                                 />
-
-                                <InputError message={errors.name} />
-                            </div>
-                        </div>
-
-                        {/* Nombre comercial */}
-                        <div className="col-lg-6">
-                            <div>
-                                <label htmlFor="tradename" className="form-label">{ __('nombre_comercial') }*</label>
-                                <TextInput 
-                                    className="" 
-                                    type="text"
-                                    placeholder={__('nombre_comercial')} 
-                                    value={data.tradename} 
-                                    onChange={(e) => setData('tradename', e.target.value)}
-                                    maxLength={100}
+                            )
+                        },
+                        ...(isCrmAccount ? [{
+                            key: 'address',
+                            label: __('informacion_fiscal'),
+                            content: (
+                                <CrmAccountAddressTab 
+                                    account={crm_account}   
+                                    countries={countries ?? []}
+                                    currencies={currencies ?? []}
                                 />
-                                
-                                <InputError message={errors.tradename} />
-                            </div>
-                        </div>
-
-                        {/* NIF */}
-                        <div className="col-lg-3">
-                            <div className="position-relative">
-                                <label htmlFor="nif" className="form-label">{ __('nif') }*</label>
-                                <TextInput 
-                                    className="" 
-                                    type="text"
-                                    placeholder={__('nif')} 
-                                    value={data.nif} 
-                                    onChange={(e) => setData('nif', e.target.value)}
-                                    maxLength={15}
+                            )
+                        }] : []),
+                        ...(isCrmAccount ? [{
+                            key: 'users',
+                            label: __('usuarios'),
+                            content: (
+                                <CompanyUsersTab 
+                                    users={users ?? null}
+                                    rows={rows ?? []}
+                                    // Para recargar el tab con filtros/orden en contexto CRM:
+                                    indexRoute={'crm-accounts.edit'}
+                                    indexParams={[crm_account.id, 'users']}
+                                    tableId={'tblCompanyUsers'}
+                                    // Para exportar / filteredData como un Index:
+                                    filteredDataRoute={'crm-accounts.users.filtered-data'}
+                                    queryParams={queryParams}
+                                    userEditCompanyId={crm_account?.linked_company_id ?? company.id}
                                 />
-                                <InfoPopover code="company-nif" />
-
-                                <InputError message={errors.nif} />
-                            </div>
-                        </div>
-
-                        {/* Logo */}
-                        <div className="offset-lg-1 col-lg-8">
-							<div>
-    							<label htmlFor="logo" className="form-label">{ __('logo') }</label>
-
-                                {company.logo ? (
-                                    <div className="d-flex align-items-start">
-                                        <img
-                                            src={computeLogoSrc(company.logo)}
-                                            alt={company.name}
-                                            className="img-thumbnail me-3"
-                                            style={{ maxWidth: '300px', objectFit: 'contain' }}
-                                        />
-
-                                        <button 
-                                            type="button" 
-                                            className="ms-2 btn btn-sm btn-danger" 
-                                            onClick={handleDeleteLogo}
-                                        >
-                                            <i className="la la-trash"></i>
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <FileInput 
-                                        name="logo"
-                                        accept="image/*"
-                                        onChange={handleChange}
-                                        error={errors.logo} 
+                            )
+                        }] : []),
+                        ...(isCrmAccount ? [{
+                            key: 'categories',
+                            label: __('categorias'),
+                            content: (
+                                <div className="mt-3">
+                                    <CategoryAssigner
+                                        environment={envForCategories}
+                                        categorizable={{ type: 'App\\Models\\Company', id: company.id }}
+                                        endpoints={categoryEndpoints}
+                                        title={__('sectores')}
+                                        allowCreate={true}
+                                        readOnly={false}
                                     />
-                                )}
+                                </div>
+                            )
+                        }] : [])
+                    ]}
+                    defaultActive={validTab}
+                />
 
-                                <p className='pt-1 text-warning small'>
-                                    <span className='me-5'>{ __('imagen_formato') }</span>
-                                    <span className='me-5'>{ __('imagen_peso_max') }: 1MB</span>
-                                    { __('imagen_medidas_recomendadas') }: 400x400px
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className='mt-4 text-end'>
-                            <PrimaryButton disabled={processing} className='btn btn-rdn'>
-                                {processing ? __('procesando')+'...':__('guardar')}
-                            </PrimaryButton>	
-                        </div>
-                    </div>
-                </form>
+                {/* Modals */}
+                {isCrmAccount && (
+                    <ModalUserCreate
+                        show={showModalUserCreate}
+                        onClose={handleCloseModalUserCreate}
+                        onCreate={refreshUsersTable}
+                        companyId={company.id}
+                        side={'crm-accounts'}
+                        salutations={salutations}
+                        contact_types={contact_types}
+                        crm_account={crm_account}
+                    />
+                )}
             </div>
         </AdminAuthenticatedLayout>
     );

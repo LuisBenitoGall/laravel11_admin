@@ -7,6 +7,7 @@ import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 import Checkbox from '@/Components/Checkbox';
 import InputError from '@/Components/InputError';
 import RadioButton from '@/Components/RadioButton';
+import SetSex from '@/Components/SetSex';
 import TextInput from '@/Components/TextInput';
 import PrimaryButton from '@/Components/PrimaryButton';
 
@@ -32,6 +33,7 @@ export default function Create({ auth, session, title, subtitle, roles = {}, ava
         name: '',
         surname: '',
         email: '',
+        sex: '',
         status: true,
         link_company: true,
         send_password: false
@@ -147,6 +149,13 @@ export default function Create({ auth, session, title, subtitle, roles = {}, ava
                                 <InputError message={errors.email} />
                             </div>
                         </div>   
+
+                        {/* Sexo */}
+                        <SetSex
+                            value={data.sex}
+                            onChange={(e) => setData('sex', e.target.value)}
+                            error={errors.sex}
+                        />
 
                         {/* Estado */}
                         <div className="col-lg-1 text-center">

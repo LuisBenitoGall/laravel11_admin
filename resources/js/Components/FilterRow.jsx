@@ -11,7 +11,15 @@ import TextInput from '@/Components/TextInput';
 //Hooks:
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function FilterRow({ columns, queryParams, visibleColumns, SearchFieldChanged, indexRoute = 'users.index', indexParams = undefined }) {
+export default function FilterRow({
+    columns,
+    queryParams,
+    visibleColumns,
+    SearchFieldChanged,
+    indexRoute = 'users.index',
+    indexParams = undefined,
+    PrependColumns = false,          // NUEVO
+}) {
     const __ = useTranslation();
     const txt_fechas_selec = __('fechas_selec');
     const txt_todos = __('todos');
@@ -32,6 +40,9 @@ export default function FilterRow({ columns, queryParams, visibleColumns, Search
             label: opt.label
         })) || []
     }));
+
+    // NUEVO: número de columnas vacías a la izquierda
+    const prependCount = Number.isInteger(PrependColumns) ? PrependColumns : 0;
 
     const [dateRanges, setDateRanges] = useState(() => {
         const initial = {};
@@ -78,7 +89,6 @@ export default function FilterRow({ columns, queryParams, visibleColumns, Search
         setTextValues(prev => {
             const next = { ...prev };
             for (const key in updatedTextValues) {
-                // Solo actualiza si el valor realmente cambió
                 if (updatedTextValues[key] !== prev[key]) {
                     next[key] = updatedTextValues[key];
                 }
@@ -125,7 +135,7 @@ export default function FilterRow({ columns, queryParams, visibleColumns, Search
             [colKey]: [null, null]
         }));
         
-    router.get(route(indexRoute, indexParams), updatedParams, {
+        router.get(route(indexRoute, indexParams), updatedParams, {
             preserveState: true,
             replace: true
         });
@@ -140,6 +150,13 @@ export default function FilterRow({ columns, queryParams, visibleColumns, Search
     return (
         <thead className="tbl-filters">
             <tr className="text-nowrap">
+                {/* NUEVO: columnas vacías al inicio para alinear con columnas fijas */}
+                {prependCount > 0 &&
+                    Array.from({ length: prependCount }).map((_, idx) => (
+                        <th key={`prepend-${idx}`}></th>
+                    ))
+                }
+
                 {translatedColumns.map(col => {
                     const localValue = textValues[col.key] || '';
 
@@ -160,7 +177,6 @@ export default function FilterRow({ columns, queryParams, visibleColumns, Search
                                             }));
 
                                             if (!isManualFiltering) {
-                                                // Para filtrado automático al vuelo
                                                 SearchFieldChanged(col.key, newValue.trim());
                                             }
                                         }}
@@ -213,7 +229,6 @@ export default function FilterRow({ columns, queryParams, visibleColumns, Search
                                 )}
 
                                 {/* Limpiar filtro */}
-
                                 {col.filter !== 'date' && !!(localValue && localValue.toString().trim()) && (
                                     <button
                                         className="clean-filter"
@@ -244,6 +259,7 @@ export default function FilterRow({ columns, queryParams, visibleColumns, Search
                     );
                 })}
 
+                {/* columna final vacía para acciones */}
                 <th></th>
             </tr>
         </thead>

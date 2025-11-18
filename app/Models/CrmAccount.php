@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
+use File;
+use Carbon\Carbon;
 
 //Models:
 use App\Models\Company;
@@ -33,6 +35,7 @@ class CrmAccount extends Model{
         'linked_company_id',
         'name',
         'tradename',
+        'nif',
         'tax_id',
         'website',
         'currency_id',
@@ -61,10 +64,11 @@ class CrmAccount extends Model{
             }
         });
 
-        // Candado: no me edites fiscales si hay enlace a maestro
-        static::saving(function (CrmAccount $model) {
+        // Candado solo al ACTUALIZAR
+        static::updating(function (CrmAccount $model) {
             if ($model->isLinkedToMaster()) {
-                $dirtyFiscal = $model->isDirty(['name','tradename','tax_id',
+                $dirtyFiscal = $model->isDirty([
+                    'name','tradename','nif', // usa el campo real del modelo
                     'billing_street','billing_city','billing_state','billing_postal_code','billing_country_code',
                     'shipping_street','shipping_city','shipping_state','shipping_postal_code','shipping_country_code'
                 ]);
@@ -95,20 +99,25 @@ class CrmAccount extends Model{
     /**
      * 3. Guardar cuenta.
      */
-    public static function saveAccount($request){
+    public static function saveAccount($request, int $scopeCompanyId, ?int $linkedCompanyId = null){
         $a = new CrmAccount();
-        $a->company_id = session('currentCompany');
-        $a->name = $request->name;
-        $a->tradename = $request->tradename;
 
-        $a->created_by = Auth::user()->id;
-        $a->updated_by = Auth::user()->id; 
+        // scope de multiempresa (empresa “dueña” de la cuenta CRM)
+        $a->company_id = $scopeCompanyId;
+
+        // enlace a maestro (solo si procede)
+        //$a->linked_company_id = $request->boolean('auto_link') && $linkedCompanyId ? $linkedCompanyId : null;
+        $a->linked_company_id = $linkedCompanyId;
+        $a->name        = $request->name;
+        $a->tradename   = $request->tradename;
+        $a->owner_id    = Auth::id();
+        $a->created_by  = Auth::id();
+        $a->updated_by  = Auth::id();
+
         $a->save();
 
         return $a;
     }
-
-
 
 
     /* -------------------- Relaciones -------------------- */
@@ -214,9 +223,11 @@ class CrmAccount extends Model{
 
     /* -------------------- Helpers de dominio -------------------- */
 
-    public function isLinkedToMaster(): bool{
-        return (bool) ($this->customer_provider_id || $this->linked_company_id);
+    public function isLinkedToMaster(): bool
+    {
+        return !empty($this->linked_company_id);
     }
+
 
     public function isActive(): bool{
         return (int) $this->status === 1;

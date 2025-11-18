@@ -15,4 +15,6 @@ class Category extends Model{
     protected $table = 'categories'; 
 
     protected $dates = ['deleted_at'];
+
+    protected $fillable = ['company_id', 'module', 'parent_id', 'name','slug','translations','path','depth','position','status'];
 }

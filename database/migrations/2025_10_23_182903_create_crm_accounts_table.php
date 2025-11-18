@@ -10,7 +10,8 @@ return new class extends Migration {
             $table->id();
 
             // Multiempresa: inquilino
-            $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('company_id')->nullable()
+                ->constrained()->cascadeOnDelete();
 
             // Jerarquía B2B
             $table->foreignId('parent_account_id')->nullable()

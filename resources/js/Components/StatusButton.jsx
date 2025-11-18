@@ -1,6 +1,7 @@
 import React, { useState, forwardRef } from 'react';
+import { router } from '@inertiajs/react';
 
-const StatusButton = forwardRef(({ status, id, updateRoute }, ref) => {
+const StatusButton = forwardRef(({ status, id, updateRoute, reloadUrl, reloadResource, routeParams = {} }, ref) => {
 	// Estado local para el status, uso universal
 	const [currentStatus, setCurrentStatus] = useState(Number(status));
 	const [loading, setLoading] = useState(false);
@@ -8,22 +9,40 @@ const StatusButton = forwardRef(({ status, id, updateRoute }, ref) => {
 	const handleClick = async () => {
 		setLoading(true);
 		try {
-			const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 			const newStatus = currentStatus === 1 ? 0 : 1;
-			const response = await fetch(route(updateRoute), {
+			
+			// Get CSRF token from meta tag or page props
+			let csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+			
+			// Fallback: try to get from Inertia page props
+			if (!csrfToken) {
+				const pageProps = window?.page?.props;
+				csrfToken = pageProps?.csrf_token || pageProps?._token;
+			}
+			
+			const response = await fetch(route(updateRoute, routeParams), {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 					'Accept': 'application/json',
 					'X-CSRF-TOKEN': csrfToken,
+					'X-Requested-With': 'XMLHttpRequest',
 				},
 				body: JSON.stringify({ id, status: newStatus }),
 			});
+			
 			if (response.ok) {
+				const data = await response.json();
 				setCurrentStatus(newStatus);
+				// Reload the page if reloadUrl is provided
+				if (reloadUrl) {
+					router.reload({ only: [reloadResource] });
+				}
+			} else {
+				console.error('StatusButton error:', response.status, response.statusText);
 			}
 		} catch (e) {
-			// Puedes mostrar un error si lo necesitas
+			console.error('StatusButton error:', e);
 		} finally {
 			setLoading(false);
 		}

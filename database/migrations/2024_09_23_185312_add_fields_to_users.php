@@ -14,7 +14,8 @@ return new class extends Migration{
             $table->string('surname')->nullable()->after('name');
             $table->string('nickname')->nullable()->after('surname');
             $table->date('birthday')->nullable()->after('password');
-            $table->string('nif')->nullable()->after('birthday');
+            $table->char('sex', 1)->nullable()->after('birthday');
+            $table->string('nif')->nullable()->after('sex');
             $table->string('signature')->nullable()->after('nif');
             $table->boolean('isAdmin')->default(false)->after('signature');
             $table->integer('status')->default(0)->after('isAdmin');

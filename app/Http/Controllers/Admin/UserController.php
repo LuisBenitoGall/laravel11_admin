@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -21,10 +22,13 @@ use Inertia\Response;
 use Carbon\Carbon;
 
 //Concerns:
+use App\Concerns\HasContactTypes;
 use App\Concerns\HasSalutation;
 
 //Models:
 use App\Models\Company;
+use App\Models\CrmAccount;
+use App\Models\CrmContact;
 use App\Models\CustomerProvider;
 use App\Models\Phone;
 use App\Models\User;
@@ -65,6 +69,9 @@ class UserController extends Controller{
      * 9. Opciones de roles para nuevo usuario.
      * 10. Eliminar firma.
      * 11. Actualizar password.
+     * 12. Listado de contactos.
+     * 12.1. Contactos para exportación.
+     * 12.2. Data Query contactos.
      */
     
     use ConvertDateTrait;
@@ -86,7 +93,8 @@ class UserController extends Controller{
                 'users.show',
                 'users.update',
                 'customers.edit',
-                'providers.edit'
+                'providers.edit',
+                'crm-accounts.edit'
             ]);   
         } 
     }  
@@ -273,6 +281,7 @@ class UserController extends Controller{
         $user->surname = $request->surname;
         $user->salutation = $request->salutation;
         $user->email = $request->email;
+        $user->sex = $request->sex;
         $user->password = bcrypt($random_password);
         $user->birthday = $request->birthday;
         $user->isAdmin = $isAdmin;
@@ -296,6 +305,7 @@ class UserController extends Controller{
             $uc->user_id = $user->id;
             $uc->company_id = $companyId;
             $uc->position = $request->position;
+            $uc->department = $request->department;
             $uc->save();
         }
 
@@ -306,7 +316,7 @@ class UserController extends Controller{
         }
 
         //Envío de password:
-        if($request->input('send_pwd')){
+        if($request->input('send_pwd') && $request->side != 'crm-accounts'){
             $emailFrom = config('constants.EMAIL_');
             $emailTo = $user->email;
             $data['usuario'] = $user->name.' '.$user->surname;
@@ -321,10 +331,33 @@ class UserController extends Controller{
             });
         }
 
+        //Registro de CRM Contact:
+        if($request->side == 'crm-accounts'){
+            $cc = new CrmContact();
+            $cc->company_id = session('currentCompany');
+            $cc->user_id = $user->id;
+            $cc->crm_account_id = $request->crm_account_id;
+            $cc->contact_type = $request->contact_type;
+            $cc->owner_id = Auth::id();
+            $cc->save();
+        }
+
         if($request->side == 'customers'){
             return redirect()->route('customers.edit', [$companyId, 'users'])->with('msg', __('usuario_creado_msg'));    
         }elseif($request->side == 'providers'){
-            return redirect()->route('providers.edit', [$companyId, 'users'])->with('msg', __('usuario_creado_msg')); 
+            return redirect()->route('providers.edit', [$companyId, 'users'])->with('msg', __('usuario_creado_msg'));
+        }elseif($request->side == 'crm-accounts'){
+            $account = CrmAccount::select('id')
+            ->where('company_id', $companyId)
+            ->where('linked_company_id', session('currentCompany'))
+            ->first();
+
+            if($account){
+                return redirect()->route('crm-accounts.edit', [$account->id, 'users'])->with('msg', __('usuario_creado_msg'));     
+            }else{
+                return redirect()->route('users.contacts')->with('msg', __('usuario_creado_msg')); 
+            }
+
         }else{
             return redirect()->route('users.edit', $user)->with('msg', __('usuario_creado_msg'));
         }
@@ -333,14 +366,35 @@ class UserController extends Controller{
     /**
      * 4. Mostrar usuario.
      */
-    public function show(User $user){
+    public function show(Request $request, User $user){
+        $user->load(['companiesRelation', 'phones', 'avatar']);
+        $user->setRelation('companies', $user->companiesRelation);
+        $user->unsetRelation('companiesRelation');
 
+        $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
+        //Formato de fecha:
+        $dateFormat = $locale[4] ?? 'd/m/Y';
+
+        $user->birthday_formatted = $user->birthday
+        ? $user->birthday->format($dateFormat)
+        : null;
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'data' => $user,
+            ]);
+        }
+
+        // Si algún día quieres una vista "show" completa de página
+        return Inertia::render('Admin/User/Show', [
+            'user' => $user,
+        ]);
     }
 
     /**
      * 5. Editar usuario. 
      */
-    public function edit(User $user, $profile = false){
+    public function edit_DEPRECATED(User $user, $company_id = false, $profile = false){
         $ctx = app(CompanyContext::class);
         $companyId = (int) $ctx->id();
         if($companyId <= 0){
@@ -348,6 +402,8 @@ class UserController extends Controller{
         }
 
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
+
+        $slug = 'users';
 
         //Formateo de datos:
         $user->formatted_created_at = Carbon::parse($user->created_at)->format($locale[4].' H:i:s');
@@ -369,61 +425,214 @@ class UserController extends Controller{
         ->where('user_id', $user->id)
         ->where('company_id', '!=', $companyId)
         ->with('company') // asume relación userCompany->company
-        ->get(['id', 'company_id']); // id = pivot id
+        ->get(['id', 'company_id', 'position', 'department']); // id = pivot id user_companies
 
-        // Construimos mapa de relaciones entre la compañía en sesión y las otras empresas
         $otherCompanyIds = $relations->pluck('company_id')->unique()->values()->all();
 
-        $cpRecords = [];
+        // Mapa company_id => tipo relación
+        $relationMap = [];
+        // Mapa company_id => id de la relación (customer_providers.id o crm_accounts.id)
+        $relationIdMap = [];
+
+        // 1) Cliente / proveedor
         if (!empty($otherCompanyIds)) {
             $cpRecords = CustomerProvider::where(function($q) use ($companyId, $otherCompanyIds) {
-                $q->where('provider_id', $companyId)->whereIn('customer_id', $otherCompanyIds);
-            })->orWhere(function($q) use ($companyId, $otherCompanyIds) {
-                $q->where('customer_id', $companyId)->whereIn('provider_id', $otherCompanyIds);
-            })->get();
-        }
+                    $q->where('provider_id', $companyId)
+                      ->whereIn('customer_id', $otherCompanyIds);
+                })
+                ->orWhere(function($q) use ($companyId, $otherCompanyIds) {
+                    $q->where('customer_id', $companyId)
+                      ->whereIn('provider_id', $otherCompanyIds);
+                })
+                ->get();
 
-        // Mapa company_id => relation ('client'|'supplier')
-        $relationMap = [];
-        foreach ($cpRecords as $cp) {
-            if ($cp->provider_id == $companyId) {
-                $relationMap[$cp->customer_id] = 'customer';
-            } elseif ($cp->customer_id == $companyId) {
-                $relationMap[$cp->provider_id] = 'provider';
+            foreach ($cpRecords as $cp) {
+                if ($cp->provider_id == $companyId) {
+                    // la otra empresa es cliente
+                    $relationMap[$cp->customer_id]   = 'customer';
+                    $relationIdMap[$cp->customer_id] = $cp->id;
+                } elseif ($cp->customer_id == $companyId) {
+                    // la otra empresa es proveedor
+                    $relationMap[$cp->provider_id]   = 'provider';
+                    $relationIdMap[$cp->provider_id] = $cp->id;
+                }
+            }
+
+            // 2) CRM (solo si no hay ya relación cliente/proveedor)
+            $crmRecords = CrmAccount::query()
+                ->where('company_id', $companyId)      // empresa en sesión
+                ->whereIn('linked_company_id', $otherCompanyIds)     // empresas del usuario
+                ->get();
+
+            foreach ($crmRecords as $crm) {
+                if (!isset($relationMap[$crm->linked_company_id])) {
+                    $relationMap[$crm->linked_company_id]   = 'crm_account';
+                    $relationIdMap[$crm->linked_company_id] = $crm->id;   // 👈 aquí está la clave
+                }
             }
         }
 
-        $relatedCompanies = $relations->map(function($uc) use ($relationMap) {
+        // 3) Montamos lo que mandas a la vista
+        $relatedCompanies = $relations->map(function($uc) use ($relationMap, $relationIdMap) {
             $company = $uc->company; // eager loaded
             if (!$company) return null;
 
             return [
-                'id' => $company->id,
-                'name' => $company->name,
-                'pivot_id' => $uc->id,
-                'relation' => $relationMap[$company->id] ?? null,
+                'id'           => $company->id,              // company_id
+                'name'         => $company->name,
+                'pivot_id'     => $uc->id,                  // id de user_companies
+                'relation'     => $relationMap[$company->id]    ?? null, // 'customer' | 'provider' | 'crm_account'
+                'relation_id'  => $relationIdMap[$company->id]  ?? null, // id de customer_providers o crm_accounts
+                'position'     => $uc->position,
+                'department'   => $uc->department
             ];
         })->filter()->values()->all();
 
+        if(!empty($relationIdMap)){
+            $slug = 'contacts';
+        }
+
         //Tratamientos:
         $salutations = HasSalutation::comboOptions();
+
+        //Tipos de contacto:
+        $contact_types = $slug == 'contacts'? HasContactTypes::comboOptions():false;
+
+        //Contacto CRM:
+        $crm_contact = $slug == 'contacts'? CrmContact::where('company_id', $companyId)->where('user_id', $user->id)->first():false;
 
         return Inertia::render('Admin/User/Edit', [
             "title" => __($this->option),
             "subtitle" => __('usuario_editar'),
             "module" => $this->module,
-            "slug" => 'users',
-            "availableLocales" => LocaleTrait::availableLocales(),
+            "slug" => $slug,
             "user" => $user,
             "roles" => $roles,
             "user_roles" => $user->roles,
             "images" => $images,
             "relatedCompanies" => $relatedCompanies,
-            'salutations' => $salutations,
+            "salutations" => $salutations,
+            "contact_types" => $contact_types,
+            "crm_contact" => $crm_contact,
             "profile" => $profile,      //Edición usuario en session.
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions
         ]);    
+    }
+
+    public function edit(User $user, $company_id = null, $profile = false)
+    {
+        $ctx = app(CompanyContext::class);
+        $sessionCompanyId = (int) $ctx->id();
+        if ($sessionCompanyId <= 0) {
+            abort(422, __('no_hay_empresa_activa'));
+        }
+
+        $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
+
+        $company = false;
+
+        // 1) Timestamps bonitos
+        $user->formatted_created_at = Carbon::parse($user->created_at)->format($locale[4].' H:i:s');
+        $user->formatted_updated_at = Carbon::parse($user->updated_at)->format($locale[4].' H:i:s');
+
+        // 2) Resolver contexto de edición
+        $companyContext = null;
+        $slug = 'users';
+
+        if ($company_id) {
+            // Primero intentamos CRM
+            $crm = CrmAccount::select('id','name','company_id','linked_company_id')
+                ->where('linked_company_id', $company_id)
+                ->where('company_id', $sessionCompanyId)
+                ->first();
+
+            if ($crm) {
+                // Contexto: CRM
+                $companyContext = (object)[
+                    'type'            => 'crm_account',
+                    'crm_id'          => $crm->id,
+                    'ref_id'          => (int) $crm->linked_company_id,               // <- lo que viaja en la URL y que devolverás como user_company_id
+                    'name'            => $crm->name,
+                    'company_id_real' => (int) $crm->linked_company_id, // <- pivot user_companies del usuario
+                ];
+                $slug = 'contacts';
+            } else {
+                // Si no es CRM, debe ser una company normal
+                $company = Company::select('id','name')->findOrFail((int)$company_id);
+                $companyContext = (object)[
+                    'type'            => 'company',
+                    'crm_id'          => false,
+                    'ref_id'          => (int) $company->id,
+                    'name'            => $company->name,
+                    'company_id_real' => (int) $company->id,
+                ];
+                $slug = 'users';
+            }
+        } else {
+            // Sin parámetro: usar empresa en sesión como contexto company
+            $company = Company::select('id','name')->findOrFail($sessionCompanyId);
+            $companyContext = (object)[
+                'type'            => 'company',
+                'crm_id'          => false,
+                'ref_id'          => (int) $company->id,
+                'name'            => $company->name,
+                'company_id_real' => (int) $company->id,
+            ];
+            $slug = 'users';
+        }
+
+        // 3) Validación mínima: el usuario debe tener vínculo con company_id_real
+        $pivot = UserCompany::query()
+            ->where('user_id', $user->id)
+            ->where('company_id', $companyContext->company_id_real)
+            ->first(['id','company_id','position','department']);
+
+        // Si quieres bloquear cuando no hay vínculo:
+        // if (!$pivot) { abort(403, __('usuario_no_vinculado_a_empresa')); }
+
+        // 4) Datos auxiliares que ya tenías
+        $roles = $this->roleOptions(true);
+        $images = UserImage::select('id','image','featured','public')
+            ->where('user_id', $user->id)->get();
+
+        // Tratamientos y tipos
+        $salutations = HasSalutation::comboOptions();
+        $contact_types = $slug === 'contacts' ? HasContactTypes::comboOptions() : [];
+
+        // CrmContact solo si el contexto es CRM y la cuenta pertenece a la empresa en sesión
+        $crm_contact = false;
+        if ($companyContext->type === 'crm_account') {
+            $crm_contact = CrmContact::where('company_id', $sessionCompanyId)
+                ->where('user_id', $user->id)
+                ->first();
+        }
+
+        // 5) Opcional: relatedCompanies para UI secundaria (no depende ya de la lógica principal)
+        $relatedCompanies = []; // si aún lo necesitas, rellénalo aquí o elimina su uso en front
+
+        return \Inertia\Inertia::render('Admin/User/Edit', [
+            'title'            => __($this->option),
+            'subtitle'         => __('usuario_editar'),
+            'module'           => $this->module,
+            'slug'             => $slug,
+            'user'             => $user,
+            'roles'            => $roles,
+            'user_roles'       => $user->roles,
+            'images'           => $images,
+            'salutations'      => $salutations,
+            'contact_types'    => $contact_types,
+            'crm_contact'      => $crm_contact,
+            'profile'          => $profile,
+            'availableLocales' => LocaleTrait::availableLocales(),
+            'permissions'      => $this->permissions,
+
+            // Contexto nuevo y limpio:
+            'company'          => $company,
+            'company_context'  => $companyContext,     // { type, ref_id, name, company_id_real }
+            'pivot'            => $pivot,              // campos dependientes de empresa
+            'user_company_id'  => $companyContext->ref_id, // <- ESTO es lo que el front debe devolver
+        ]);
     }
 
     /**
@@ -437,6 +646,7 @@ class UserController extends Controller{
      * 6. Actualizar usuario.
      */
     public function update(UserUpdateRequest $request, User $user){
+        //dd($request->all());
         try{
             $validated = $request->validated();
 
@@ -444,17 +654,18 @@ class UserController extends Controller{
 
             //Tratamiento de fechas:
             //$rawStart = $request->birthday;
-            $birthday = $request->birthday !== ''
-            ? ($locale[0] !== 'en'
-                ? $this->convertDate($request->birthday, false)
-                : $request->birthday
-            )
-            : null;
+            $rawBirthday = Str::of($request->birthday)->trim('"');
 
+            $birthday = $rawBirthday->isNotEmpty()
+            ? ($locale[0] !== 'en'
+            ? $this->convertDate($rawBirthday, false)
+            : $rawBirthday): null;
+        
             $user->name = $request->name;
             $user->surname = $request->surname;
             $user->salutation = $request->salutation;
             $user->email = $request->email;
+            $user->sex = $request->sex;
             $user->birthday = $birthday;
             $user->nif = $request->nif;
 
@@ -467,8 +678,46 @@ class UserController extends Controller{
 
             $user->save();
 
-            return redirect()->route('users.edit', $user)
-            ->with('msg', __('usuario_actualizado_msg'));
+            //Relación con empresa:
+            if($request->user_company_id && ($request->position || $request->department)){
+                $relation = UserCompany::where('user_id', $user->id)
+                ->where('company_id', $request->user_company_id)
+                ->first();
+
+                if($relation){
+                    $relation->position = $request->position;
+                    $relation->department = $request->department;
+                    $relation->save();
+                }
+                //dd($relation, $request->user_company_id, 'x');
+            }
+
+            //Tipo de contacto:
+            if($request->user_company_id && $request->contact_type){
+                $contact_type = CrmContact::select('crm_contacts.*')
+                ->join('crm_accounts', 'crm_contacts.crm_account_id', '=', 'crm_accounts.id')
+                ->where('crm_contacts.company_id', session('currentCompany'))
+                ->where('crm_contacts.user_id', $user->id)
+                ->where('crm_accounts.company_id', session('currentCompany'))
+                ->where('crm_accounts.linked_company_id', $request->user_company_id)
+                ->first();
+
+                if($contact_type){
+                    $contact_type->contact_type = $request->contact_type;
+                    $contact_type->observations = $request->observations;
+                    $contact_type->save();
+                }
+            }
+
+            $return_company_id = $request->user_company_id? $request->user_company_id:session('currentCompany');
+
+            if($request->user_company_id){
+                return redirect()->route('users.edit', [$user, $request->user_company_id])
+                ->with('msg', __('usuario_actualizado_msg'));
+            }else{
+                return redirect()->route('users.edit', $user)
+                ->with('msg', __('usuario_actualizado_msg'));    
+            }
 
         }catch(\Throwable $e){
             Log::error('Error en update(): ' . $e->getMessage());
@@ -574,4 +823,187 @@ class UserController extends Controller{
             abort(500, 'Error interno del servidor');
         }     
     }
+
+    /**
+     * 12. Listado de contactos.
+     */
+    public function contacts(Request $request){
+        $perPage = $request->input('per_page', config('constants.RECORDS_PER_PAGE_DEFAULT_'));
+
+        $company_id = session('currentCompany');
+
+        $request->merge(['company_id' => $company_id]);
+
+        $contacts = $this->contactsDataQuery($request)
+        ->paginate($perPage)
+        ->appends($request->all());
+
+        return Inertia::render('Admin/User/Contacts', [
+            "title" => __($this->option),
+            "subtitle" => __('contactos'),
+            "module" => $this->module,
+            "slug" => 'contacts',
+            "contacts" => UserResource::collection($contacts),
+            "queryParams" => request()->query() ?: null,
+            "availableLocales" => LocaleTrait::availableLocales(),
+            "permissions" => $this->permissions,
+            "columnPreferences" => UserColumnPreference::forUserAndTables(
+                Auth::id(),
+                ['tblContacts'] 
+            )
+        ]);    
+    }
+
+    /**
+     * 12.1. Contactos para exportación.
+     */
+    public function contactsFilteredData(UserFilterRequest $request)
+    {
+        $company_id = $request->input('company_id', session('currentCompany'));
+
+        $cacheKey = 'filtered_contacts_' . $company_id . '_' . md5(json_encode($request->all()));
+
+        // Aseguramos que company_id esté en el request
+        $request->merge(['company_id' => $company_id]);
+
+        $users = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($request) {
+            return $this->contactsDataQuery($request)->get();
+        });
+
+        return response()->json([
+            'users' => UserResource::collection($users),
+        ]);
+    }
+
+    /**
+     * 12.2. Data Query contactos.
+     */
+    private function contactsDataQuery(Request $request): Builder
+    {
+        $company_id = (int) $request->input('company_id', session('currentCompany'));
+
+        // 1) Empresas relacionadas vía customer_providers (clientes/proveedores)
+        $relatedCompanyIds = CustomerProvider::query()
+            ->where(function ($q) use ($company_id) {
+                $q->where('customer_id', $company_id)
+                  ->orWhere('provider_id', $company_id);
+            })
+            ->get()
+            ->flatMap(fn ($cp) => [$cp->customer_id, $cp->provider_id])
+            ->filter(fn ($id) => !is_null($id) && $id != $company_id)
+            ->unique()
+            ->values()
+            ->all();
+
+        // 2) Users vinculados a empresas distintas de la de sesión (clientes/proveedores)
+        $userIdsFromCompanies = DB::table('user_companies')
+            ->where('company_id', '!=', $company_id)
+            ->when(!empty($relatedCompanyIds), function ($q) use ($relatedCompanyIds) {
+                $q->orWhereIn('company_id', $relatedCompanyIds);
+            })
+            ->pluck('user_id');
+
+        // 3) Users vinculados por crm_contacts a la empresa en sesión
+        $userIdsFromCrm = DB::table('crm_contacts')
+            ->where('company_id', $company_id)
+            ->pluck('user_id');
+
+        // 4) Unión
+        $userIds = $userIdsFromCompanies
+            ->merge($userIdsFromCrm)
+            ->unique()
+            ->filter()
+            ->values();
+
+        if ($userIds->isEmpty()) {
+            return User::query()->whereRaw('1 = 0');
+        }
+
+        // 5) Query base con joins y campos extra
+        $query = User::query()
+            ->from('users')
+            // empresa distinta de la de sesión (para position)
+            ->leftJoin('user_companies as uc', function ($j) use ($company_id) {
+                $j->on('uc.user_id', '=', 'users.id')
+                  ->where('uc.company_id', '!=', $company_id);
+            })
+            // cuenta CRM vinculada (para edit_crm_account_id)
+            ->leftJoin('crm_accounts as ca', function ($j) use ($company_id) {
+                $j->on('ca.linked_company_id', '=', 'uc.company_id')
+                  ->where('ca.company_id', '=', $company_id);
+            })
+            // contactos CRM para la empresa en sesión (para contact_type)
+            ->leftJoin('crm_contacts as cc', function ($j) use ($company_id) {
+                $j->on('cc.user_id', '=', 'users.id')
+                  ->where('cc.company_id', '=', $company_id);
+            })
+            ->with(['avatar', 'phones'])
+            ->whereIn('users.id', $userIds)
+            ->select([
+                'users.*',
+                DB::raw('MIN(uc.company_id)   as edit_company_id'),
+                DB::raw('MIN(ca.id)           as edit_crm_account_id'),
+                DB::raw('MIN(uc.position)     as position'),
+                DB::raw('MAX(cc.contact_type) as contact_type'),
+            ])
+            ->groupBy('users.id');
+
+        // 6) Filtros
+        $filters = [
+            'name' => function ($q, $v) {
+                $q->where(function ($sub) use ($v) {
+                    $sub->where('users.name', 'like', "%$v%")
+                        ->orWhere('users.surname', 'like', "%$v%");
+                });
+            },
+            'email' => fn ($q, $v) => $q->where('users.email', 'like', "%$v%"),
+            'phones' => function ($q, $v) {
+                $q->whereHas('phones', fn ($sub) => $sub->where('phone_number', 'like', "%$v%"));
+            },
+            // si sigues usando categorías en otros contextos, esto puede quedarse
+            'categories' => function ($q, $v) use ($company_id) {
+                $q->whereHas('categories', function ($sub) use ($company_id, $v) {
+                    if ($company_id !== 'all') {
+                        $sub->where('categories.company_id', $company_id);
+                    }
+                    $sub->where('categories.module', 'users')
+                        ->where('categories.name', 'like', "%$v%");
+                });
+            },
+            // nuevo: filtro por cargo
+            'position' => fn ($q, $v) => $q->where('uc.position', 'like', "%{$v}%"),
+            // nuevo: filtro por tipo de contacto (código)
+            'contact_type' => fn ($q, $v) => $q->where('cc.contact_type', 'like', "%{$v}%"),
+        ];
+
+        foreach ($filters as $key => $callback) {
+            if ($request->filled($key)) {
+                $callback($query, $request->input($key));
+            }
+        }
+
+        // 7) Rango de fechas
+        $from = $request->input('date_from');
+        $to   = $request->input('date_to');
+
+        if ($from && $to) {
+            $query->whereBetween('users.created_at', ["$from 00:00:00", "$to 23:59:59"]);
+        } elseif ($from) {
+            $query->where('users.created_at', '>=', "$from 00:00:00");
+        } elseif ($to) {
+            $query->where('users.created_at', '<=', "$to 23:59:59");
+        }
+
+        // 8) Orden
+        $sortField     = $request->input('sort_field', 'name');
+        $sortDirection = $request->input('sort_direction', 'ASC');
+        $allowedSortFields = ['name', 'surname', 'email'];
+
+        if (!in_array($sortField, $allowedSortFields, true)) {
+            $sortField = 'name';
+        }
+
+        return $query->orderBy("users.$sortField", $sortDirection);
+    }
+
 }

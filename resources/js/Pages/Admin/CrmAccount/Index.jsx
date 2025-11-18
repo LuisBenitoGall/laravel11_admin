@@ -11,6 +11,8 @@ import ColumnFilter from '@/Components/ColumnFilter';
 import FilterRow from '@/Components/FilterRow';
 import { Pagination } from '@/Components/Pagination';
 import RecordsPerPage from '@/Components/RecordsPerPage';
+import ShowRegister from '@/Components/ShowRegister/ShowRegister';
+import ShowRegisterButton from '@/Components/ShowRegister/ShowRegisterButton';
 import { SortControl } from '@/Components/SortControl';
 import StatusButton from '@/Components/StatusButton';
 import TableExporter from '@/Components/TableExporter';
@@ -20,6 +22,9 @@ import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
 
+//Partials:
+import CrmAccountShowView from '@/Pages/Admin/CrmAccount/Partials/CrmAccountShowView';
+
 //Utils:
 import renderCellContent from '@/Utils/renderCellContent.jsx';
 
@@ -27,16 +32,26 @@ export default function Index({ auth, session, title, subtitle, accounts, queryP
     const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
     const __ = useTranslation();
 
+    //Columna Show Register
+    const [showId, setShowId] = useState(null);
+    const [showPanelOpen, setShowPanelOpen] = useState(false);
+
+    const handleShowRegister = (row) => {
+        setShowId(row.id);
+        setShowPanelOpen(true);
+    };
+
+    const handleCloseShowPanel = () => {
+        setShowPanelOpen(false);
+        setShowId(null);
+    };
+
     //Columnas:
     const columns = [
-        { key: 'name', label: __('razon_social'), sort: true, filter: 'text', type: 'link', link: 'accounts.edit', class_th: '', class_td: '', placeholder: __('razon_social_filtrar') },
+        { key: 'name', label: __('razon_social'), sort: true, filter: 'text', type: 'link', link: 'crm-accounts.edit', class_th: '', class_td: '', placeholder: __('razon_social_filtrar') },
         { key: 'tradename', label: __('nombre_comercial'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_comercial_filtrar') },
         { key: 'created_at', label: __('fecha_alta'), sort: true, filter: 'date', class_th: 'text-center', class_td: 'text-end', placeholder: __('fecha_alta'), dateKeys: ['date_from', 'date_to'] },
         { key: 'nif', label: __('nif'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('nif_filtrar') },
-        { key: 'is_ute', label: __('ute'), sort: true, filter: 'select', options: [
-            { value: '1', label: __('si') },
-            { value: '0', label: __('no') }
-        ], class_th: 'text-center', class_td: 'text-center', placeholder: __('ute_filtrar') },
         { key: 'logo', label: __('logo'), sort: false, filter: '', type: 'image', icon: 'building', class_th: 'text-center', class_td: 'text-center', placeholder: '' }
     ];    
 
@@ -56,7 +71,7 @@ export default function Index({ auth, session, title, subtitle, accounts, queryP
     } = useTableManagement({
         table: 'tblCrmAccounts',
         allColumnKeys: columns.map(col => col.key),
-        entityName: 'accounts',
+        entityName: 'crm-accounts',
         indexRoute: 'crm-accounts.index',
         destroyRoute: 'crm-accounts.destroy',
         filteredDataRoute: 'crm-accounts.filtered-data',
@@ -99,6 +114,10 @@ export default function Index({ auth, session, title, subtitle, accounts, queryP
                     <Table className="table table-nowrap table-striped align-middle mb-0" id="tblCrmAccounts">
                         <thead>
                             <tr>
+                                <th className="text-center first-column">
+                                    &nbsp;
+                                </th>
+
                                 {columns.map(col => (
                                     <th key={col.key} className={`${col.class_th ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}>
                                         {__(col.label)}
@@ -122,11 +141,17 @@ export default function Index({ auth, session, title, subtitle, accounts, queryP
                             queryParams={queryParams}
                             visibleColumns={visibleColumns}
                             SearchFieldChanged={SearchFieldChanged}
+                            PrependColumns={1}
                         />
 
                         <tbody>
                             {accounts.data.map((account) => (
                                 <tr key={"account-"+account.id}>
+                                    {/* Columna "show" fija */}
+                                    <td className="text-center">
+                                        <ShowRegisterButton onClick={() => handleShowRegister(account)} />
+                                    </td>
+
                                     {columns.map(col => (
                                         <td key={col.key} className={`${col.class_td ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}>
                                             {renderCellContent(account[col.key], col, account)}
@@ -136,7 +161,7 @@ export default function Index({ auth, session, title, subtitle, accounts, queryP
                                     {/* Acciones */}
                                     <td className="text-end">
                                         {/* Estado */}
-                                        {permissions?.['accounts.edit'] && (
+                                        {permissions?.['crm-accounts.edit'] && (
                                             <OverlayTrigger
                                                 key={"status-"+account.id}
                                                 placement="top"
@@ -145,28 +170,28 @@ export default function Index({ auth, session, title, subtitle, accounts, queryP
                                                 <StatusButton 
                                                     status={account.status} 
                                                     id={account.id} 
-                                                    updateRoute='accounts.status'
-                                                    reloadUrl={route('accounts.index')}
-  													reloadResource="accounts"
+                                                    updateRoute='crm-accounts.status'
+                                                    reloadUrl={route('crm-accounts.index')}
+  													reloadResource="crm-accounts"
                                                 />
                                             </OverlayTrigger>
                                         )}
 
                                         {/* Editar */}
-                                        {permissions?.['accounts.edit'] && (
+                                        {permissions?.['crm-accounts.edit'] && (
                                             <OverlayTrigger
                                                 key={"edit-"+account.id}
                                                 placement="top"
                                                 overlay={<Tooltip className="ttp-top">{ __('editar') }</Tooltip>}
                                             >
-                                                <Link href={route('accounts.edit', account.id)} className="btn btn-sm btn-info ms-1">
+                                                <Link href={route('crm-accounts.edit', account.id)} className="btn btn-sm btn-info ms-1">
                                                     <i className="la la-edit"></i>
                                                 </Link>
                                             </OverlayTrigger>
                                         )}
 
                                         {/* Eliminar */}
-                                        {permissions?.['accounts.destroy'] && (
+                                        {permissions?.['crm-accounts.destroy'] && (
                                             <OverlayTrigger
                                                 key={"delete-"+account.id}
                                                 placement="top"
@@ -189,6 +214,15 @@ export default function Index({ auth, session, title, subtitle, accounts, queryP
                         </tbody>
                     </Table>
                 </div>
+
+                <ShowRegister
+                    id={showId}
+                    open={showPanelOpen}
+                    onClose={handleCloseShowPanel}
+                    routeName="crm-accounts.show"        // tu ruta JSON
+                    title={__('cuenta')}         // o lo que quieras
+                    ViewComponent={CrmAccountShowView}
+                />
 
                 <Pagination 
                     links={accounts.meta.links} 

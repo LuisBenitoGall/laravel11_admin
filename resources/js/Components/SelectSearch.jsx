@@ -58,6 +58,19 @@ const SelectSearch = ({
 
     const handleInputChange = (val) => setInputValue(val);
 
+    // Debounce inputValue and notify parent via onSearchChange
+    useEffect(() => {
+        if (typeof onSearchChange !== 'function') return;
+        const t = setTimeout(() => {
+        try {
+            onSearchChange(inputValue || '');
+        } catch (e) {
+            // swallow errors from consumer
+        }
+        }, 350);
+        return () => clearTimeout(t);
+    }, [inputValue, onSearchChange]);
+
     const handleChange = (selectedOption) => {
         setSelectedValue(selectedOption);
         onChange && onChange(selectedOption);

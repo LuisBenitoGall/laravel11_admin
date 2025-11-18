@@ -5,6 +5,7 @@ import { Tooltip } from 'react-tooltip';
 import { useEffect, useState } from 'react';
 
 //Components:
+import CategoryAssigner from '@/Components/CategoryAssigner';
 import Checkbox from '@/Components/Checkbox';
 import InfoPopover from '@/Components/InfoPopover';
 import InputError from '@/Components/InputError';
@@ -138,6 +139,18 @@ export default function Index({ auth, session, title, subtitle, customer, relati
         });
     }
 
+    // Environment para categorías de clientes: usamos 'sectors' para mapear a module 'companies'
+    const envForCategories = 'sectors';
+
+    // Endpoints que consume CategoryAssigner
+    const categoryEndpoints = {
+        list: route('categorizables.list'),                               // GET  ?environment=&type=&id=
+        assign: route('categorizables.assign'),                           // POST body {environment,type,id,category_ids}
+        unassign: route('categorizables.unassign'),                       // POST body {environment,type,id,category_ids}
+        tree: route('categories.tree', { environment: envForCategories }),// GET  ?environment=
+        create: route('categories.store', { environment: envForCategories }) // POST body {environment,name,parent_id?}
+    };
+
     return (
         <AdminAuthenticatedLayout
             user={auth.user}
@@ -194,6 +207,22 @@ export default function Index({ auth, session, title, subtitle, customer, relati
                                     indexParams={customer.id}
                                     tableId={'tblCompanyUsers'}
                                 />
+                            )
+                        },
+                        {
+                            key: 'categories',
+                            label: __('categorias'),
+                            content: (
+                                <div className="mt-3">
+                                    <CategoryAssigner
+                                        environment={envForCategories}
+                                        categorizable={{ type: 'App\\Models\\Company', id: customer.id }}
+                                        endpoints={categoryEndpoints}
+                                        title={__('sectores')}
+                                        allowCreate={true}
+                                        readOnly={false}
+                                    />
+                                </div>
                             )
                         }
                     ]}

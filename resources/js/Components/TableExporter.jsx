@@ -27,7 +27,6 @@ const TableExporter = ({ fetchData, columns, filename = 'export' }) => {
     const exportToExcel = async () => { 
         try {
             let data = await fetchData(); // Obtener todos los registros antes de exportar
-            console.log('TableExporter fetchData result:', data);
             if (!Array.isArray(data)) {
                 if (data && Array.isArray(data.data)) {
                     data = data.data;

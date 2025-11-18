@@ -7,7 +7,7 @@ export default function renderCellContent(value, column, rowData = {}) {
 		return column.render({ value, rowData });
 	}
 
-	//Imágenes: soportar varios shapes comunes (logo_url, avatar_url, avatar object, value as string path)
+	// Imágenes: soportar varios shapes comunes (logo_url, avatar_url, avatar object, value as string path)
 	if (column.type === 'image') {
 		const possible = [
 			rowData.logo_url,
@@ -40,7 +40,7 @@ export default function renderCellContent(value, column, rowData = {}) {
 		return '';
 	}
 
-	//Categorías:
+	// Categorías
 	if (column.key === 'categories' && Array.isArray(value)) {
 		return (
 			<div className="d-flex flex-wrap gap-1">
@@ -53,18 +53,102 @@ export default function renderCellContent(value, column, rowData = {}) {
 		);
 	}
 
-	//Enlaces:
+	// Empresas/Companies: array de objetos { id, name, link }
+	if (column.key === 'companies' && Array.isArray(value)) {
+		if (!value.length) {
+			return '—';
+		}
+
+		return (
+			<>
+				{value.map((company, index) => (
+					<React.Fragment key={company.id || index}>
+						{index > 0 && ', '}
+						<Link href={company.link} className="link-text">
+							{company.name}
+						</Link>
+					</React.Fragment>
+				))}
+			</>
+		);
+	}
+
+	// Teléfonos: array de objetos { e164, type, label, is_primary, is_whatsapp }
+	if (column.key === 'phones') {
+		const phones = Array.isArray(value) ? value : [];
+
+		if (!phones.length) {
+			return '—';
+		}
+
+		const primary = phones.find(p => p && p.is_primary) || phones[0];
+		const moreCount = phones.length - 1;
+
+		return (
+			<>
+				{primary?.e164 || ''}
+
+				{primary?.is_whatsapp && (
+					<i className="lab la-whatsapp ms-2" />
+				)}
+
+				{moreCount > 0 && (
+					<span className="badge bg-secondary ms-2">
+						{moreCount === 1 ? '1 más' : `${moreCount} más`}
+					</span>
+				)}
+			</>
+		);
+	}
+
+	// Enlaces
 	if (column.type === 'link') {
 		if (value) {
 			let href = '#';
 
-			if (typeof column.link === 'function') {
-				href = column.link(rowData);
-			} else if (typeof column.link === 'string') {
-				// Asumimos que es una ruta tipo 'companies.edit'
-				href = route(column.link, rowData.id);
-			} else {
-				href = value;
+			try {
+				if (typeof column.link === 'function') {
+					// El dev construye la URL manualmente
+					href = column.link(rowData) || '#';
+				} else if (typeof column.link === 'string') {
+					// Asumimos que es un nombre de ruta tipo 'categories.edit'
+					// 1) Prioridad: buildParams(row) si existe
+					let params = {};
+					if (typeof column.buildParams === 'function') {
+						params = column.buildParams(rowData) || {};
+					} else if (rowData && rowData.__routeParams && !Array.isArray(rowData.__routeParams)) {
+						// 2) Soporte de params nombrados inyectados desde la fila
+						params = rowData.__routeParams;
+					} else if (column.routeParams && !Array.isArray(column.routeParams)) {
+						// 3) Alternativa: column.routeParams estático (objeto)
+						params = column.routeParams;
+					}
+
+					// 4) Intento principal: parámetros nombrados
+					try {
+						href = route(column.link, params);
+					} catch (errNamed) {
+						// 5) Fallback ultra-legacy: posicional con id
+						// Solo si rowData.id existe; si no, dejamos '#'
+						if (rowData?.id != null) {
+							try {
+								href = route(column.link, rowData.id);
+							} catch (errPositional) {
+								// nos quedamos en '#'
+								console.warn('[renderCellContent] Ruta inválida:', column.link, { params, id: rowData?.id }, errPositional);
+							}
+						} else {
+							console.warn('[renderCellContent] Parámetros insuficientes para ruta:', column.link, params, errNamed);
+						}
+					}
+				} else {
+					// Valor literal de href
+					href = String(value);
+				}
+			} catch (fatal) {
+				// Nunca tumbar la UI por Ziggy
+				console.warn('[renderCellContent] Error generando href:', fatal);
+				href = '#';
 			}
 
 			return <Link href={href} className="link-text">{value}</Link>;
@@ -72,16 +156,14 @@ export default function renderCellContent(value, column, rowData = {}) {
 		return '';
 	}
 
-	// Date formatting: if column.filter === 'date' or column.key looks like a date, format it
+	// Date formatting
 	const looksLikeDateKey = typeof column.key === 'string' && /date|created_at|updated_at|birth/i.test(column.key);
 	if (column.filter === 'date' || looksLikeDateKey) {
 		if (typeof value === 'string' && value.length) {
 			try {
 				const dt = parseISO(value);
-				// fallback to original value if parse fails
 				return formatDate(dt, 'dd/MM/yyyy');
 			} catch (e) {
-				// not an ISO string, try Date constructor
 				try {
 					const dt2 = new Date(value);
 					if (!isNaN(dt2)) return formatDate(dt2, 'dd/MM/yyyy');
@@ -100,14 +182,14 @@ export default function renderCellContent(value, column, rowData = {}) {
 		return false;
 	};
 
-	// Si es booleano real, siempre iconos
+	// Si es booleano real, iconos
 	if (typeof value === 'boolean') {
 		return value
 			? <i className="la la-check text-success"></i>
 			: <i className="la la-ban text-danger"></i>;
 	}
 
-	// Si column.booleanLike está activo, mostrar iconos para boolean-like
+	// Si column.booleanLike está activo, iconos para boolean-like
 	if (column.booleanLike && isBooleanLike(value)) {
 		let v = value;
 		if (typeof v === 'string') v = v.trim().toLowerCase();
@@ -128,14 +210,13 @@ export default function renderCellContent(value, column, rowData = {}) {
 		);
 	}
 
-	// HTML:
+	// HTML
 	if (column.type === 'html' && typeof value === 'string') {
 		return <div dangerouslySetInnerHTML={{ __html: value }} />;
 	}
 
-	// Phones or arrays: render nicely
+	// Arrays genéricos (cuando no haya caso específico como phones/categories)
 	if (Array.isArray(value)) {
-		// If array of objects with 'phone' or 'number', map those
 		const items = value.map(v => {
 			if (v && typeof v === 'object') {
 				return v.phone ?? v.number ?? v.value ?? JSON.stringify(v);

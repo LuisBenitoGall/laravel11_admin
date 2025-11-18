@@ -212,7 +212,8 @@ class ContentController extends Controller{
         $content = collect($json)->firstWhere('code', $code);
 
         if (!$content) {
-            return response()->json(['error' => 'Código no encontrado: ' . $code], 404);
+            //return response()->json(['error' => 'Código no encontrado: ' . $code], 404);
+            return false;
         }
 
         logger('Contenido encontrado:', $content); 
@@ -221,12 +222,13 @@ class ContentController extends Controller{
             $title = is_string($content['title']) ? unserialize($content['title']) : [];
             $excerpt = is_string($content['excerpt']) ? unserialize($content['excerpt']) : [];
         } catch (\Throwable $e) {
-            return response()->json(['error' => 'Unserialization error', 'details' => $e->getMessage()], 500);
+            //return response()->json(['error' => 'Unserialization error', 'details' => $e->getMessage()], 500);
+            return false;
         }
 
         $locale = session('locale', app()->getLocale());
-        $titleText = $title[$locale] ?? collect($title)->filter()->first() ?? '';
-        $excerptText = $excerpt[$locale] ?? collect($excerpt)->filter()->first() ?? '';
+        $titleText = $title[$locale] ?? collect($title)->filter()->first() ?? false;
+        $excerptText = $excerpt[$locale] ?? collect($excerpt)->filter()->first() ?? false;
 
         return response()->json([
             'title' => $titleText,

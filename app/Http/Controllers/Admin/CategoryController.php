@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use App\Support\CompanyContext;
 use Inertia\Inertia;
@@ -23,10 +24,13 @@ use App\Traits\LocaleTrait;
 class CategoryController extends Controller{
     /**
      * 1. Listado de categorías por módulo.
+     * 1.1. Arbol de categorías.
+     * 1.2. Mapeo de módulos.
      * 2. Formulario nueva categoría.
      * 3. Guardar categoría.
      * 4. Editar categoría.
      * 5. Actualizar categoría.
+     * 6. Búsqueda para autocomplete.
      */
     
     use HasUserPermissionsTrait;
@@ -45,6 +49,8 @@ class CategoryController extends Controller{
             $environment = 'sectors';
         }
 
+        $moduleSlug = $this->moduleSlugFor($environment);
+
         // 2) Parámetros de listado
         $search         = trim((string) $request->get('q', ''));
         $perPage        = (int) $request->integer('per_page', 25);
@@ -61,7 +67,7 @@ class CategoryController extends Controller{
         // 3) Query base
         $query = Category::query()
             ->where('company_id', $ctx->id())
-            ->where('module', $environment);
+            ->where('module', $moduleSlug);
 
         // 4) Filtros
         if ($search !== '') {
@@ -94,7 +100,8 @@ class CategoryController extends Controller{
         $permissions = [];
         if($environment == 'sectors'){
             $permissions = $this->resolvePermissions([
-                'companies.edit'
+                'companies.edit',
+                'categories.edit'
             ]);    
         }
 
@@ -116,14 +123,23 @@ class CategoryController extends Controller{
         ]);
     }
 
-    // Árbol para UI (picker/gestor). Idealmente cacheado.
+    /**
+     * 1.1. Arbol de categorías.
+     *
+     * Árbol para UI (picker/gestor). Idealmente cacheado.
+     */
     public function tree(CompanyContext $ctx, string $environment = 'sectors'){
         $this->authorize('viewAny', [Category::class, $ctx->id(), $environment]);
 
+        $moduleSlug = $this->moduleSlugFor($environment);
+
         $nodes = Category::select('id','parent_id','name','slug','path','depth','position','status')
             ->where('company_id', $ctx->id())
-            ->where('module', $environment)
-            ->orderBy('depth')->orderBy('position')->get();
+            ->where('module', $moduleSlug)
+            ->orderByRaw("name COLLATE utf8mb4_spanish_ci ASC")
+            ->orderBy('depth')
+            ->orderBy('position')
+            ->get();
 
         return response()->json([
             'company_id' => (int) $ctx->id(),
@@ -132,11 +148,15 @@ class CategoryController extends Controller{
         ]);
     }
 
-
-
-
-
-
+    /**
+     * 1.2. Mapeo de módulos.
+     */
+    private function moduleSlugFor(string $environment): string{
+        return match ($environment) {
+            'sectors'   => 'companies',
+            default     => $environment, // customers/providers/crm
+        };
+    }
 
     /**
      * 2. Formulario nueva categoría.
@@ -160,26 +180,28 @@ class CategoryController extends Controller{
     public function store(CategoryStoreRequest $request, CompanyContext $ctx, string $environment = 'sectors'){
         $this->authorize('create', [Category::class, $ctx->id(), $environment]);
 
+        $moduleSlug = $this->moduleSlugFor($environment);
+
         $data = $request->validated(); // name, parent_id?, slug?, status?, translations?
         $slug = $data['slug'] ?? Str::slug($data['name']);
 
         // posición al final entre hermanos
         $position = Category::where([
             'company_id' => $ctx->id(),
-            'module'     => $environment,
+            'module'     => $moduleSlug,
             'parent_id'  => $data['parent_id'] ?? null,
         ])->max('position') + 1;
 
         $parent = null;
         if (!empty($data['parent_id'])) {
             $parent = Category::where('company_id', $ctx->id())
-                ->where('module', $environment)
+                ->where('module', $moduleSlug)
                 ->findOrFail($data['parent_id']);
         }
 
         $category = Category::create([
             'company_id'   => $ctx->id(),
-            'module'       => $environment,
+            'module'       => $moduleSlug,
             'parent_id'    => $parent->id ?? null,
             'name'         => $data['name'],
             'slug'         => $slug,
@@ -211,11 +233,13 @@ class CategoryController extends Controller{
     public function update(CategoryUpdateRequest $request, CompanyContext $ctx, string $environment, Category $category){
         $this->authorize('update', [$category, $ctx->id(), $environment]);
 
+        $moduleSlug = $this->moduleSlugFor($environment);
+
         $data = $request->validated(); // name, slug?, parent_id?, status, translations
         $oldSlug = $category->slug;
         $newSlug = $data['slug'] ?? Str::slug($data['name']);
 
-        DB::transaction(function () use ($category, $ctx, $environment, $data, $oldSlug, $newSlug) {
+        DB::transaction(function () use ($category, $ctx, $moduleSlug, $data, $oldSlug, $newSlug) {
             $category->fill([
                 'name'         => $data['name'],
                 'slug'         => $newSlug,
@@ -226,7 +250,7 @@ class CategoryController extends Controller{
             // si cambia el slug o el padre, recalcular path/depth en toda la rama
             if (array_key_exists('parent_id', $data) || $newSlug !== $oldSlug) {
                 // mover nodo
-                $this->recalculateBranch($category, $ctx->id(), $environment, $data['parent_id'] ?? $category->parent_id);
+                $this->recalculateBranch($category, $ctx->id(), $moduleSlug, $data['parent_id'] ?? $category->parent_id);
             }
         });
 
@@ -234,15 +258,45 @@ class CategoryController extends Controller{
     }
 
     /**
-     * 6.
+     * 6. Búsqueda para autocomplete.
      */
-    public function toggle(CompanyContext $ctx, string $environment, Category $category){
-        $this->authorize('update', [$category, $ctx->id(), $environment]);
+    public function siblings(Request $request, CompanyContext $ctx, string $environment){
+        $moduleSlug = $this->moduleSlugFor($environment);
+        $parentId = $request->integer('parent_id');
+        $exclude  = $request->integer('exclude'); // opcional al editar
+        $q        = trim((string) $request->get('q', ''));
 
-        $category->update(['status' => $category->status ? 0 : 1]);
-        return back()->with('msg', __('estado_actualizado'));
+        $rows = Category::query()
+            ->where('company_id', $ctx->id())
+            ->where('module', $moduleSlug)
+            ->where('parent_id', $parentId ?: null)
+            ->when($exclude, fn($x) => $x->where('id', '!=', $exclude))
+            ->when($q !== '', fn($x) => $x->where('name', 'like', "%{$q}%"))
+            ->orderBy('position')->orderBy('name')
+            ->get(['id','name']);
+
+        return response()->json(['nodes' => $rows]);
     }
 
+    /**
+     * 7. Actualizar estado.
+     */
+    public function status(Request $request){
+        $category = Category::select('id', 'status')->find($request->id);
+
+        $category->status = !$category->status;
+        $category->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => __('estado_actualizado_ok'),
+            'new_status' => $category->status
+        ]);
+    }
+
+    /**
+     * 
+     */
     public function move(Request $request, CompanyContext $ctx, string $environment, Category $category){
         $this->authorize('update', [$category, $ctx->id(), $environment]);
 
@@ -280,9 +334,11 @@ class CategoryController extends Controller{
 
     /** Recalcula path/depth/position de un nodo y su rama completa */
     protected function recalculateBranch(Category $node, int $companyId, string $environment, ?int $newParentId, ?int $newPosition = null): void{
-        DB::transaction(function () use ($node, $companyId, $environment, $newParentId, $newPosition) {
+        $moduleSlug = $this->moduleSlugFor($environment);
+
+        DB::transaction(function () use ($node, $companyId, $moduleSlug, $newParentId, $newPosition) {
             $parent = $newParentId
-                ? Category::where('company_id', $companyId)->where('module', $environment)->findOrFail($newParentId)
+                ? Category::where('company_id', $companyId)->where('module', $moduleSlug)->findOrFail($newParentId)
                 : null;
 
             // actualizar el propio nodo
@@ -296,7 +352,7 @@ class CategoryController extends Controller{
             // actualizar descendencia: reemplazar prefijo del path
             if ($oldPath !== $node->path) {
                 Category::where('company_id', $companyId)
-                    ->where('module', $environment)
+                    ->where('module', $moduleSlug)
                     ->where('path', 'like', $oldPath.'/%')
                     ->get()
                     ->each(function ($child) use ($oldPath, $node) {

@@ -11,6 +11,8 @@ import ColumnFilter from '@/Components/ColumnFilter';
 import FilterRow from '@/Components/FilterRow';
 import { Pagination } from '@/Components/Pagination';
 import RecordsPerPage from '@/Components/RecordsPerPage';
+import ShowRegister from '@/Components/ShowRegister/ShowRegister';
+import ShowRegisterButton from '@/Components/ShowRegister/ShowRegisterButton';
 import { SortControl } from '@/Components/SortControl';
 import StatusButton from '@/Components/StatusButton';
 import TableExporter from '@/Components/TableExporter';
@@ -20,12 +22,29 @@ import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
 
+//Partials:
+import CompanyShowView from '@/Pages/Admin/Company/Partials/CompanyShowView';
+
 //Utils:
 import renderCellContent from '@/Utils/renderCellContent.jsx';
 
 export default function Index({ auth, session, title, subtitle, companies, queryParams: rawQueryParams = {}, availableLocales }) {
     const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
     const __ = useTranslation();
+
+    //Columna Show Register
+    const [showId, setShowId] = useState(null);
+    const [showPanelOpen, setShowPanelOpen] = useState(false);
+
+    const handleShowRegister = (row) => {
+        setShowId(row.id);
+        setShowPanelOpen(true);
+    };
+
+    const handleCloseShowPanel = () => {
+        setShowPanelOpen(false);
+        setShowId(null);
+    };
 
     //Columnas:
     const columns = [
@@ -100,6 +119,10 @@ export default function Index({ auth, session, title, subtitle, companies, query
                     <Table className="table table-nowrap table-striped align-middle mb-0" id="tblCompanies">
                         <thead>
                             <tr>
+                                <th className="text-center first-column">
+                                    &nbsp;
+                                </th>
+
                                 {columns.map(col => (
                                     <th key={col.key} className={`${col.class_th ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}>
                                         {__(col.label)}
@@ -123,11 +146,17 @@ export default function Index({ auth, session, title, subtitle, companies, query
                             queryParams={queryParams}
                             visibleColumns={visibleColumns}
                             SearchFieldChanged={SearchFieldChanged}
+                            PrependColumns={1}
                         />
 
                         <tbody>
                             {companies.data.map((company) => (
                                 <tr key={"company-"+company.id}>
+                                    {/* Columna "show" fija */}
+                                    <td className="text-center">
+                                        <ShowRegisterButton onClick={() => handleShowRegister(company)} />
+                                    </td>
+
                                     {columns.map(col => (
                                         <td key={col.key} className={`${col.class_td ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}>
                                             {renderCellContent(company[col.key], col, company)}
@@ -190,6 +219,15 @@ export default function Index({ auth, session, title, subtitle, companies, query
                         </tbody>
                     </Table>
                 </div>
+
+                <ShowRegister
+                    id={showId}
+                    open={showPanelOpen}
+                    onClose={handleCloseShowPanel}
+                    routeName="companies.show"        // tu ruta JSON
+                    title={__('empresa')}         // o lo que quieras
+                    ViewComponent={CompanyShowView}
+                />
 
                 <Pagination 
                     links={companies.meta.links} 

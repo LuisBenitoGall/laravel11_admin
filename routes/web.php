@@ -333,30 +333,37 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     ->whereIn('environment', ['sectors','customers','providers','crm'])
     ->group(function () {
         Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
-
-        // formulario de creación
         Route::get('/categories/create', [CategoryController::class, 'create'])->name('categories.create');
-
-        // formulario de edición
         Route::get('/categories/{category}/edit', [CategoryController::class, 'edit'])->name('categories.edit');
-
         Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
         Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
         Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+        Route::get('/categories/tree', [CategoryController::class, 'tree'])->name('categories.tree');
+        // NOTE: this route is inside a group prefixed with '{environment}',
+        // so the route URI must NOT repeat the {environment} parameter.
+        Route::get('/categories/siblings', [CategoryController::class, 'siblings'])->name('categories.siblings');
+        Route::post('/categories/status', [CategoryController::class, 'status'])->name('categories.status');
 
-        Route::patch('/categories/{category}/toggle', [CategoryController::class, 'toggle'])->name('categories.toggle');
         Route::patch('/categories/{category}/move', [CategoryController::class, 'move'])->name('categories.move');
         Route::post('/categories/bulk', [CategoryController::class, 'bulk'])->name('categories.bulk');
         Route::put('/categories/{category}/translations', [CategoryController::class, 'updateTranslations'])->name('categories.translations.update');
     });
 
+    //Categorizables:
+    Route::post('/categorizables/assign',   [CategorizableController::class, 'assign'])->name('categorizables.assign');
+    Route::post('/categorizables/unassign', [CategorizableController::class, 'unassign'])->name('categorizables.unassign');
+    Route::get('/categorizables/list',      [CategorizableController::class, 'list'])->name('categorizables.list');
+
     //Company: no puede llevar middleware module_setted pues antes de seleccionar empresa no están definidos los módulos vinculados.
     //Route::middleware('module_setted:companies')->group(function (){
         Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index')->middleware('permission:companies.index');
         Route::get('/companies/filtered-data', [CompanyController::class, 'filteredData'])->name('companies.filtered-data')->middleware('permission:companies.index');
+        Route::get('/companies/sectors', [CompanyController::class, 'sectors'])->name('companies.sectors')->middleware('permission:companies.index');
+        Route::get('/companies/sectors/search', [CompanyController::class, 'sectorsSearch'])->name('companies.sectors.search')->middleware('permission:companies.index');
         Route::get('/companies/create', [CompanyController::class, 'create'])->name('companies.create')->middleware('permission:companies.create');
         Route::post('/companies/store', [CompanyController::class, 'store'])->name('companies.store')->middleware('permission:companies.store');
-        Route::get('/companies/{company}/edit', [CompanyController::class, 'edit'])->name('companies.edit')->middleware('permission:companies.edit');
+        Route::get('companies/{company}/show', [CompanyController::class, 'show'])->name('companies.show')->middleware('permission:companies.show');
+        Route::get('/companies/{company}/edit/{tab?}', [CompanyController::class, 'edit'])->name('companies.edit')->middleware('permission:companies.edit');
 
         // DEBUG: temporary POST debug route to inspect incoming requests when uploading files.
         // This route is temporary and should be removed after debugging.
@@ -393,20 +400,6 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
 
     //Company Sectors. Los sectores empresariales se vinculan a Category:
     Route::get('/company-sectors', [CategoryController::class, 'index'])->name('company-sectors.index')->defaults('environment', 'sectors')->middleware('permission:companies.create');
-    // Route::get('/company-sectors/tree', [CategoryController::class, 'tree'])->name('company-sectors.tree')->defaults('environment', 'sectors')->middleware([ModuleSetted::class.':companies']);
-
-    // Route::get('/company-sectors', fn () => redirect()->route('categories.index', 'sectors'))
-    //     ->name('company-sectors.index')
-    //     ->middleware([ModuleSetted::class . ':companies']);
-
-    // Route::get('/company-sectors/tree', [CategoryController::class, 'tree'])
-    //     ->name('company-sectors.tree')
-    //     ->defaults('environment', 'sectors')
-    //     ->middleware([ModuleSetted::class . ':companies']);
-
-
-
-
 
     //Company Settings:
     Route::middleware('module_setted:companies')->group(function (){
@@ -460,18 +453,22 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     //CRM Accounts:
     Route::middleware('module_setted:crm')->group(function (){
         Route::get('/crm-accounts', [CrmAccountController::class, 'index'])->name('crm-accounts.index')->middleware('permission:crm-accounts.index');
+        Route::get('/crm-accounts/filtered-data', [CrmAccountController::class, 'filteredData'])->name('crm-accounts.filtered-data')->middleware('permission:crm-accounts.index');
         Route::get('/crm-accounts/search', [CrmAccountController::class, 'search'])->name('search')->middleware('permission:crm-accounts.search');
         Route::get('/crm-accounts/create', [CrmAccountController::class, 'create'])->name('crm-accounts.create')->middleware('permission:crm-accounts.create');
         Route::post('/crm-accounts', [CrmAccountController::class, 'store'])->name('crm-accounts.store')->middleware('permission:crm-accounts.create');
-        Route::get('crm-accounts/{account}', [CrmAccountController::class, 'show'])->name('crm-accounts.show')->middleware('permission:crm-accounts.show');
-        Route::get('crm-accounts/{account}/edit', [CrmAccountController::class, 'edit'])->name('crm-accounts.edit')->middleware('permission:crm-accounts.edit');
+        Route::get('crm-accounts/{account}/show', [CrmAccountController::class, 'show'])->name('crm-accounts.show')->middleware('permission:crm-accounts.show');
+        Route::get('crm-accounts/{account}/edit/{tab?}', [CrmAccountController::class, 'edit'])->name('crm-accounts.edit')->middleware('permission:crm-accounts.edit');
+        Route::get('/crm-accounts/{account}/users/filtered-data', [CrmAccountController::class, 'crmAccountUsersFilteredData'])->name('crm-accounts.users.filtered-data')->middleware('permission:crm-accounts.edit');
         Route::put('crm-accounts/{account}', [CrmAccountController::class, 'update'])->name('crm-accounts.update')->middleware('permission:crm-accounts.update|crm-accounts.update.own');
         Route::delete('crm-accounts/{account}', [CrmAccountController::class, 'destroy'])->name('crm-accounts.destroy')->middleware('permission:crm-accounts.destroy|crm-accounts.destroy.own');
+        Route::post('/crm-accounts/status', [CrmAccountController::class, 'status'])->name('crm-accounts.status')->middleware('permission:crm-accounts.edit');
     });
 
     //CRM Accounts:
     Route::middleware('module_setted:crm')->group(function (){
         Route::get('/crm-contacts', [CrmContactController::class, 'index'])->name('crm-contacts.index')->middleware('permission:crm-contacts.index');
+        Route::get('/crm-contacts/filtered-data', [CrmContactController::class, 'filteredData'])->name('crm-contacts.filtered-data')->middleware('permission:crm-contacts.index');
     });
 
     //CRM Accounts:
@@ -833,6 +830,9 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::delete('/user-images/{image}', [UserImageController::class, 'destroy'])->name('user-images.delete');
     Route::post('/user-images/set-featured', [UserImageController::class, 'setFeatured'])->name('user-images.set-featured');
 
+    //User notes:
+    Route::post('user-notes/store', [UserController::class, 'store'])->name('user-notes.store');
+
     //User Preferences:
     Route::post('user-preferences/store', [UserPreferenceController::class, 'store'])->name('user-preferences.store');
     Route::get('user-preferences/destroy/{preference}', [UserPreferenceController::class, 'destroy'])->name('user-preferences.destroy');
@@ -840,9 +840,12 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     //Users:
     Route::get('/users/{company_id?}', [UserController::class, 'index'])->name('users.index')->where('company_id', '[0-9]+')->middleware('permission:users.index');
     Route::get('/users/filtered-data', [UserController::class, 'filteredData'])->name('users.filtered-data')->middleware('permission:users.index');
+    Route::get('/users/contacts', [UserController::class, 'contacts'])->name('users.contacts')->middleware('permission:users.index');
+    Route::get('/users/contacts-filtered-data', [UserController::class, 'contactsFilteredData'])->name('users.contacts-filtered-data')->middleware('permission:users.index');
     Route::get('/users/create', [UserController::class, 'create'])->name('users.create')->middleware('permission:users.create');
     Route::post('/users/store', [UserController::class, 'store'])->name('users.store')->middleware('permission:users.create');
-    Route::get('/users/{user}/edit/{profile?}', [UserController::class, 'edit'])->name('users.edit')->middleware('permission:users.edit');
+    Route::get('/users/{user}/show', [UserController::class, 'show'])->name('users.show');
+    Route::get('/users/{user}/edit/{company_id?}/{profile?}', [UserController::class, 'edit'])->name('users.edit')->middleware('permission:users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update')->middleware('permission:users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('permission:users.destroy');
     Route::post('users/status', [UserController::class, 'status'])->name('users.status')->middleware('permission:users.edit');

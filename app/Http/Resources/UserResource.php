@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Session;
 use Carbon\Carbon; 
 
 //Concerns:
+use App\Concerns\HasContactTypes;
 use App\Concerns\HasSalutation;
 
 //Traits:
@@ -30,13 +31,16 @@ class UserResource extends JsonResource{
 
         $salutation = $this->salutation? HasSalutation::salutationAbbrOf($this->salutation):'';
 
+        $contact_type = $this->contact_type? HasContactTypes::typesOf($this->contact_type):'';
+
         return [
             'id' => $this->id,
             'name' => $salutation.' '.ucwords($this->name).' '.ucwords($this->surname),
             'surname' => $this->surname,
             'nickname' => $this->nickname,
             'email' => $this->email,
-            'birthday' => $this->birthday,
+            'sex' => $this->sex ? strtolower(trim($this->sex))[0] : null,
+            'birthday' => $this->birthday ? Carbon::parse($this->birthday)->format($locale[4]) : null,
             'nif' => $this->nif,
             'signature' => $this->signature,
             'isAdmin' => $this->isAdmin,
@@ -55,6 +59,17 @@ class UserResource extends JsonResource{
             'categories' => $this->whenLoaded('categories', function () {
                 return $this->categories->pluck('name')->toArray();
             }),
+            'position'      => $this->position ?? null,
+            'contact_type'  => $contact_type ?? null,
+            'companies' => $this->companies()->map(function($company) {
+                return [
+                    'id' => $company->id,
+                    'name' => $company->name,
+                    'link' => route('companies.edit', $company->id)
+                ];
+            })->values(),
+            'edit_company_id'     => optional($this)->getAttribute('edit_company_id'),
+            'edit_crm_account_id' => optional($this)->getAttribute('edit_crm_account_id'),
             'status' => $this->status,
             'deleted_at' => $this->deleted_at,
             'created_at' => Carbon::parse($this->created_at)->format($locale[4]),

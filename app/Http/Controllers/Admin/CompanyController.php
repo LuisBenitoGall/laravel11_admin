@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
@@ -19,13 +20,20 @@ use Inertia\Response;
 use Carbon\Carbon;
 use File;
 
+//Concerns:
+use App\Concerns\HasContactTypes;
+use App\Concerns\HasSalutation;
+
 //Events:
 use App\Events\CompanyChanged;
 
 //Models:
+use App\Models\Categorizable;
+use App\Models\Category;
 use App\Models\Company;
 use App\Models\CompanyModule;
 use App\Models\CompanySetting;
+use App\Models\CrmAccount;
 use App\Models\UserColumnPreference;
 use App\Models\UserCompany;
 use App\Models\Workplace;
@@ -58,6 +66,7 @@ class CompanyController extends Controller{
      * 9. Seleccionar empresa para la sesión.
      * 10. Seleccionar empresa para la sesión por Post.
      * 11. Refrescar session.
+     * 12. Directorio por sectores.
      */
     
     use HasUserPermissionsTrait;
@@ -203,7 +212,7 @@ class CompanyController extends Controller{
     /**
      * 4. Mostrar empresa.
      */
-    public function show(Company $company){
+    public function show(Request $request, Company $company){
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 
         $company->load(['createdBy', 'updatedBy']);
@@ -214,6 +223,12 @@ class CompanyController extends Controller{
 
         $company->created_by_name = optional($company->createdBy)->full_name ?? false;
         $company->updated_by_name = optional($company->updatedBy)->full_name ?? false;
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'data' => $company
+            ]);
+        }
 
         return Inertia::render('Admin/Company/Show', [
             "title" => __($this->option),
@@ -228,7 +243,7 @@ class CompanyController extends Controller{
     /**
      * 5. Editar empresa.
      */
-    public function edit(Company $company){
+    public function edit(Company $company, $tab = false){
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 
         $company->load(['createdBy', 'updatedBy']);
@@ -240,6 +255,14 @@ class CompanyController extends Controller{
         $company->created_by_name = optional($company->createdBy)->full_name ?? false;
         $company->updated_by_name = optional($company->updatedBy)->full_name ?? false;
 
+        $users = [];
+
+        //Tratamientos:
+        $salutations = HasSalutation::comboOptions();
+
+        //Tipos de contacto:
+        $contact_types = HasContactTypes::comboOptions();
+
         return Inertia::render('Admin/Company/Edit', [
             "title" => __($this->option),
             "subtitle" => __('empresa_editar'),
@@ -247,8 +270,14 @@ class CompanyController extends Controller{
             "slug" => 'companies',
             "availableLocales" => LocaleTrait::availableLocales(),
             "company" => $company,
-            'msg' => session('msg'),
-            'alert' => session('alert'),
+            "crm_account" => false,
+            "users" => $users,
+            "salutations" => $salutations,
+            "contact_types" => $contact_types,
+            "countries" => false,
+            "tab" => $tab,
+            "msg" => session('msg'),
+            "alert" => session('alert'),
             "permissions" => $this->permissions
         ]);
     }
@@ -453,7 +482,128 @@ class CompanyController extends Controller{
         return response()->json(['status' => 'ok']);
     }
 
+    /**
+     * 12. Directorio por sectores.
+     */
+    public function sectors(){
+        return Inertia::render('Admin/Company/Sectors', [
+            "title" => __($this->option),
+            "subtitle" => __('sectores_directorio'),
+            "module" => $this->module,
+            "slug" => 'sectors',
+            "queryParams" => request()->query() ?: null,
+            "availableLocales" => LocaleTrait::availableLocales(),
+            "permissions" => $this->permissions,
+            "columnPreferences" => UserColumnPreference::forUserAndTables(
+                auth()->user()->id,
+                ['tblCompanySectors'] 
+            )
+        ]);    
+    }
 
+    /**
+     * 12.1. Búsqueda de empresas por sectores.
+     */
+    public function sectorsSearch(Request $request, CompanyContext $ctx)
+    {
+        $request->validate([
+            'category_id' => ['required','integer','min:1'],
+            'q'           => ['nullable','string','max:150'],
+            // por si más tarde quieres cambiar el scope
+            'environment' => ['nullable','in:sectors'],
+        ]);
+
+        $companyId = (int) $ctx->id();
+        $category  = Category::where('company_id', $companyId)
+            ->where('module', 'companies')   // environment sectors -> module companies
+            ->orderBy('name', 'ASC')
+            ->findOrFail($request->integer('category_id'));
+
+        // IDs de la categoría seleccionada + descendientes (path prefix)
+        $prefix = $category->path;
+        $descendantIds = Category::where('company_id', $companyId)
+            ->where('module', 'companies')
+            ->where(function($q) use ($prefix) {
+                $q->where('path', $prefix)->orWhere('path', 'like', $prefix.'/%');
+            })
+            ->orderBy('name', 'ASC')
+            ->pluck('id')
+            ->all();
+
+        // Filtro libre (nombre/NIF) opcional
+        $q = trim((string) $request->get('q', ''));
+
+        // 1) EMPRESAS
+        // join categorizables -> companies
+        $companyRows = Company::query()
+            ->select('companies.id','companies.name','companies.nif')
+            ->join('categorizables', function($j) {
+                $j->on('categorizables.categorizable_id','=','companies.id')
+                  ->where('categorizables.categorizable_type', Company::class);
+            })
+            ->where('categorizables.company_id', $companyId)
+            ->whereIn('categorizables.category_id', $descendantIds)
+            ->when($q !== '', function($qq) use ($q) {
+                $qq->where(function($w) use ($q) {
+                    $w->where('companies.name','like', "%{$q}%")
+                      ->orWhere('companies.nif','like', "%{$q}%");
+                });
+            })
+            ->distinct()
+            ->orderBy('companies.name')
+            ->get()
+            ->map(function($c){
+                return [
+                    'id'   => (int) $c->id,
+                    'type' => 'company',
+                    'name' => (string) $c->name,
+                    'nif'  => (string) ($c->nif ?? ''),
+                    'url'  => route('companies.edit', $c->id), // ajusta si tu ruta es distinta
+                ];
+            })
+            ->all();
+
+        // 2) CUENTAS CRM
+        $crmRows = CRMAccount::query()
+            ->select('crm_accounts.id','crm_accounts.name','companies.nif') // ajusta campo NIF si difiere
+            ->join('categorizables', function($j) {
+                $j->on('categorizables.categorizable_id','=','crm_accounts.id')
+                  ->where('categorizables.categorizable_type', CRMAccount::class);
+            })
+            ->leftJoin('companies', 'crm_accounts.company_id', '=', 'companies.id')
+            ->where('categorizables.company_id', $companyId)
+            ->whereIn('categorizables.category_id', $descendantIds)
+            ->when($q !== '', function($qq) use ($q) {
+                $qq->where(function($w) use ($q) {
+                    $w->where('crm_accounts.name','like', "%{$q}%")
+                      ->orWhere('companies.nif','like', "%{$q}%");
+                });
+            })
+            ->distinct()
+            ->orderBy('crm_accounts.name')
+            ->get()
+            ->map(function($a){
+                return [
+                    'id'   => (int) $a->id,
+                    'type' => 'crm',
+                    'name' => (string) $a->name,
+                    'nif'  => (string) ($a->nif ?? ''),
+                    'url'  => route('crm-accounts.edit', $a->id), // ajusta la ruta si difiere
+                ];
+            })
+            ->all();
+
+        return response()->json([
+            'category'  => [
+                'id'    => (int) $category->id,
+                'name'  => (string) $category->name,
+                'path'  => (string) $category->path,
+            ],
+            'companies' => $companyRows,
+            'crm'       => $crmRows,
+            'total'     => count($companyRows) + count($crmRows),
+        ]);
+    }
 
     // public function resolvePermissions(array $required): array {
     //     $permissions = [];

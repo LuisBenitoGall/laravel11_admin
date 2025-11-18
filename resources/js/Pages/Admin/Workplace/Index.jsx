@@ -88,7 +88,6 @@ export default function Index({ auth, session, title, subtitle, company, side, r
         });
     }
 
-
     return (
         <AdminAuthenticatedLayout
             user={auth.user}

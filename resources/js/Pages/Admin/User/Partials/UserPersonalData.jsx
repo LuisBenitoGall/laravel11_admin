@@ -10,13 +10,23 @@ import ManagePhones from '@/Components/ManagePhones';
 import PrimaryButton from '@/Components/PrimaryButton';
 import RadioButton from '@/Components/RadioButton';
 import SelectInput from '@/Components/SelectInput';
+import SetSex from '@/Components/SetSex';
 import TextInput from '@/Components/TextInput';
 
 //Hooks:
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function UserPersonalData({ user, roles = {}, user_roles = {}, salutations = [] }) {
+export default function UserPersonalData({ 
+    user, roles = {}, 
+    user_roles = {}, 
+    salutations = [], 
+    contact_types = [], 
+    crm_contact, 
+    user_company_id, 
+    pivot ,
+    company_context = null
+}){
     const __ = useTranslation();
     const props = usePage()?.props || {};
     const locale = props.locale || false;
@@ -24,6 +34,7 @@ export default function UserPersonalData({ user, roles = {}, user_roles = {}, sa
     const { showConfirm } = useSweetAlert();
     const permissions = props.permissions || {};
     const datepickerFormat = props.languages?.[locale]?.[6] || 'dd/MM/yyyy';
+    const contactTypeOptions = Array.isArray(contact_types) ? contact_types : [];
 
     //Roles:
     const arrRoles = Object.entries(roles).map(([key, label]) => ({
@@ -34,6 +45,23 @@ export default function UserPersonalData({ user, roles = {}, user_roles = {}, sa
     //Roles del usuario:
     const currentRole = user_roles?.[0]?.id?.toString() || '';
 
+    const parseYMD = (s) => {
+        if (!s) return null;
+        const [y, m, d] = String(s).split('-').map(Number);
+        if (!y || !m || !d) return null;
+        return new Date(y, m - 1, d); // local time, sin TZ
+    };
+
+    const toYMD = (d) => {
+        if (!d) return null;
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    };
+
+    const normalizeSex = v => v == null ? '' : String(v).trim().toLowerCase().charAt(0); // 'M' -> 'm', 'Hombre' -> 'h'
+
     // Set formulario:
     const { data, setData, put, processing, errors } = useForm({
         // si no tiene role y no es admin, asignamos por defecto 'Invitados'
@@ -43,8 +71,15 @@ export default function UserPersonalData({ user, roles = {}, user_roles = {}, sa
         salutation: user.salutation || '',
         email:     user.email || '',
         nif:       user.nif || '',
-        birthday:  user.birthday ? new Date(user.birthday) : null,
-        signature: null
+        sex:       normalizeSex(user.sex), 
+        birthday:  user.birthday ? parseYMD(user.birthday) : null,
+        signature: null,
+        user_company_id: user_company_id ?? '',
+        contact_type: Array.isArray(contactTypeOptions) && contactTypeOptions.length
+        ? (crm_contact?.contact_type ?? '')
+        : '',
+        position:     pivot?.position ?? '',
+        department:   pivot?.department ?? '',
     });
 
     const handleChange = (e) => {
@@ -66,11 +101,18 @@ export default function UserPersonalData({ user, roles = {}, user_roles = {}, sa
         formData.append('_method', 'PUT');
 
         Object.entries(data).forEach(([key, value]) => {
-            if (key === 'signature' && value instanceof File) {
-                formData.append(key, value);
-            } else if (typeof value === 'object' && value !== null) {
-                formData.append(key, JSON.stringify(value));
-            } else if (value !== null && value !== undefined) {
+            if (key === 'signature') {
+                if (value instanceof File) formData.append(key, value);
+                return;
+            }
+
+            if (key === 'birthday') {
+                const ymd = toYMD(value); // 'YYYY-MM-DD' o null
+                if (ymd) formData.append(key, ymd);
+                return;
+            }
+
+            if (value !== null && value !== undefined) {
                 formData.append(key, value);
             }
         });
@@ -78,9 +120,6 @@ export default function UserPersonalData({ user, roles = {}, user_roles = {}, sa
         router.post(route('users.update', user.id), formData, {
             forceFormData: true,
             preserveScroll: true,
-            onSuccess: () => console.log('Usuario actualizado'),
-            onError: (errors) => console.error('Errores:', errors),
-            onFinish: () => console.log('Petición finalizada'),
         });
     }
 
@@ -228,22 +267,81 @@ export default function UserPersonalData({ user, roles = {}, user_roles = {}, sa
                         <div className="position-relative">
                             <label htmlFor="birthday" className="form-label">{ __('fecha_nacimiento') }</label>
                             <DatePickerToForm
-                                id="birthday"
-                                name="birthday"
-                                selected={data.birthday ? new Date(data.birthday) : null}
-                                onChange={(name, date) => {
-                                    setData(name, date);
-                                    if (!date) {
-                                        setData('published_end', null);
-                                    }
-                                }}
-                                dateFormat={datepickerFormat}
-                            />   
-
+                              id="birthday"
+                              name="birthday"
+                              selected={data.birthday} // ya es Date o null
+                              onChange={(name, date) => setData(name, date)}
+                              dateFormat={datepickerFormat}
+                            />
                             <InputError message={errors.birthday} />             
                         </div>
                     </div>
                     <div className="w-100 m-0"></div>
+
+                    {/* Sexo */}
+                    <SetSex
+                        value={data.sex}
+                        onChange={(e) => setData('sex', e.target.value)}
+                        error={errors.sex}
+                    />
+                    <div className="w-100 m-0"></div>
+
+                    {/* Tipo de contacto */}
+                    <div className="col-md-4">
+                        <div>
+                            <label htmlFor="contact_type" className="form-label">{ __('contacto_tipo') }</label>
+                            <SelectInput
+                                className="form-select"
+                                name="contact_type"
+                                value={data.contact_type}
+                                onChange={(e) => setData('contact_type', e.target.value)}
+                            >
+                                <option value="">{ __('opcion_selec') }</option>
+                                {contactTypeOptions.map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </SelectInput>
+                            <InputError message={errors.contact_type} />
+                        </div>
+                    </div>
+
+                    {/* Cargo */}
+                    <div className="col-md-4">
+                        <div>
+                            <label htmlFor="position" className="form-label">{ __('cargo') }</label>
+                            <TextInput 
+                                className="" 
+                                name="position"
+                                type="text"
+                                placeholder={__('cargo')} 
+                                value={data.position} 
+                                onChange={(e) => setData('position', e.target.value)}
+                                maxLength={150}
+                            />
+
+                            <InputError message={errors.position} />
+                        </div>
+                    </div>
+
+                    {/* Departamento */}
+                    <div className="col-md-4">
+                        <div>
+                            <label htmlFor="department" className="form-label">{ __('departamento') }</label>
+                            <TextInput 
+                                className="" 
+                                name="department"
+                                type="text"
+                                placeholder={__('departamento')} 
+                                value={data.department} 
+                                onChange={(e) => setData('department', e.target.value)}
+                                maxLength={150}
+                            />
+
+                            <InputError message={errors.department} />
+                        </div>
+                    </div>
 
                     {/* Firma: sólo para usuarios con acceso */}
                     {user?.isAdmin == 1 && (

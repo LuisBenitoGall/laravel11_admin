@@ -43,73 +43,46 @@ export default function FunctionalitiesTab({ module_data, functionalities, refre
         allColumnKeys: columns.map(col => col.key),
         entityName: 'functionalities',
         indexRoute: null,
-        routeParams: [],
         destroyRoute: 'functionalities.destroy',
         filteredDataRoute: 'functionalities.filtered-data',
+        routeParams: { module_id: module_data.id },
         labelName: 'funcionalidad',
-        queryParams: { ...queryParams, module_id: module_data.id },
-        initialData: Array.isArray(functionalities) ? functionalities : [],
-        manualFiltering: true,
-        onManualFilter: async (params) => {
-            const response = await filteredData(params);
-            setTableData({
-                data: response?.functionalities ?? [],
-                meta: response?.meta ?? {},
-                links: response?.links ?? []
-            });
-        }
+        queryParams: { ...queryParams, module_id: module_data.id }
     });
 
-    // const [tableData, setTableData] = useState(Array.isArray(functionalities) ? functionalities : []);
     const [tableData, setTableData] = useState(() => {
         return {
-            data: functionalities?.data ?? [],
+            data: Array.isArray(functionalities?.data) ? functionalities.data : (Array.isArray(functionalities) ? functionalities : []),
             meta: functionalities?.meta ?? {},
             links: functionalities?.links ?? []
         };
     });
 
-    // const refreshData = async () => {
-    //     const data = await filteredData();
-    //     setTableData(data);
-    //     if (typeof onDeleted === 'function') {
-    //         onDeleted();
-    //     }
-    // };
-
     const refreshData = async () => {
-        const response = await filteredData();
-        setTableData({
-            data: response?.functionalities ?? [],
-            meta: response?.meta ?? {},
-            links: response?.links ?? []
-        });
-
-        if (typeof onDeleted === 'function') {
-            onDeleted();
-        }
-    };
-
-    // React.useEffect(() => {
-    //     const fetchData = async () => {
-    //         const data = await filteredData();
-    //         setTableData(data);
-    //     };
-
-    //     fetchData();
-    // }, [refreshKey]);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            const response = await filteredData();
+        try {
+            const response = await filteredData({ module_id: module_data.id });
+            const newData = response?.functionalities ?? response?.data ?? response ?? [];
             setTableData({
-                data: response?.functionalities ?? [],
+                data: Array.isArray(newData) ? newData : [],
                 meta: response?.meta ?? {},
                 links: response?.links ?? []
             });
-        };
 
-        fetchData();
+            if (typeof onDeleted === 'function') {
+                onDeleted();
+            }
+        } catch (error) {
+            console.error('Error fetching functionalities:', error);
+            setTableData({
+                data: [],
+                meta: {},
+                links: []
+            });
+        }
+    };
+
+    useEffect(() => {
+        refreshData();
     }, [refreshKey]);
 
     return (
@@ -202,21 +175,25 @@ export default function FunctionalitiesTab({ module_data, functionalities, refre
             </div>
 
             {/* Paginación */}
-            <Pagination 
-                links={tableData.links || []} 
-                totalRecords={tableData.meta?.total || 0} 
-                currentPage={tableData.meta?.current_page || 1} 
-                perPage={tableData.meta?.per_page || perPage}
-                onPageChange={(page) => {
-                    router.get(route("permissions.index"), {
-                        ...queryParams,
-                        page,
-                        per_page: perPage,
-                        sort_field: sortParams.sort_field,
-                        sort_direction: sortParams.sort_direction,
-                    }, { preserveState: true });
-                }}
-            />
+            {tableData.meta?.total > 0 && (
+                <Pagination 
+                    links={tableData.links || []} 
+                    totalRecords={tableData.meta?.total || 0} 
+                    currentPage={tableData.meta?.current_page || 1} 
+                    perPage={tableData.meta?.per_page || perPage}
+                    onPageChange={(page) => {
+                        const newParams = {
+                            ...queryParams,
+                            module_id: module_data.id,
+                            page,
+                            per_page: perPage,
+                            sort_field: sortParams.sort_field,
+                            sort_direction: sortParams.sort_direction,
+                        };
+                        refreshData();
+                    }}
+                />
+            )}
         </div>
     );
 }

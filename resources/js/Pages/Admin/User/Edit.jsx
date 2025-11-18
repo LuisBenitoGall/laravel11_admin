@@ -1,148 +1,59 @@
+// resources/js/Pages/Admin/User/Edit.jsx
 import AdminAuthenticatedLayout from '@/Layouts/Admin/AdminAuthenticatedLayout';
-import { Head, useForm, usePage } from '@inertiajs/react';
-import { Inertia } from '@inertiajs/inertia';
-import { Tooltip } from 'react-tooltip';
-import { useState } from 'react';
+import { Head, usePage } from '@inertiajs/react';
+import { useTranslation } from '@/Hooks/useTranslation';
+import { useHandleDelete } from '@/Utils/useHandleDelete.jsx';
 
-//Components:
-import Checkbox from '@/Components/Checkbox';
-import InfoPopover from '@/Components/InfoPopover';
 import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import RadioButton from '@/Components/RadioButton';
 import Tabs from '@/Components/Tabs';
 import Textarea from '@/Components/Textarea';
 import TextInput from '@/Components/TextInput';
+import Checkbox from '@/Components/Checkbox';
 
-//Hooks:
-import { useTranslation } from '@/Hooks/useTranslation';
-
-//Tabs:
 import UserPersonalData from './Partials/UserPersonalData';
 import UserPassword from './Partials/UserPassword.jsx';
 import UserImages from './Partials/UserImages.jsx';
-// import UserContactData from './Partials/UserContactData.jsx';
-// import UserCompaniesData from './Partials/UserCompaniesData.jsx';
 
-//Utils:
-import { useHandleDelete } from '@/Utils/useHandleDelete.jsx';
-
-export default function Index({ auth, session, title, subtitle, availableLocales, user, roles, user_roles, images, relatedCompanies, salutations, profile }) {
+export default function Index({
+    auth, session, title, subtitle,
+    user, roles, user_roles, images,
+    salutations, contact_types, crm_contact, profile, company,
+    company_context, pivot, user_company_id          // ← nuevos props del backend
+}) {
     const __ = useTranslation();
     const props = usePage()?.props || {};
-    const locale = props.locale || false;
-    const languages = props.languages || [];
     const permissions = props.permissions || {};
 
-    // Set formulario:
-    const {data, setData, put, reset, errors, processing} = useForm({
-        role: user.role || '',
-        name: user.name || '',
-        surname: user.surname || '',
-        email: user.email || '',       
-        status: user.status
-    })
-
-    const handleChange = (e) => {
-        const { name, type, checked, value, files } = e.target;
-        if (type === 'checkbox') {
-            setData(name, checked);
-        } else if (type === 'file') {
-            setData(name, files[0]);
-        } else {
-            setData(name, value);
-        }
-    };
-
-    const handleImageChange = () => {
-        // Forzar recarga de la página para actualizar las imágenes
-        //Inertia.reload({ only: ['user'] });
-    }
-
-    //Confirmación de eliminación:
+    // Eliminar (sin cambios)
     const { handleDelete } = useHandleDelete('usuario', 'users.destroy', [user.id]);
 
-    //Envío formulario:
-    function handleSubmit(e) {
-        e.preventDefault();
-        put(route('users.update', user.id),
-        {
-            preserveScroll: true,
-            onSuccess: () => console.log('usuario actualizado'),
-        });
-    }
-
-    //Acciones:
+    // -----------------------
+    // ACCIONES (nueva lógica)
+    // -----------------------
     const actions = [];
-    // Si existen relatedCompanies, mostramos botones de regreso a la empresa correspondiente(s)
-    if (Array.isArray(relatedCompanies) && relatedCompanies.length > 0) {
-        // Si hay una sola relación, mostramos un único botón de regreso a la empresa
-        if (relatedCompanies.length === 1) {
-            const rc = relatedCompanies[0];
-            let routeName = null;
-            let permName = null;
-            if (rc.relation === 'customer') {
-                routeName = 'customers.edit';
-                permName = 'customers.edit';
-            } else if (rc.relation === 'provider') {
-                routeName = 'providers.edit';
-                permName = 'providers.edit';
-            }
+    const cc = company_context; 
 
-            if (routeName && permissions?.[permName]) {
-                actions.push({
-                    text: __('volver_a') + ' ' + rc.name,
-                    icon: 'la-angle-left',
-                    url: routeName,
-                    params: [rc.id, 'users'],
-                    modal: false
-                });
-            } else if (permissions?.['users.index']) {
-                // fallback al listado global de usuarios
-                actions.push({
-                    text: __('usuarios_volver'),
-                    icon: 'la-angle-left',
-                    url: 'users.index',
-                    modal: false
-                });
-            }
-        } else {
-            // Varias relaciones: mostramos un botón por cada empresa (si tiene permiso)
-            relatedCompanies.forEach((rc) => {
-                let routeName = null;
-                let permName = null;
-                if (rc.relation === 'customer') {
-                    routeName = 'customers.edit';
-                    permName = 'customers.edit';
-                } else if (rc.relation === 'provider') {
-                    routeName = 'providers.edit';
-                    permName = 'providers.edit';
-                }
-
-                if (routeName && permissions?.[permName]) {
-                    actions.push({
-                        text: rc.name,
-                        icon: 'la-angle-left',
-                        url: routeName,
-                        params: [rc.id, 'users'],
-                        modal: false
-                    });
-                }
+    if (cc && cc.type === 'crm_account' && permissions['crm-accounts.edit']) {
+        actions.push({
+            text: __('volver_a') + ' ' + cc.name,
+            icon: 'la-angle-left',
+            url: 'crm-accounts.edit',
+            params: [cc.crm_id, 'users'],
+            modal: false
+        });
+    } else if (cc && cc.type === 'company' && (permissions['companies.edit'] || permissions['users.index'])) {
+        // si tienes vista de edición de empresa propia, úsala; si no, cae al listado de usuarios
+        if (permissions['companies.edit']) {
+            actions.push({
+                text: __('volver_a') + ' ' + cc.name,
+                icon: 'la-angle-left',
+                url: 'companies.edit',
+                params: [cc.ref_id, 'users'],
+                modal: false
             });
-
-            // Si no se añadió ningún botón por permisos, fallback al listado de usuarios
-            if (actions.length === 0 && permissions?.['users.index']) {
-                actions.push({
-                    text: __('usuarios_volver'),
-                    icon: 'la-angle-left',
-                    url: 'users.index',
-                    modal: false
-                });
-            }
-        }
-    } else {
-        // No hay relaciones: botón por defecto al listado de usuarios
-        if (permissions?.['users.index']) {
+        } else {
             actions.push({
                 text: __('usuarios_volver'),
                 icon: 'la-angle-left',
@@ -150,105 +61,91 @@ export default function Index({ auth, session, title, subtitle, availableLocales
                 modal: false
             });
         }
-    }
-
-    // Mostrar acción 'nuevo usuario' sólo si el usuario editado no tiene relaciones de customer/provider
-    const hasCustomerOrProviderRelation = Array.isArray(relatedCompanies) && relatedCompanies.some(rc => rc.relation === 'customer' || rc.relation === 'provider');
-
-    if (permissions?.['users.create'] && profile === false && !hasCustomerOrProviderRelation) {
+    } else if (permissions['users.index']) {
         actions.push({
-            text: __('usuario_nuevo'),
-            icon: 'la-plus',
-            url: 'users.create',
+            text: __('usuarios_volver'),
+            icon: 'la-angle-left',
+            url: 'users.index',
             modal: false
         });
     }
 
-    if (permissions?.['users.destroy'] && profile === false) {
+    // Botones extra (sin cambiar tu lógica de permisos/condiciones)
+    if (permissions['users.create'] && profile === false && user_company_id === false) {
+        actions.push({ text: __('usuario_nuevo'), icon: 'la-plus', url: 'users.create', modal: false });
+    }
+    
+    actions.push({ text: __('nota_nueva'), icon: 'la-plus', url: 'users.create', modal: true });
+    
+    if (permissions['users.destroy'] && profile === false) {
         actions.push({
-            text: __('eliminar'),
-            icon: 'la-trash',
-             method: 'delete',
-            url: 'users.destroy',
-            params: [user.id],
-            title: __('usuario_eliminar'),
-            message: __('usuario_eliminar_confirm'),
-            modal: false
+            text: __('eliminar'), icon: 'la-trash', method: 'delete',
+            url: 'users.destroy', params: [user.id],
+            title: __('usuario_eliminar'), message: __('usuario_eliminar_confirm'), modal: false
         });
     }
 
-    //Tabs:
+    // -----------------------
+    // TABS
+    // -----------------------
     const tabs = [
         { key: 'user-personal-data', label: __('datos_personales') },
-        // sólo añadimos la pestaña de contraseña si profile es true
-        ...(profile === true
-            ? [{ key: 'user-password', label: __('contrasena') }]
-            : []),
+        ...(profile === true ? [{ key: 'user-password', label: __('contrasena') }] : []),
         { key: 'user-images', label: __('imagenes') },
     ];
 
     return (
-        <AdminAuthenticatedLayout
-            user={auth.user}
-            title={title}
-            subtitle={subtitle}
-            actions={actions}
-        >
+        <AdminAuthenticatedLayout user={auth.user} title={title} subtitle={subtitle} actions={actions}>
             <Head title={title} />
 
-            {/* Contenido */}
             <div className="contents pb-4">
                 <div className="row">
                     <div className="col-12">
-                        <h2>
-                            {__('usuario')} <u>{ user.name } { user.surname }</u>
-                        </h2>
+                        <h2>{__('usuario')} <u>{user.name} {user.surname}</u></h2>
                     </div>
-
-                    {/* Info */}
                     <div className="col-12 mt-2 mb-4">
-                        <span className="text-muted me-5">
-                            {__('creado')}: <strong>{user.formatted_created_at}</strong> 
-                        </span>
-
-                        <span className="text-muted me-5">
-                            {__('actualizado')}: <strong>{user.formatted_updated_at}</strong>
-                        </span>
+                        <span className="text-muted me-5">{__('creado')}: <strong>{user.formatted_created_at}</strong></span>
+                        <span className="text-muted me-5">{__('actualizado')}: <strong>{user.formatted_updated_at}</strong></span>
                     </div>
                 </div>
 
-                {/* Tabs */}
-                <Tabs
-                    defaultActive="user-personal-data"
-                    items={tabs}
-                >
-
-                    {/* Panels */}
+                <Tabs defaultActive="user-personal-data" items={tabs}>
                     {(activeKey) => {
                         switch (activeKey) {
                             case 'user-personal-data':
-                                return <UserPersonalData user={user} roles={roles} user_roles={user_roles} salutations={salutations} />;
+                            return (
+                              <UserPersonalData
+                                user={user}
+                                roles={roles}
+                                user_roles={user_roles}
+                                salutations={salutations}
+                                contact_types={contact_types}
+                                crm_contact={crm_contact}
+                                user_company_id={user_company_id}   // ← prop correcto
+                                pivot={pivot}                        // ← para position/department
+                                company_context={company_context}    // ← por si lo usas en el tab
+                              />
+                            );
                             case 'user-password':
                                 return <UserPassword user={user} />;
-                            case 'user-images':
-                                // imagePath: try common fields on the `user` object, fallback to 'users'
+                            case 'user-images': {
                                 const inferredImagePath = user?.image_path || user?.imagePath || 'users';
-                                return <UserImages
-                                    images={images ?? []}
-                                    uploadUrl={route('user-images.store')}
-                                    // pass a function that resolves the route using id when available, otherwise filename
-                                    deleteUrl={(img) => route('user-images.delete', { image: img.id ?? img.image })}
-                                    // pass set-featured route so the gallery shows the "set featured" button
-                                    setFeaturedUrl={route('user-images.set-featured')}
-                                    entityId={user.id}
-                                    imagePath={inferredImagePath}
-                                    onChange={handleImageChange}
-                                />;
+                                return (
+                                    <UserImages
+                                        images={images ?? []}
+                                        uploadUrl={route('user-images.store')}
+                                        deleteUrl={(img) => route('user-images.delete', { image: img.id ?? img.image })}
+                                        setFeaturedUrl={route('user-images.set-featured')}
+                                        entityId={user.id}
+                                        imagePath={inferredImagePath}
+                                    />
+                                );
+                            }
                             default:
                             return null;
-                        }   
+                        }
                     }}
-                </Tabs>              
+                </Tabs>
             </div>
         </AdminAuthenticatedLayout>
     );

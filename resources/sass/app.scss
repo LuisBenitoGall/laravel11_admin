@@ -197,15 +197,21 @@ h5{
 }
 
 // *************** TABLES ****************
-.table td{
-	a.link-text{
-		color: $rdn_primary;
-		text-decoration: none;
-		transition: .4s;
+.table{
+	td{
+		a.link-text{
+			color: $rdn_primary;
+			text-decoration: none;
+			transition: .4s;
 
-		&:hover{
-			color: $rdn-secondary;
+			&:hover{
+				color: $rdn-secondary;
+			}
 		}
+	}
+
+	.first-column{
+		width: 40px;
 	}
 }
 
@@ -267,6 +273,11 @@ h5{
 	&.btn-outline-primary{
 		border-color: $rdn_primary;
 		color: $rdn_primary;	
+		transition: .5s;
+		&:hover{
+			background-color: $rdn_secondary;
+			color: #FFF;
+		}
 	}
 
 	&.btn-outline-secondary{
@@ -498,6 +509,33 @@ iframe[title="LastPass"] {
     	pointer-events: none;
 	}
 }
+
+/* CategoryAssigner */
+.category-check {
+  transform: scale(1.25);
+  margin-right: .5rem;
+}
+.category-check-disabled {
+  display: inline-flex;
+  width: 1.15rem;
+  height: 1.15rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: .25rem;
+  background: #f1f3f5;
+  color: #9aa0a6;
+  margin-right: .5rem;
+}
+.category-node-disabled {
+  color: #9aa0a6 !important;
+  cursor: not-allowed;
+  opacity: .85;
+}
+.category-node {
+  line-height: 1.9;
+}
+
+
 
 /* WYSIWYG Wrapper */
 .wysiwyg-container {
@@ -841,3 +879,141 @@ iframe[title="LastPass"] {
 	}
 }
 
+// *************** DIRECTORIO EMPRESAS ****************
+#companySectors{
+	.card-header{
+		height: 52px;
+	}
+} 
+
+/* Contenedor base */
+.tree, .tree ul {
+  	list-style: none;
+  	margin: 0;
+  	padding-left: 0;
+  	position: relative;
+}
+
+/* Línea vertical punteada a la izquierda del grupo */
+.tree ul {
+  border-left: 1px dotted #bdbdbd;
+}
+
+/* Cada item */
+.tree > li, .tree ul > li {
+  position: relative;
+  margin: .25rem 0;
+  padding-left: .5rem;
+}
+
+/* Conector horizontal punteado a cada nodo */
+.tree ul > li::before {
+  content: "";
+  position: absolute;
+  top: 1rem;
+  left: -1rem;
+  width: 1rem;
+  border-top: 1px dotted #bdbdbd;
+}
+
+/* Bloque clicable del nodo */
+.tree-node {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .25rem .4rem;
+  border-radius: .25rem;
+  cursor: pointer;
+}
+
+/* Resaltado del seleccionado (azul suave) */
+.tree-node.is-active {
+  background: #cfefff;
+}
+
+/* Iconos */
+.tree-folder {
+  color: #6b757d;
+  font-size: 1rem;
+}
+
+/* Caret y punto */
+.tree-caret {
+  border: none;
+  background: transparent;
+  padding: 0 .1rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #555;
+}
+
+.tree-dot {
+  display: inline-block;
+  width: .75rem;
+  text-align: center;
+  color: #bbb;
+}
+
+/* Sangría hijos */
+.tree-children {
+  margin-left: .25rem;
+}
+
+
+
+.show-register-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.25);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-in-out;
+    z-index: 1030; /* por encima del layout normal, por debajo si usas modales */
+
+    &.show{
+    	opacity: 1;
+    	// pointer-events: auto;	
+    }
+}
+
+.show-register-panel {
+    position: fixed;
+    top: 0;
+    right: -40vw;
+    width: 40vw;              /* ajusta a gusto: 35–45% */
+    max-width: 640px;
+    height: 100vh;
+    background: #fff;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+    z-index: 1031;
+    display: flex;
+    flex-direction: column;
+    transition: right 0.25s ease-in-out;
+
+    &.show {
+    	right: 0;
+	}
+}
+
+.show-register-header {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.show-register-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.show-register-spinner {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vertical-scroll{
+	overflow-x: hidden;
+	overflow-y: auto;	
+}

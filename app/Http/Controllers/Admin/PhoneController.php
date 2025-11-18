@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
@@ -41,15 +43,14 @@ class PhoneController extends Controller{
     /**
      * 1. Teléfonos por entidad.
      */
-    public function getBy(int $id, string $entity): JsonResponse{
-        // Normaliza el identificador de entidad
+    public function getBy(int $id, string $entity): JsonResponse
+    {
         $key = strtolower(preg_replace('/[^a-zA-Z]/', '', $entity));
 
-        // Mapeo de entidades soportadas
         $map = [
-            'user'       => User::class,
-            'company'    => Company::class,
-            'crmcontact' => CrmContact::class,
+            'user'       => \App\Models\User::class,
+            'company'    => \App\Models\Company::class,
+            'crmcontact' => \App\Models\CrmContact::class,
         ];
 
         if (!isset($map[$key])) {
@@ -60,9 +61,8 @@ class PhoneController extends Controller{
         }
 
         $ownerClass = $map[$key];
-
-        // Si no existe el owner, 404
         $owner = $ownerClass::find($id);
+
         if (!$owner) {
             return response()->json([
                 'message' => __('recurso_no_encontrado'),
@@ -71,9 +71,12 @@ class PhoneController extends Controller{
             ], 404);
         }
 
-        // Selección mínima necesaria; excluye soft-deleted por defecto
-        $phones = Phone::query()
-            ->where('phoneable_type', $ownerClass)
+        // Usa el alias real que Eloquent guarda en la columna morph
+        $morphType = $owner->getMorphClass();
+
+        // Por compatibilidad, acepta también el FQCN si tienes filas antiguas
+        $phones = \App\Models\Phone::query()
+            ->whereIn('phoneable_type', [$morphType, $ownerClass])
             ->where('phoneable_id', $owner->getKey())
             ->orderByDesc('is_primary')
             ->orderBy('id')
@@ -98,40 +101,53 @@ class PhoneController extends Controller{
     /**
      * 2. Guardar teléfono.
      */
-    public function store(PhoneStoreRequest $request){
-        // Normaliza el tipo recibido desde el cliente
-        $type = (string) $request->input('phoneable_type', '');
-        $id   = (int) $request->input('phoneable_id');
+    public function store(Request $request)
+    {
+        // 1) Validación básica de payload no-moralizante
+        $request->validate([
+            'phoneable_type' => ['required', 'in:User,Company,CrmContact'],
+            'phoneable_id'   => ['required', 'integer'],
+            'number'         => ['required','string'],
+            'type'           => ['nullable','in:mobile,landline,other'],
+            'label'          => ['nullable','string','max:50'],
+            'ext'            => ['nullable','string','max:10'],
+            'is_whatsapp'    => ['nullable','boolean'],
+            'is_primary'     => ['nullable','boolean'],
+            'notes'          => ['nullable','string']
+        ]);
 
-        switch ($type) {
-            case 'User':
-                $owner = User::find($id);
-                $route = 'users.edit';
-                break;
+        // 2) Resolver owner
+        $phoneable_type = $request->input('phoneable_type');
+        $phoneable_id   = (int) $request->input('phoneable_id');
 
-            case 'Company':
-                $owner = Company::find($id);
-                $route = 'companies.edit';
-                break;
+        $map = [
+            'User'       => User::class,
+            'Company'    => Company::class,
+            'CrmContact' => CrmContact::class
+        ];
+        $ownerClass = $map[$phoneable_type];
+        $owner = $ownerClass::find($phoneable_id);
 
-            case 'CrmContact': // <- no 'Contact'
-                $owner = CrmContact::find($id);
-                $route = 'contacts.edit';
-                break;
-
-            default:
-                return redirect()->back()->with('alert', __('entidad_no_soportada'));
+        if(!$owner){
+            return back()->with('alert', __('recurso_no_encontrado'));
         }
 
-        if (!$owner) {
-            return redirect()->back()->with('alert', __('recurso_no_encontrado'));
+        // 3) Validación real de número con libphonenumber (ES por defecto)
+        $util = PhoneNumberUtil::getInstance();
+        $raw  = preg_replace('/\s+/u', '', (string) $request->input('number'));
+        try {
+            $parsed = $util->parse($raw, 'ES');
+            if (!$util->isValidNumber($parsed)) {
+                return back()->withErrors(['number' => __('telefono_invalido')])->withInput();
+            }
+        } catch (\Throwable $e) {
+            return back()->withErrors(['number' => __('telefono_invalido')])->withInput();
         }
 
-        // Construimos el array de items que espera el modelo.
-        // Tu componente envía un único número y metadatos sueltos.
+        // 4) Construir items para el modelo (ahora sabemos que el número es válido)
         $items = [[
-            'number'      => $request->input('number'),          // string, el modelo lo normaliza a E.164 (ES por defecto)
-            'type'        => $request->input('type', 'mobile'),  // mobile|landline|other
+            'number'      => $raw,
+            'type'        => $request->input('type'),
             'label'       => $request->input('label') ?: null,
             'ext'         => $request->input('ext') ?: null,
             'is_primary'  => (bool) $request->boolean('is_primary'),
@@ -139,12 +155,17 @@ class PhoneController extends Controller{
             'notes'       => $request->input('notes') ?: null,
         ]];
 
-        // Solo usamos options para la región por defecto
-        $options = ['default_region' => 'ES'];
+        Phone::addOrUpdateFor($owner, $items, ['default_region' => 'ES']);
 
-        Phone::addOrUpdateFor($owner, $items, $options);
+        // 5) Redirección coherente
+        $routeMap = [
+            User::class       => 'users.edit',
+            Company::class    => 'companies.edit',
+            CrmContact::class => 'contacts.edit',
+        ];
+        $route = $routeMap[$ownerClass] ?? 'dashboard';
 
-        return redirect()->route($route, $id)->with('msg', __('telefono_creado_msg'));
+        return redirect()->route($route, $phoneable_id)->with('msg', __('telefono_creado_msg'));
     }
 
     /**

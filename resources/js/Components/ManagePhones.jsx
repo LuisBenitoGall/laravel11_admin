@@ -8,7 +8,6 @@ import { useTranslation } from '@/Hooks/useTranslation';
 
 // Helpers
 const formatPretty = (e164) => {
-  // Bonificado simple: +34 600 111 222 o +XX xxx xxx xxx
   if (!e164 || typeof e164 !== 'string') return '—';
   const clean = e164.replace(/\s+/g, '');
   const m = clean.match(/^\+(\d{1,3})(\d+)$/);
@@ -17,7 +16,6 @@ const formatPretty = (e164) => {
   const cc = `+${m[1]}`;
   const rest = m[2];
 
-  // Agrupado 3-3-3 por defecto
   const groups = rest.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
   return `${cc} ${groups}`.trim();
 };
@@ -29,7 +27,7 @@ const telHref = (e164, ext) => {
 
 const waHref = (e164, message = '') => {
   if (!e164) return '#';
-  const num = e164.replace(/^\+/, ''); // wa.me no admite '+'
+  const num = e164.replace(/^\+/, '');
   const params = message ? `?text=${encodeURIComponent(message)}` : '';
   return `https://wa.me/${num}${params}`;
 };
@@ -42,9 +40,13 @@ const sortPhones = (arr) =>
   });
 
 export default function ManagePhones({
-    phoneableType,      // 'User' | 'Company' | 'CrmContact'  (nombre de modelo según tu ruta)
-    phoneableId,        // id numérico del owner
-    defaultWaMessage = 'Hola', // se traducirá abajo con __()
+    phoneableType,              // 'User' | 'Company' | 'CrmContact'
+    phoneableId,
+    defaultWaMessage = 'Hola',
+    addNewPhone = true,         // NUEVO: mostrar/ocultar botón "nuevo teléfono"
+    rowXs = 1,                  // NUEVO: configuración del grid
+    rowMd = 2,
+    rowLg = 3,
 }) {
     const __ = useTranslation();
     const { showConfirm } = useSweetAlert();
@@ -52,9 +54,10 @@ export default function ManagePhones({
     const [loading, setLoading] = useState(true);
     const [items, setItems] = useState([]);
     const [error, setError] = useState(null);
+    const [formErrors, setFormErrors] = useState({});
 
     const [showModal, setShowModal] = useState(false);
-    const [editing, setEditing] = useState(null); // objeto teléfono o null para alta
+    const [editing, setEditing] = useState(null);
     const [saving, setSaving] = useState(false);
     const [deletingId, setDeletingId] = useState(null);
     const [promotingId, setPromotingId] = useState(null);
@@ -67,15 +70,15 @@ export default function ManagePhones({
         setLoading(true);
         setError(null);
         try {
-        const url = route('phones.get', { id: phoneableId, model: phoneableType });
-        const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        setItems(Array.isArray(data) ? data : []);
+            const url = route('phones.get', { id: phoneableId, model: phoneableType });
+            const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            setItems(Array.isArray(data) ? data : []);
         } catch (e) {
-        setError(e.message || 'Error');
+            setError(e.message || 'Error');
         } finally {
-        setLoading(false);
+            setLoading(false);
         }
     };
 
@@ -88,9 +91,11 @@ export default function ManagePhones({
 
     // Modal helpers
     const openCreate = () => {
+        setFormErrors({});
+        setError(null);
         setEditing({
             id: null,
-            number: '',      // input libre, backend normaliza a E.164
+            number: '',
             type: '',
             label: '',
             ext: '',
@@ -102,9 +107,11 @@ export default function ManagePhones({
     };
 
     const openEdit = (ph) => {
+        setFormErrors({});
+        setError(null);
         setEditing({
             id: ph.id,
-            number: ph.e164, // mostramos e164; el backend igualmente re-normaliza
+            number: ph.e164,
             type: ph.type || 'mobile',
             label: ph.label || '',
             ext: ph.ext || '',
@@ -135,7 +142,7 @@ export default function ManagePhones({
         const payload = {
             phoneable_type: phoneableType,
             phoneable_id: phoneableId,
-            number: editing.number,            // el backend normaliza a E.164 (ES por defecto)
+            number: editing.number,
             type: editing.type,
             label: editing.label || null,
             ext: editing.ext || null,
@@ -145,13 +152,18 @@ export default function ManagePhones({
         };
 
         const common = {
-            preserveScroll: true,
-            onSuccess: () => { fetchData(); closeModal(); },
+            reserveScroll: true,
+            onSuccess: () => { 
+                setFormErrors({});
+                setError(null);
+                fetchData(); 
+                closeModal(); 
+            },
             onError: (errors) => {
-            // Si tu backend devuelve errores de validación, Inertia los pasa aquí
-            // Puedes mostrar el primero o mapearlos a tu UI
-            const first = errors && Object.values(errors)[0];
-            setError(first || __('error_generic'));
+                // errors es un objeto tipo { number: 'El teléfono...' }
+                setFormErrors(errors || {});
+                const first = errors && Object.values(errors)[0];
+                setError(first || null); // muestra el mensaje real, no el genérico
             },
             onFinish: () => setSaving(false),
         };
@@ -166,8 +178,6 @@ export default function ManagePhones({
     const handleDelete = async (id) => {
         if (!id) return;
 
-        // Ask for confirmation with SweetAlert. If confirmed, perform the delete and
-        // use deletingId to show progress / disable the button while the request runs.
         showConfirm({
             title: __('telefono_eliminar'),
             text: __('telefono_eliminar_confirm'),
@@ -175,14 +185,14 @@ export default function ManagePhones({
             onConfirm: async () => {
                 setDeletingId(id);
                 router.delete(route('phones.destroy', id), {
-                preserveScroll: true,
-                onSuccess: () => fetchData(),
-                onError: () => setError(__('error_generic')),
-                onFinish: () => setDeletingId(null),
+                    preserveScroll: true,
+                    onSuccess: () => fetchData(),
+                    onError: () => setError(__('error_generico')),
+                    onFinish: () => setDeletingId(null),
                 });
             },
         });
-    }
+    };
 
     const handlePrimary = (id) => {
         if (!id) return;
@@ -202,9 +212,9 @@ export default function ManagePhones({
                 onSuccess: () => { fetchData(); },
                 onError: (errors) => {
                     const first = errors && (typeof errors === 'string'
-                    ? errors
-                    : Object.values(errors)[0]);
-                    setError(first || __('error_generic'));
+                        ? errors
+                        : Object.values(errors)[0]);
+                    setError(first || __('error_generico'));
                 },
                 onFinish: () => setPromotingId(null),
             }
@@ -215,7 +225,7 @@ export default function ManagePhones({
         try {
             await navigator.clipboard.writeText(text);
         } catch {
-            // no hacemos drama si el navegador lo bloquea
+            // nada, el navegador manda
         }
     };
 
@@ -232,13 +242,13 @@ export default function ManagePhones({
 
                 router.post(
                     route('phones.verify'),
-                    { phone_id: id }, // el backend ya sabe a quién pertenece por el id
+                    { phone_id: id },
                     {
                         preserveScroll: true,
                         onSuccess: () => { fetchData(); },
                         onError: (errors) => {
                             const first = errors && (typeof errors === 'string' ? errors : Object.values(errors)[0]);
-                            setError(first || __('error_generic'));
+                            setError(first || __('error_generico'));
                         },
                         onFinish: () => setVerifyingId(null),
                     }
@@ -246,22 +256,26 @@ export default function ManagePhones({
             }
         });
     };
-
+    
     return (
-        <div className="position-relative mt-5">
+        <div className="position-relative mt-3">
             <hr/>
             <div className="d-flex justify-content-between align-items-center mt-4 mb-3">
                 <h5 className="mb-0">{__('telefonos')}</h5>
-                <Button variant="primary" size="sm" onClick={openCreate}>
-                    <i className="la la-plus me-1" />
-                    {__('telefono')}
-                </Button>
+
+                {/* NUEVO: botón condicionado por addNewPhone */}
+                {addNewPhone && (
+                    <Button variant="primary" size="sm" onClick={openCreate}>
+                        <i className="la la-plus me-1" />
+                        {__('telefono')}
+                    </Button>
+                )}
             </div>
 
             {loading && (
                 <div className="text-center py-4">
-                <Spinner animation="border" size="sm" className="me-2" />
-                {__('cargando')}
+                    <Spinner animation="border" size="sm" className="me-2" />
+                    {__('cargando')}
                 </div>
             )}
 
@@ -273,228 +287,220 @@ export default function ManagePhones({
                 <div className="text-muted">{__('telefonos_sin')}</div>
             )}
 
-            <Row xs={1} md={2} lg={3} className="g-3">
+            {/* NUEVO: configuración de columnas parametrizable */}
+            <Row xs={rowXs} md={rowMd} lg={rowLg} className="g-3">
                 {sorted.map(ph => (
-                <Col key={ph.id}>
-                    <Card className={`h-100 ${ph.is_primary ? 'border-primary' : ''}`}>
-                    <Card.Body>
-                        <div className="d-flex justify-content-between align-items-start">
-                            <div>
-                                <div className="fw-semibold">
-                                    {formatPretty(ph.e164)}
-                                    {ph.is_primary && <span className="badge bg-primary ms-2">{__('primario')}</span>}
-                                    {ph.is_whatsapp && <i className="la la-whatsapp ms-2" aria-label="WhatsApp" />}
+                    <Col key={ph.id}>
+                        <Card className={`h-100 ${ph.is_primary ? 'border-primary' : ''}`}>
+                            <Card.Body>
+                                <div className="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div className="fw-semibold">
+                                            {formatPretty(ph.e164)}
+                                            {ph.is_primary && <span className="badge bg-primary ms-2">{__('primario')}</span>}
+                                            {ph.is_whatsapp && <i className="la la-whatsapp ms-2" aria-label="WhatsApp" />}
+                                        </div>
+                                        {ph.ext && (
+                                            <div className="text-muted small">
+                                                {__('extension')}: {ph.ext}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <span className={`badge ${ph.is_verified ? 'bg-success' : 'bg-secondary'}`}>
+                                        {ph.is_verified ? __('verificado') : __('verificado_no')}
+                                    </span>
                                 </div>
-                                {ph.ext && (
-                                <div className="text-muted small">
-                                    {__('extension')}: {ph.ext}
-                                </div>
+
+                                {(ph.label || ph.type || ph.notes) && (
+                                    <div className="mt-2">
+                                        <div className="text-muted small">
+                                            {ph.label ? <><strong>{__('etiqueta')}:</strong> {ph.label}<br /></> : null}
+                                            {ph.type ? <><strong>{__('tipo')}:</strong> {__(`${ph.type}`)}<br /></> : null}
+                                            {ph.notes ? <><strong>{__('notas')}:</strong> {ph.notes}</> : null}
+                                        </div>
+                                    </div>
                                 )}
-                            </div>
+                            </Card.Body>
 
-                            {/* <OverlayTrigger
-                                placement="left"
-                                overlay={<Tooltip className="ttp-top">{ph.is_verified ? __('verificado') : __('verificado_no')}</Tooltip>}
-                            > */}
-                                <span className={`badge ${ph.is_verified ? 'bg-success' : 'bg-secondary'}`}>
-                                {ph.is_verified ? __('verificado') : __('verificado_no')}
-                                </span>
-                            {/* </OverlayTrigger> */}
-                        </div>
+                            <Card.Footer className="d-flex justify-content-between">
+                                <div className="btn-group" role="group">
+                                    <OverlayTrigger placement="top" overlay={<Tooltip>{__('llamar')}</Tooltip>}>
+                                        <a className="btn btn-sm btn-outline-secondary" href={telHref(ph.e164, ph.ext)}>
+                                            <i className="la la-phone" />
+                                        </a>
+                                    </OverlayTrigger>
 
-                        {(ph.label || ph.type || ph.notes) && (
-                            <div className="mt-2">
-                                <div className="text-muted small">
-                                    {ph.label ? <><strong>{__('etiqueta')}:</strong> {ph.label}<br /></> : null}
-                                    {ph.type ? <><strong>{__('tipo')}:</strong> {__(`${ph.type}`)}<br /></> : null}
-                                    {ph.notes ? <><strong>{__('notas')}:</strong> {ph.notes}</> : null}
+                                    {!ph.is_verified && (
+                                        <OverlayTrigger placement="top" overlay={<Tooltip>{__('verificar')}</Tooltip>}>
+                                            <button
+                                                className="btn btn-sm btn-outline-secondary"
+                                                onClick={() => handleVerify(ph.id)}
+                                                disabled={verifyingId === ph.id}
+                                            >
+                                                {verifyingId === ph.id ? <Spinner size="sm" animation="border" /> : <i className="la la-check-circle" />}
+                                            </button>
+                                        </OverlayTrigger>
+                                    )}
+
+                                    {ph.is_whatsapp && (
+                                        <OverlayTrigger placement="top" overlay={<Tooltip>WhatsApp</Tooltip>}>
+                                            <a
+                                                className="btn btn-sm btn-outline-success"
+                                                href={waHref(ph.e164, waDefaultText)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                <i className="la la-whatsapp" />
+                                            </a>
+                                        </OverlayTrigger>
+                                    )}
+
+                                    <OverlayTrigger placement="top" overlay={<Tooltip>{__('copiar')}</Tooltip>}>
+                                        <button className="btn btn-sm btn-outline-secondary" onClick={() => copyToClipboard(ph.e164)}>
+                                            <i className="la la-copy" />
+                                        </button>
+                                    </OverlayTrigger>
+
+                                    {!ph.is_primary && (
+                                        <OverlayTrigger placement="top" overlay={<Tooltip>{__('primario_marcar')}</Tooltip>}>
+                                            <button
+                                                className="btn btn-sm btn-outline-primary"
+                                                onClick={() => handlePrimary(ph.id)}
+                                                disabled={promotingId === ph.id}
+                                            >
+                                                {promotingId === ph.id ? <Spinner size="sm" animation="border" /> : <i className="la la-star" />}
+                                            </button>
+                                        </OverlayTrigger>
+                                    )}
                                 </div>
-                            </div>
-                        )}
-                    </Card.Body>
 
-                    <Card.Footer className="d-flex justify-content-between">
-                        <div className="btn-group" role="group">
-                            <OverlayTrigger placement="top" overlay={<Tooltip>{__('llamar')}</Tooltip>}>
-                                <a className="btn btn-sm btn-outline-secondary" href={telHref(ph.e164, ph.ext)}>
-                                <i className="la la-phone" />
-                                </a>
-                            </OverlayTrigger>
+                                <div className="btn-group" role="group">
+                                    <OverlayTrigger placement="top" overlay={<Tooltip>{__('editar')}</Tooltip>}>
+                                        <button className="btn btn-sm btn-info text-white" onClick={() => openEdit(ph)}>
+                                            <i className="la la-edit" />
+                                        </button>
+                                    </OverlayTrigger>
 
-                            {/* Verificar si aún no lo está */}
-                            {!ph.is_verified && (
-                            <OverlayTrigger placement="top" overlay={<Tooltip>{__('verificar')}</Tooltip>}>
-                                <button
-                                className="btn btn-sm btn-outline-secondary"
-                                onClick={() => handleVerify(ph.id)}
-                                disabled={verifyingId === ph.id}
-                                >
-                                {verifyingId === ph.id ? <Spinner size="sm" animation="border" /> : <i className="la la-check-circle" />}
-                                </button>
-                            </OverlayTrigger>
-                            )}
-
-                            {ph.is_whatsapp && (
-                                <OverlayTrigger placement="top" overlay={<Tooltip>WhatsApp</Tooltip>}>
-                                    <a
-                                    className="btn btn-sm btn-outline-success"
-                                    href={waHref(ph.e164, waDefaultText)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    >
-                                    <i className="la la-whatsapp" />
-                                    </a>
-                                </OverlayTrigger>
-                            )}
-
-                            <OverlayTrigger placement="top" overlay={<Tooltip>{__('copiar')}</Tooltip>}>
-                                <button className="btn btn-sm btn-outline-secondary" onClick={() => copyToClipboard(ph.e164)}>
-                                <i className="la la-copy" />
-                                </button>
-                            </OverlayTrigger>
-
-                            {!ph.is_primary && (
-                                <OverlayTrigger placement="top" overlay={<Tooltip>{__('primario_marcar')}</Tooltip>}>
-                                <button
-                                    className="btn btn-sm btn-outline-primary"
-                                    onClick={() => handlePrimary(ph.id)}
-                                    disabled={promotingId === ph.id}
-                                >
-                                    {promotingId === ph.id ? <Spinner size="sm" animation="border" /> : <i className="la la-star" />}
-                                </button>
-                                </OverlayTrigger>
-                            )}
-                        </div>
-
-                        <div className="btn-group" role="group">
-                            <OverlayTrigger placement="top" overlay={<Tooltip>{__('editar')}</Tooltip>}>
-                                <button className="btn btn-sm btn-info text-white" onClick={() => openEdit(ph)}>
-                                <i className="la la-edit" />
-                                </button>
-                            </OverlayTrigger>
-
-                            <OverlayTrigger placement="top" overlay={<Tooltip>{__('eliminar')}</Tooltip>}>
-                                <button
-                                className="btn btn-sm btn-danger"
-                                onClick={() => handleDelete(ph.id)}
-                                disabled={deletingId === ph.id}
-                                >
-                                {deletingId === ph.id ? <Spinner size="sm" animation="border" /> : <i className="la la-trash" />}
-                                </button>
-                            </OverlayTrigger>
-                        </div>
-                    </Card.Footer>
-                    </Card>
-                </Col>
+                                    <OverlayTrigger placement="top" overlay={<Tooltip>{__('eliminar')}</Tooltip>}>
+                                        <button
+                                            className="btn btn-sm btn-danger"
+                                            onClick={() => handleDelete(ph.id)}
+                                            disabled={deletingId === ph.id}
+                                        >
+                                            {deletingId === ph.id ? <Spinner size="sm" animation="border" /> : <i className="la la-trash" />}
+                                        </button>
+                                    </OverlayTrigger>
+                                </div>
+                            </Card.Footer>
+                        </Card>
+                    </Col>
                 ))}
             </Row>
 
             {/* Modal alta/edición */}
             <Modal show={showModal} onHide={closeModal} backdrop="static">
                 <Form onSubmit={handleSave}>
-                <Modal.Header closeButton>
-                    <Modal.Title>
-                    {editing?.id ? __('telefono_editar') : __('telefono_nuevo')}
-                    </Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    {error && <div className="alert alert-danger">{__('error_generico')}</div>}
+                    <Modal.Header closeButton>
+                        <Modal.Title>
+                            {editing?.id ? __('telefono_editar') : __('telefono_nuevo')}
+                        </Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        {error && <div className="alert alert-danger">{error}</div>}
 
-                    <Row className="g-2">
-                        <Col md={8}>
-                            <Form.Label>{__('numero')}*</Form.Label>
-                            <Form.Control
-                            type="text"
-                            value={editing?.number ?? ''}
-                            onChange={(e) => handleChange('number', e.target.value)}
-                            placeholder="+34600111222"
-                            maxLength={14}
-                            required
-                            />
-                            {/* <Form.Text className="text-muted">{__('numero_ayuda')}</Form.Text> */}
-                        </Col>
+                        <Row className="g-2">
+                            <Col md={8}>
+                                <Form.Label>{__('numero')}*</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    value={editing?.number ?? ''}
+                                    onChange={(e) => handleChange('number', e.target.value)}
+                                    placeholder="+34600111222"
+                                    maxLength={14}
+                                    required
+                                    isInvalid={!!formErrors.number}
+                                />
+                                <Form.Control.Feedback type="invalid">
+                                    {formErrors.number}
+                                </Form.Control.Feedback>
+                            </Col>
 
-                        <Col md={4}>
-                            <Form.Label>{__('extension')}</Form.Label>
-                            <Form.Control
-                            type="text"
-                            value={editing?.ext ?? ''}
-                            onChange={(e) => handleChange('ext', e.target.value)}
-                            placeholder="123"
-                            maxLength={8}
-                            />
-                        </Col>
+                            <Col md={4}>
+                                <Form.Label>{__('extension')}</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    value={editing?.ext ?? ''}
+                                    onChange={(e) => handleChange('ext', e.target.value)}
+                                    placeholder="123"
+                                    maxLength={8}
+                                />
+                            </Col>
 
-                        <Col md={6}>
-                            <Form.Label>{__('tipo')}</Form.Label>
-                            <Form.Select
-                            value={editing?.type ?? ''}
-                            onChange={(e) => handleChange('type', e.target.value)}
-                            >
-                                <option value="">{__('opcion_selec')}</option> 
-                                <option value="mobile">{__('movil')}</option>
-                                <option value="landline">{__('fijo')}</option>
-                                <option value="other">{__('otro')}</option>
-                            </Form.Select>
-                        </Col>
+                            <Col md={6}>
+                                <Form.Label>{__('tipo')}</Form.Label>
+                                <Form.Select
+                                    value={editing?.type ?? ''}
+                                    onChange={(e) => handleChange('type', e.target.value)}
+                                >
+                                    <option value="">{__('opcion_selec')}</option> 
+                                    <option value="mobile">{__('movil')}</option>
+                                    <option value="landline">{__('fijo')}</option>
+                                    <option value="other">{__('otro')}</option>
+                                </Form.Select>
+                            </Col>
 
-                        <Col md={6}>
-                            <Form.Label>{__('etiqueta')}</Form.Label>
-                            <Form.Control
-                            type="text"
-                            value={editing?.label ?? ''}
-                            onChange={(e) => handleChange('label', e.target.value)}
-                            placeholder={__('etiqueta_ej')}
-                            maxLength={50}
-                            />
-                        </Col>
+                            <Col md={6}>
+                                <Form.Label>{__('etiqueta')}</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    value={editing?.label ?? ''}
+                                    onChange={(e) => handleChange('label', e.target.value)}
+                                    placeholder={__('etiqueta_ej')}
+                                    maxLength={50}
+                                />
+                            </Col>
 
-                        <Col xs={12}>
-                            <Form.Label>{__('notas')}</Form.Label>
-                            <Form.Control
-                            as="textarea"
-                            rows={2}
-                            value={editing?.notes ?? ''}
-                            onChange={(e) => handleChange('notes', e.target.value)}
-                            />
-                        </Col>
+                            <Col xs={12}>
+                                <Form.Label>{__('notas')}</Form.Label>
+                                <Form.Control
+                                    as="textarea"
+                                    rows={2}
+                                    value={editing?.notes ?? ''}
+                                    onChange={(e) => handleChange('notes', e.target.value)}
+                                />
+                            </Col>
 
-                        <Col md={4} className="pt-2">
-                            <Form.Check
-                            type="switch"
-                            id="chk-whatsapp"
-                            label="WhatsApp"
-                            checked={!!editing?.is_whatsapp}
-                            onChange={(e) => handleChange('is_whatsapp', e.target.checked)}
-                            />
-                        </Col>
+                            <Col md={4} className="pt-2">
+                                <Form.Check
+                                    type="switch"
+                                    id="chk-whatsapp"
+                                    label="WhatsApp"
+                                    checked={!!editing?.is_whatsapp}
+                                    onChange={(e) => handleChange('is_whatsapp', e.target.checked)}
+                                />
+                            </Col>
 
-                        <Col md={4} className="pt-2">
-                            <Form.Check
-                            type="switch"
-                            id="chk-primary"
-                            label={__('primario')}
-                            checked={!!editing?.is_primary}
-                            onChange={(e) => handleChange('is_primary', e.target.checked)}
-                            />
-                        </Col>
+                            <Col md={4} className="pt-2">
+                                <Form.Check
+                                    type="switch"
+                                    id="chk-primary"
+                                    label={__('primario')}
+                                    checked={!!editing?.is_primary}
+                                    onChange={(e) => handleChange('is_primary', e.target.checked)}
+                                />
+                            </Col>
+                        </Row>
+                    </Modal.Body>
 
-                        {/* <Col md={4} className="pt-2">
-                            <Form.Text className="text-muted">
-                            {__('primario_ayuda')}
-                            </Form.Text>
-                        </Col> */}
-                    </Row>
-                </Modal.Body>
-
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={closeModal} disabled={saving}>
-                    {__('cancelar')}
-                    </Button>
-                    <Button variant="primary" type="submit" disabled={saving}>
-                    {saving ? <Spinner size="sm" animation="border" /> : __('guardar')}
-                    </Button>
-                </Modal.Footer>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={closeModal} disabled={saving}>
+                            {__('cancelar')}
+                        </Button>
+                        <Button variant="primary" type="submit" disabled={saving}>
+                            {saving ? <Spinner size="sm" animation="border" /> : __('guardar')}
+                        </Button>
+                    </Modal.Footer>
                 </Form>
             </Modal>
         </div>

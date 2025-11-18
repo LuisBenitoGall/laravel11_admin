@@ -28,7 +28,9 @@ export default function TableUsers({
     destroyRoute = 'user-companies.destroy',
     filteredDataRoute = false,
     labelName = 'usuarios',
-    availableLocales = []
+    availableLocales = [],
+	disablePagination = false,          // NUEVO: desactiva paginación para uso en tabs
+    userEditCompanyId = null
 }) {
     const __ = useTranslation();
     const queryParams = (typeof rawQueryParams === 'object' && rawQueryParams !== null) ? rawQueryParams : {};
@@ -143,7 +145,7 @@ export default function TableUsers({
         table: tableId,
         allColumnKeys: columns.map(col => col.key),
         entityName,
-        indexRoute,
+        indexRoute: disablePagination ? null : indexRoute,
         routeParams: indexParams,
         destroyRoute,
         filteredDataRoute,
@@ -199,7 +201,7 @@ export default function TableUsers({
                         queryParams={queryParams}
                         visibleColumns={visibleColumns}
                         SearchFieldChanged={SearchFieldChanged}
-                        indexRoute={indexRoute}
+                        indexRoute={disablePagination ? null : indexRoute}
                         indexParams={indexParams}
                     />
 
@@ -236,7 +238,12 @@ export default function TableUsers({
                                     placement="top"
                                     overlay={<Tooltip className="ttp-top">{__('editar')}</Tooltip>}
                                 >
-                                    <Link href={route(`${entityName}.edit`, user.id)} className="btn btn-sm btn-info ms-1">
+                                    <Link
+                                        href={route(`${entityName}.edit`,
+                                            userEditCompanyId != null ? [user.id, userEditCompanyId] : [user.id]
+                                        )}
+                                        className="btn btn-sm btn-info ms-1"
+                                    >
                                         <i className="la la-edit" />
                                     </Link>
                                 </OverlayTrigger>
@@ -269,24 +276,25 @@ export default function TableUsers({
                 </Table>
             </div>
 
-            {meta && (
+            {!disablePagination && meta && (
                 <Pagination
                 links={meta.links}
                 totalRecords={meta.total}
                 currentPage={meta.current_page}
                 perPage={meta.per_page}
                 onPageChange={page => {
-                    router.get(
-                    route(indexRoute, indexParams),
-                    {
-                        ...queryParams,
-                        page,
-                        per_page: perPage,
-                        sort_field: sortParams.sort_field,
-                        sort_direction: sortParams.sort_direction
-                    },
-                    { preserveState: true }
-                    );
+                    router.reload({
+                        data: {
+                            ...queryParams,
+                            page,
+                            per_page: perPage,
+                            sort_field: sortParams.sort_field,
+                            sort_direction: sortParams.sort_direction
+                        },
+                        only: ['users'],
+                        preserveState: true,
+                        preserveScroll: true
+                    });
                 }}
                 />
             )}
