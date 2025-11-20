@@ -4,8 +4,11 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { registerLocale } from 'react-datepicker';
 import { es } from 'date-fns/locale';
 
-//Hooks:
+// Hooks:
 import { useTranslation } from '@/Hooks/useTranslation';
+
+// Utils:
+import { parseLocalYmd } from '@/Utils/dateHelpers';
 
 registerLocale('es', es);
 
@@ -18,7 +21,8 @@ export default function FormDatePickerInput({
     placeholder = '',
     dateFormat = 'yyyy-MM-dd',
     minDate = null,
-    maxDate = null,
+    // OJO: sin valor por defecto aquí; lo distinguimos de null dentro
+    maxDate,
     required = false,
     disabled = false,
     addon = true,
@@ -36,15 +40,24 @@ export default function FormDatePickerInput({
     const Icon = addonElement ?? (
         <i className="la la-calendar me-1" aria-hidden="true" />
     );
-    // If no maxDate provided, default to today (useful for birth dates)
-    const computedMaxDate = maxDate === null ? new Date() : maxDate;
+
+    /**
+     * Lógica de maxDate:
+     * - Si NO se pasa maxDate (undefined) -> tope hoy (caso típico: cumpleaños).
+     * - Si se pasa maxDate (incluido null) -> respetamos su valor tal cual.
+     *   - maxDate={null} => sin límite superior.
+     */
+    const computedMaxDate =
+        typeof maxDate === 'undefined' ? new Date() : maxDate;
+
+    const selectedDate = parseLocalYmd(selected);
 
     const picker = (
         <DatePicker
             id={name}
             name={name}
             locale="es"
-            selected={selected}
+            selected={selectedDate}
             onChange={(date) => onChange(name, date)}
             dateFormat={dateFormat}
             className={`form-control text-end ${className}`}
@@ -54,15 +67,12 @@ export default function FormDatePickerInput({
             minDate={minDate}
             maxDate={computedMaxDate}
             autoComplete={autoComplete}
-            /* Prevent LastPass/other password managers from interacting */
             data-lpignore="true"
-            /* Allow quick month/year selection */
             showMonthDropdown={showMonthDropdown}
             showYearDropdown={showYearDropdown}
             scrollableYearDropdown={scrollableYearDropdown}
             yearDropdownItemNumber={yearDropdownItemNumber}
             dropdownMode="select"
-            /* Render calendar in a body-level portal so it's not clipped by overflow:hidden/auto parents */
             withPortal
         />
     );
@@ -77,15 +87,15 @@ export default function FormDatePickerInput({
             )}
 
             {addon ? (
-            <div className="input-group">
-                <span className="input-group-text">
-                    {Icon}
-                </span>
-                {picker}
-            </div>
+                <div className="input-group">
+                    <span className="input-group-text">
+                        {Icon}
+                    </span>
+                    {picker}
+                </div>
             ) : (
                 picker
-            )}  
+            )}
         </div>
     );
 }

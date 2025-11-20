@@ -64,6 +64,7 @@ class CrmAccountController extends Controller{
      * 7. Eliminar cuenta.
      * 8. Actualizar estado.
      * 9. Mapeo de usuarios.
+     * 10. Convertir cuenta a cliente o proveedor.
      */
     
     use HasUserPermissionsTrait;
@@ -82,7 +83,9 @@ class CrmAccountController extends Controller{
                 'crm-accounts.index',
                 'crm-accounts.search',
                 'crm-accounts.show',
-                'crm-accounts.update'
+                'crm-accounts.update',
+                'customers.create',
+                'providers.create'
             ]);   
         } 
     }   
@@ -492,6 +495,33 @@ class CrmAccountController extends Controller{
                 ])->values(),
             ];
         });
+    }
+
+    /**
+     * 10. Convertir cuenta a cliente o proveedor.
+     */
+    public function convertToCustomerProvider(Request $request){
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            abort(422, __('no_hay_empresa_activa'));
+        }  
+
+        $data = $request->validate([
+        'as_customer' => ['boolean'],
+        'as_provider' => ['boolean'],
+        ]);
+
+        if (!($data['as_customer'] ?? false) && !($data['as_provider'] ?? false)) {
+            return back()->withErrors([
+            'as_customer' => __('debes_seleccionar_cliente_proveedor')
+            ]);
+        }
+
+
+
+
+        return redirect()->route('crm-accounts.index')->with('msg', __('conversion_completada'));  
     }
 
 }

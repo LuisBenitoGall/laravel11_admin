@@ -77,12 +77,12 @@ class WorkplaceController extends Controller{
      */
     public function index(WorkplaceFilterRequest $request, ?int $company_id = null){
         $ctx = app(CompanyContext::class);
-        $currentId = (int) $ctx->id();
-        if($currentId <= 0){
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
             abort(422, __('no_hay_empresa_activa'));
         }
 
-        $company = Company::find($company_id ?: $currentId);
+        $company = Company::find($company_id ?: $currentCompanyId);
         if (!$company) {
             abort(404, __('empresa_no_encontrada'));
         }
@@ -90,8 +90,8 @@ class WorkplaceController extends Controller{
         $side = null;            // 'customers' | 'providers' | 'both' | null
         $returnRoutes = [];
 
-        if ($company->id !== $currentId) {
-            $side = CustomerProvider::sideForCompanyPair($currentId, $company->id);
+        if ($company->id !== $currentCompanyId) {
+            $side = CustomerProvider::sideForCompanyPair($currentCompanyId, $company->id);
 
             // Prepara rutas de retorno según el lado detectado
             // Usa tus names reales: 'customers.edit' y 'providers.edit'

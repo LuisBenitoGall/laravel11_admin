@@ -1,52 +1,55 @@
+// resources/js/Pages/Admin/Dashboard/Index.jsx
 import AdminAuthenticatedLayout from '@/Layouts/Admin/AdminAuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 
-//Hooks:
+// Hooks:
 import { useCompanySession } from '@/Hooks/useCompanySession';
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTranslation } from '@/Hooks/useTranslation';
 
-//Partials:
+// Partials:
 import FavoritesGrid from './Partials/FavoritesGrid';
 
-export default function Index({ auth, session, title, subtitle, favorites = [] }){
-	const __ = useTranslation();
-	const { currentCompany, companyModules, companySettings } = useCompanySession();
-	
-	//Acciones:
-	const actions = [];
+// Widgets:
+import UserNotesRemindersWidget from '@/Components/UserNotesRemindersWidget';
 
-	return (
-		<AdminAuthenticatedLayout
+export default function Index({ auth, session, title, subtitle, favorites = [] }){
+    const __ = useTranslation();
+    const { currentCompany, companyModules, companySettings } = useCompanySession();
+    
+    // Acciones:
+    const actions = [];
+
+    return (
+        <AdminAuthenticatedLayout
             user={auth.user}
             title={title}
-			subtitle={subtitle}
-			actions={actions}
+            subtitle={subtitle}
+            actions={actions}
         >
-        	<Head title={title} />
+            <Head title={title} />
 
-			{/* Contenido */}
-			<div className="contents pb-4">
-				<div className="row">
-                    {/* <div className="col-12">
-                        <h2>DASHBOARD</h2>
-					</div> */}
-
+            {/* Contenido */}
+            <div className="contents pb-4">
+                <div className="row">
                     {/* Favoritos */}
                     <div className="col-12 my-3">
                         <h2 className="mb-3">{__('favoritos_mis')}</h2>
                         <FavoritesGrid favorites={favorites} />
                     </div>
 
+                    {/* Widgets */}
+                    <div className="col-md-6 col-lg-4 my-5">
+                        <UserNotesRemindersWidget />
+                    </div>
 
-
-					{/* <pre>User: {JSON.stringify(auth.user, null, 2)}</pre>
-
-					<pre><strong>Empresa activa:</strong> {JSON.stringify(currentCompany, null, 2)}</pre>
-					<pre><strong>Módulos:</strong> {JSON.stringify(companyModules, null, 2)}</pre>
-					<pre><strong>Configuración empresa:</strong> {JSON.stringify(companySettings, null, 2)}</pre> */}
-				</div>
-			</div>
-		</AdminAuthenticatedLayout>
-	);
+                    {/* Aquí podrás añadir más widgets en el futuro:
+                    <div className="col-md-6 my-5">
+                        <OtroWidget />
+                    </div>
+                    */}
+                </div>
+            </div>
+        </AdminAuthenticatedLayout>
+    );
 }

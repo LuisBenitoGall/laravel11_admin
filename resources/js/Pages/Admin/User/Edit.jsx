@@ -1,9 +1,10 @@
 // resources/js/Pages/Admin/User/Edit.jsx
 import AdminAuthenticatedLayout from '@/Layouts/Admin/AdminAuthenticatedLayout';
 import { Head, usePage } from '@inertiajs/react';
-import { useTranslation } from '@/Hooks/useTranslation';
 import { useHandleDelete } from '@/Utils/useHandleDelete.jsx';
+import { useEffect, useState } from 'react';
 
+//Components:
 import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import RadioButton from '@/Components/RadioButton';
@@ -12,15 +13,24 @@ import Textarea from '@/Components/Textarea';
 import TextInput from '@/Components/TextInput';
 import Checkbox from '@/Components/Checkbox';
 
+//Hooks:
+import { useTranslation } from '@/Hooks/useTranslation';
+
+//Modals:
+import ModalUserNoteCreate from '@/Components/modals/ModalUserNoteCreate';
+
+//Partials:
+import UserImages from './Partials/UserImages.jsx';
+import UserNotes from './Partials/UserNotes.jsx';
 import UserPersonalData from './Partials/UserPersonalData';
 import UserPassword from './Partials/UserPassword.jsx';
-import UserImages from './Partials/UserImages.jsx';
+
 
 export default function Index({
     auth, session, title, subtitle,
     user, roles, user_roles, images,
     salutations, contact_types, crm_contact, profile, company,
-    company_context, pivot, user_company_id          // ← nuevos props del backend
+    company_context, pivot, user_company_id          
 }) {
     const __ = useTranslation();
     const props = usePage()?.props || {};
@@ -30,11 +40,31 @@ export default function Index({
     const { handleDelete } = useHandleDelete('usuario', 'users.destroy', [user.id]);
 
     // -----------------------
-    // ACCIONES (nueva lógica)
+    // MODALS
+    // -----------------------
+    const [showModalUserNoteCreate, setShowModalUserNoteCreate] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
+
+    const handleOpenModalUserNoteCreate = () => setShowModalUserNoteCreate(true);
+    const handleCloseModalUserNoteCreate = () => setShowModalUserNoteCreate(false);
+
+    const handleUserNoteSaved = () => {
+        // Aquí podrás usar refreshKey para forzar recarga de un listado de notas
+        setRefreshKey((prev) => prev + 1);
+        setShowModalUserNoteCreate(false);
+    };
+
+    const handleNoteCreated = () => {
+        setRefreshKey((prev) => prev + 1);
+    };
+
+    // -----------------------
+    // ACCIONES
     // -----------------------
     const actions = [];
     const cc = company_context; 
 
+    // Acción regreso:
     if (cc && cc.type === 'crm_account' && permissions['crm-accounts.edit']) {
         actions.push({
             text: __('volver_a') + ' ' + cc.name,
@@ -44,7 +74,6 @@ export default function Index({
             modal: false
         });
     } else if (cc && cc.type === 'company' && (permissions['companies.edit'] || permissions['users.index'])) {
-        // si tienes vista de edición de empresa propia, úsala; si no, cae al listado de usuarios
         if (permissions['companies.edit']) {
             actions.push({
                 text: __('volver_a') + ' ' + cc.name,
@@ -70,13 +99,28 @@ export default function Index({
         });
     }
 
-    // Botones extra (sin cambiar tu lógica de permisos/condiciones)
-    if (permissions['users.create'] && profile === false && user_company_id === false) {
-        actions.push({ text: __('usuario_nuevo'), icon: 'la-plus', url: 'users.create', modal: false });
+    // Nuevo usuario
+    if (permissions['users.create'] && crm_contact === false) {
+        actions.push({ 
+            text: __('usuario_nuevo'), 
+            icon: 'la-plus', 
+            url: 'users.create', 
+            modal: false 
+        });
+    }
+
+    // Nueva nota (no perfil propio)
+    if (profile === false) {
+        actions.push({ 
+            text: __('nota_nueva'), 
+            icon: 'la-plus', 
+            url: '', 
+            modal: true,
+            onClick: handleOpenModalUserNoteCreate
+        });
     }
     
-    actions.push({ text: __('nota_nueva'), icon: 'la-plus', url: 'users.create', modal: true });
-    
+    // Eliminar usuario
     if (permissions['users.destroy'] && profile === false) {
         actions.push({
             text: __('eliminar'), icon: 'la-trash', method: 'delete',
@@ -92,6 +136,7 @@ export default function Index({
         { key: 'user-personal-data', label: __('datos_personales') },
         ...(profile === true ? [{ key: 'user-password', label: __('contrasena') }] : []),
         { key: 'user-images', label: __('imagenes') },
+        { key: 'user-notes', label: __('notas') },
     ];
 
     return (
@@ -113,21 +158,26 @@ export default function Index({
                     {(activeKey) => {
                         switch (activeKey) {
                             case 'user-personal-data':
-                            return (
-                              <UserPersonalData
-                                user={user}
-                                roles={roles}
-                                user_roles={user_roles}
-                                salutations={salutations}
-                                contact_types={contact_types}
-                                crm_contact={crm_contact}
-                                user_company_id={user_company_id}   // ← prop correcto
-                                pivot={pivot}                        // ← para position/department
-                                company_context={company_context}    // ← por si lo usas en el tab
-                              />
-                            );
+                                return (
+                                    <UserPersonalData
+                                        user={user}
+                                        roles={roles}
+                                        user_roles={user_roles}
+                                        salutations={salutations}
+                                        contact_types={contact_types}
+                                        crm_contact={crm_contact}
+                                        user_company_id={user_company_id}
+                                        pivot={pivot}
+                                        company_context={company_context}
+                                        // En el futuro, podrías pasar refreshKey aquí
+                                        // para recargar un listado de notas si lo añades en este tab
+                                        // notesRefreshKey={refreshKey}
+                                    />
+                                );
+                            
                             case 'user-password':
                                 return <UserPassword user={user} />;
+
                             case 'user-images': {
                                 const inferredImagePath = user?.image_path || user?.imagePath || 'users';
                                 return (
@@ -141,11 +191,31 @@ export default function Index({
                                     />
                                 );
                             }
+
+                            case 'user-notes': {
+                                return (
+                                    <UserNotes 
+                                        userId={user.id}
+                                        refreshKey={refreshKey}
+                                    />
+                                );
+                            }
+
                             default:
-                            return null;
+                                return null;
                         }
                     }}
                 </Tabs>
+
+                {/* Modals */}
+                <ModalUserNoteCreate
+                    show={showModalUserNoteCreate}
+                    onClose={handleCloseModalUserNoteCreate}
+                    contact={user}
+                    user_company={user_company_id}
+                    onSaved={handleUserNoteSaved}
+                    onCreated={handleNoteCreated}
+                />
             </div>
         </AdminAuthenticatedLayout>
     );

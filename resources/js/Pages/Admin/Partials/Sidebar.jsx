@@ -18,6 +18,7 @@ export default function Sidebar(auth) {
     const txt_centros_coste = __('centros_coste');
     const txt_centros_trabajo = __('centros_trabajo');
     const txt_clientes = __('clientes');
+    const txt_cli_pro = __('clientes_proveedores');
     const txt_configuracion = __('configuracion');
     const txt_contables_grupos = __('contables_grupos');
     const txt_contactos = __('contactos');
@@ -263,7 +264,7 @@ export default function Sidebar(auth) {
 
                                             <li>
                                                 <NavLink href={route('users.contacts')} className={`nav-link menu-link ${currentSlug === 'contacts' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_contactos}</span>
+                                                    <span>{txt_cli_pro}</span>
                                                 </NavLink>
                                             </li>
                                         </ul>

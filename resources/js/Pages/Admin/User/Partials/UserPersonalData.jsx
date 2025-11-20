@@ -17,6 +17,9 @@ import TextInput from '@/Components/TextInput';
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTranslation } from '@/Hooks/useTranslation';
 
+//Utils:
+import { toLocalYmd } from '@/Utils/dateHelpers';
+
 export default function UserPersonalData({ 
     user, roles = {}, 
     user_roles = {}, 
@@ -265,18 +268,80 @@ export default function UserPersonalData({
                     {/* Fecha nacimiento */}
                     <div className="col-md-3">
                         <div className="position-relative">
-                            <label htmlFor="birthday" className="form-label">{ __('fecha_nacimiento') }</label>
                             <DatePickerToForm
-                              id="birthday"
-                              name="birthday"
-                              selected={data.birthday} // ya es Date o null
-                              onChange={(name, date) => setData(name, date)}
-                              dateFormat={datepickerFormat}
+                                id="birthday"
+                                name="birthday"
+                                selected={data.birthday} // 'YYYY-MM-DD' o null
+                                onChange={(name, date) => setData(name, toLocalYmd(date))}
+                                dateFormat="dd/MM/yyyy"
+                                label={'fecha_nacimiento'}
+                                required={false}
                             />
                             <InputError message={errors.birthday} />             
                         </div>
                     </div>
                     <div className="w-100 m-0"></div>
+
+                    {crm_contact && (
+                        <>
+                            {/* Tipo de contacto */}
+                            <div className="col-md-4">
+                                <div>
+                                    <label htmlFor="contact_type" className="form-label">{ __('contacto_tipo') }</label>
+                                    <SelectInput
+                                        className="form-select"
+                                        name="contact_type"
+                                        value={data.contact_type}
+                                        onChange={(e) => setData('contact_type', e.target.value)}
+                                    >
+                                        <option value="">{ __('opcion_selec') }</option>
+                                        {contactTypeOptions.map(option => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </SelectInput>
+                                    <InputError message={errors.contact_type} />
+                                </div>
+                            </div>
+
+                            {/* Cargo */}
+                            <div className="col-md-4">
+                                <div>
+                                    <label htmlFor="position" className="form-label">{ __('cargo') }</label>
+                                    <TextInput 
+                                        className="" 
+                                        name="position"
+                                        type="text"
+                                        placeholder={__('cargo')} 
+                                        value={data.position} 
+                                        onChange={(e) => setData('position', e.target.value)}
+                                        maxLength={150}
+                                    />
+
+                                    <InputError message={errors.position} />
+                                </div>
+                            </div>
+
+                            {/* Departamento */}
+                            <div className="col-md-4">
+                                <div>
+                                    <label htmlFor="department" className="form-label">{ __('departamento') }</label>
+                                    <TextInput 
+                                        className="" 
+                                        name="department"
+                                        type="text"
+                                        placeholder={__('departamento')} 
+                                        value={data.department} 
+                                        onChange={(e) => setData('department', e.target.value)}
+                                        maxLength={150}
+                                    />
+
+                                    <InputError message={errors.department} />
+                                </div>
+                            </div>
+                        </>
+                    )}
 
                     {/* Sexo */}
                     <SetSex
@@ -284,64 +349,6 @@ export default function UserPersonalData({
                         onChange={(e) => setData('sex', e.target.value)}
                         error={errors.sex}
                     />
-                    <div className="w-100 m-0"></div>
-
-                    {/* Tipo de contacto */}
-                    <div className="col-md-4">
-                        <div>
-                            <label htmlFor="contact_type" className="form-label">{ __('contacto_tipo') }</label>
-                            <SelectInput
-                                className="form-select"
-                                name="contact_type"
-                                value={data.contact_type}
-                                onChange={(e) => setData('contact_type', e.target.value)}
-                            >
-                                <option value="">{ __('opcion_selec') }</option>
-                                {contactTypeOptions.map(option => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </SelectInput>
-                            <InputError message={errors.contact_type} />
-                        </div>
-                    </div>
-
-                    {/* Cargo */}
-                    <div className="col-md-4">
-                        <div>
-                            <label htmlFor="position" className="form-label">{ __('cargo') }</label>
-                            <TextInput 
-                                className="" 
-                                name="position"
-                                type="text"
-                                placeholder={__('cargo')} 
-                                value={data.position} 
-                                onChange={(e) => setData('position', e.target.value)}
-                                maxLength={150}
-                            />
-
-                            <InputError message={errors.position} />
-                        </div>
-                    </div>
-
-                    {/* Departamento */}
-                    <div className="col-md-4">
-                        <div>
-                            <label htmlFor="department" className="form-label">{ __('departamento') }</label>
-                            <TextInput 
-                                className="" 
-                                name="department"
-                                type="text"
-                                placeholder={__('departamento')} 
-                                value={data.department} 
-                                onChange={(e) => setData('department', e.target.value)}
-                                maxLength={150}
-                            />
-
-                            <InputError message={errors.department} />
-                        </div>
-                    </div>
 
                     {/* Firma: sólo para usuarios con acceso */}
                     {user?.isAdmin == 1 && (

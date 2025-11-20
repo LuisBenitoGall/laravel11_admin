@@ -230,7 +230,7 @@ export default function Index({ auth, session, title, subtitle, accounts, queryP
                     currentPage={accounts.meta.current_page} 
                     perPage={accounts.meta.per_page}
                     onPageChange={(page) => {
-                        router.get(route("accounts.index"), {
+                        router.get(route("crm-accounts.index"), {
                             ...queryParams,
                             page,
                             per_page: perPage,

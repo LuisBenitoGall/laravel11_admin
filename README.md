@@ -77,6 +77,13 @@ En el archivo config/constants.php se definen constantes personalizadas.
 - Lanzar: php artisan schedule:run
 
 
+## IMPORTACIÓN DESDE DYNAMICS 365:
+- php artisan crm:import-accounts --dry-run
+- php artisan crm:import-accounts
+- php artisan crm:import-contacts --dry-run
+- php artisan crm:import-contacts
+
+
 
 ## IA CHAT GPT. Indicaciones para la réplica de elementos en el proyecto.
 

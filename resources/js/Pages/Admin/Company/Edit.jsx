@@ -22,6 +22,7 @@ import { useTranslation } from '@/Hooks/useTranslation';
 
 //Modals:
 import ModalUserCreate from '@/Components/modals/ModalUserCreate';
+import ModalConvertCrmAccount from '@/Components/modals/ModalConvertCrmAccount';
 
 //Tabs:
 import CompanyInfoTab from './Partials/CompanyInfoTab';
@@ -40,7 +41,7 @@ export default function Index({ auth, session, title, subtitle, availableLocales
     const rawQueryParams = props.queryParams || {};
     const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
 
-    const isCrmAccount = crm_account !== false;
+    const isCrmAccount = crm_account && typeof crm_account === 'object';
 
     // Si el tab solicitado no está disponible (crm_account === false y tab es 'users' o 'categories'), usar 'info'
     const validTab = (!isCrmAccount && (tab === 'users' || tab === 'categories')) ? 'info' : (tab || 'info');
@@ -125,6 +126,9 @@ export default function Index({ auth, session, title, subtitle, availableLocales
     const handleOpenModalUserCreate = () => setShowModalUserCreate(true);
     const handleCloseModalUserCreate = () => setShowModalUserCreate(false);
     const refreshUsersTable = () => setRefreshKey(prev => prev + 1);
+    const [showConvertModal, setShowConvertModal] = useState(false);
+    const handleOpenConvertModal = () => setShowConvertModal(true);
+    const handleCloseConvertModal = () => setShowConvertModal(false);
 
     //Acciones:
     const actions = [];
@@ -153,6 +157,19 @@ export default function Index({ auth, session, title, subtitle, availableLocales
             url: 'companies.create',
             modal: false
         });
+    }
+
+    //Convertir a Cliente o Proveedor - condiciones:
+    if( isCrmAccount &&
+        (permissions?.['customers.create'] || permissions?.['providers.create'])
+    ){
+        actions.push({ 
+            text: __('convertir_cliente_proveedor'), 
+            icon: 'la-plus', 
+            //url: '', 
+            //modal: true,
+            onClick: handleOpenConvertModal
+        });   
     }
        
     if (permissions?.['workplaces.index']) {
@@ -321,6 +338,16 @@ export default function Index({ auth, session, title, subtitle, availableLocales
                         salutations={salutations}
                         contact_types={contact_types}
                         crm_account={crm_account}
+                    />
+                )}
+
+                {isCrmAccount && (
+                    <ModalConvertCrmAccount
+                        show={showConvertModal}
+                        onClose={handleCloseConvertModal}
+                        crmAccount={crm_account}
+                        canCreateCustomer={!!permissions?.['customers.create']}
+                        canCreateProvider={!!permissions?.['providers.create']}
                     />
                 )}
             </div>

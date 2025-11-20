@@ -26,7 +26,7 @@ return new class extends Migration {
                 ->constrained('companies')->nullOnDelete();
 
             // Datos de la cuenta (foto operativa en CRM)
-            $table->string('name');                // razón social o nombre comercial visible en CRM
+            $table->string('name')->nullable();                // razón social o nombre comercial visible en CRM
             $table->string('tradename')->nullable();
             $table->string('tax_id', 32)->nullable(); // NIF/VAT (único por company cuando no es null)
             $table->string('website')->nullable();

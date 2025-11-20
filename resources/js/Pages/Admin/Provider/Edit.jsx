@@ -208,6 +208,7 @@ export default function Index({ auth, session, title, subtitle, provider, relati
                     companyId={provider.id}
                     side={'providers'}
                     salutations={salutations}
+                    contact_types={[]}
                 />
             </div>
         </AdminAuthenticatedLayout>

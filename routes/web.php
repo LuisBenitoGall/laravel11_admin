@@ -133,6 +133,7 @@ use App\Http\Controllers\Admin\TownController;
 use App\Http\Controllers\Admin\UnitController;
 use App\Http\Controllers\Admin\UserColumnPreferenceController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\UserNoteController;
 use App\Http\Controllers\Admin\UserPreferenceController;
 use App\Http\Controllers\Admin\VehicleController;
 use App\Http\Controllers\Admin\WorkOrderController;
@@ -463,6 +464,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
         Route::put('crm-accounts/{account}', [CrmAccountController::class, 'update'])->name('crm-accounts.update')->middleware('permission:crm-accounts.update|crm-accounts.update.own');
         Route::delete('crm-accounts/{account}', [CrmAccountController::class, 'destroy'])->name('crm-accounts.destroy')->middleware('permission:crm-accounts.destroy|crm-accounts.destroy.own');
         Route::post('/crm-accounts/status', [CrmAccountController::class, 'status'])->name('crm-accounts.status')->middleware('permission:crm-accounts.edit');
+        Route::post('crm-accounts/{account}/convert', [CrmAccountController::class, 'convertToCustomerProvider'])->name('crm-accounts.convert');
     });
 
     //CRM Accounts:
@@ -831,7 +833,18 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::post('/user-images/set-featured', [UserImageController::class, 'setFeatured'])->name('user-images.set-featured');
 
     //User notes:
-    Route::post('user-notes/store', [UserController::class, 'store'])->name('user-notes.store');
+    Route::post('/user-notes/store', [UserNoteController::class, 'store'])->name('user-notes.store');
+    Route::get('user-notes/{user}/show', [UserNoteController::class, 'show'])->name('user-notes.show');
+    Route::put('user-notes/{note}/reminder', [UserNoteController::class, 'updateReminder'])->name('user-notes.update-reminder');
+    Route::put('/user-notes/{note}', [UserNoteController::class, 'update'])->name('user-notes.update');
+    Route::put('/user-notes/{note}/relevance', [UserNoteController::class, 'updateRelevance'])
+    ->name('user-notes.update-relevance');
+    Route::put('/user-notes/{note}/pin', [UserNoteController::class, 'togglePin'])
+    ->name('user-notes.toggle-pin');
+    Route::put('/user-notes/{note}/archive', [UserNoteController::class, 'toggleArchive'])
+    ->name('user-notes.toggle-archive');
+    Route::delete('/user-notes/{note}', [UserNoteController::class, 'destroy'])->name('user-notes.destroy');
+    Route::get('/user-notes/owner-reminders', [UserNoteController::class, 'ownerReminders'])->name('user-notes.owner-reminders');
 
     //User Preferences:
     Route::post('user-preferences/store', [UserPreferenceController::class, 'store'])->name('user-preferences.store');

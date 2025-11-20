@@ -92,7 +92,9 @@ class UserController extends Controller{
                 'users.search',
                 'users.show',
                 'users.update',
+                'customers.create',
                 'customers.edit',
+                'providers.create',
                 'providers.edit',
                 'crm-accounts.edit'
             ]);   
@@ -405,6 +407,9 @@ class UserController extends Controller{
 
         $slug = 'users';
 
+        //Perfil propio:
+        $profile = $user->id == Auth::id()? true:false;
+
         //Formateo de datos:
         $user->formatted_created_at = Carbon::parse($user->created_at)->format($locale[4].' H:i:s');
         $user->formatted_updated_at = Carbon::parse($user->updated_at)->format($locale[4].' H:i:s');
@@ -531,6 +536,8 @@ class UserController extends Controller{
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 
         $company = false;
+        //Perfil propio:
+        $profile = $user->id == Auth::id()? true:false;
 
         // 1) Timestamps bonitos
         $user->formatted_created_at = Carbon::parse($user->created_at)->format($locale[4].' H:i:s');
@@ -840,7 +847,7 @@ class UserController extends Controller{
 
         return Inertia::render('Admin/User/Contacts', [
             "title" => __($this->option),
-            "subtitle" => __('contactos'),
+            "subtitle" => __('contactos_cli_pro'),
             "module" => $this->module,
             "slug" => 'contacts',
             "contacts" => UserResource::collection($contacts),
@@ -904,9 +911,12 @@ class UserController extends Controller{
             ->pluck('user_id');
 
         // 3) Users vinculados por crm_contacts a la empresa en sesión
-        $userIdsFromCrm = DB::table('crm_contacts')
-            ->where('company_id', $company_id)
-            ->pluck('user_id');
+        // $userIdsFromCrm = DB::table('crm_contacts')
+        //     ->where('company_id', $company_id)
+        //     ->pluck('user_id');
+        
+        //20/11/2025: Omitimos los contactos CRM y dejamos sólo de empresa, clientes y proveedores:
+        $userIdsFromCrm = [];
 
         // 4) Unión
         $userIds = $userIdsFromCompanies

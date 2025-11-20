@@ -6,8 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+//Concerns:
+use App\Concerns\HasRelevanceLevels;
+
 class UserNote extends Model{
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, HasRelevanceLevels;
 
     protected $table = 'user_notes';
 
