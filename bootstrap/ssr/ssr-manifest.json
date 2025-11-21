@@ -444,6 +444,12 @@
   "resources/js/Pages/Admin/Marketing/Index.jsx": [
     "/build/assets/Show-5Jo2PY6T.js"
   ],
+  "resources/js/Pages/Admin/MarketingCampaign/Index.jsx": [
+    "/build/assets/Index-gJoY6Lo4.js"
+  ],
+  "resources/js/Pages/Admin/MarketingList/Index.jsx": [
+    "/build/assets/Index-DINEdXhj.js"
+  ],
   "resources/js/Pages/Admin/Module/Create.jsx": [
     "/build/assets/Create-CBUz2o8d.js",
     "/build/assets/react-draft-wysiwyg-B0OUxWBp.css"

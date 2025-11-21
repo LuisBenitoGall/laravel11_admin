@@ -93,7 +93,9 @@ use App\Http\Controllers\Admin\InvoiceSettingController;
 // use App\Http\Controllers\Admin\IpAccessController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\IvaTypeController;
+use App\Http\Controllers\Admin\MarketingCampaignController;
 use App\Http\Controllers\Admin\MarketingController;
+use App\Http\Controllers\Admin\MarketingListController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\OrderPatternController;
@@ -586,7 +588,17 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/leads', [CrmAccountController::class, 'index'])->name('leads.index')->middleware('permission:leads');
 
     //Marketing:
-    Route::get('/marketing', [MarketingController::class, 'index'])->name('marketing.index')->middleware('permission:marketing');
+    Route::middleware('module_setted:settings')->group(function (){
+        Route::get('/marketing', [MarketingController::class, 'index'])->name('marketing.index')->middleware('permission:marketing');
+
+
+
+        Route::get('/marketing/lists', [MarketingListController::class, 'index'])->name('marketing-lists.index')->middleware('permission:marketing');
+
+
+
+        Route::get('/marketing-campaigns', [MarketingCampaignController::class, 'index'])->name('marketing-campaigns.index')->middleware('permission:marketing');
+    });
 
     //Modules:
     Route::middleware('module_setted:settings')->group(function (){

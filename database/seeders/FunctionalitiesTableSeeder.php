@@ -627,6 +627,17 @@ class FunctionalitiesTableSeeder extends Seeder{
             'slug' => 'procedure-patterns',
             'label' => 'procedimientos_patrones',
             'module' => 'procedures'
+            ],
+
+            ['name' => 'marketing lists',
+            'slug' => 'marketing-lists',
+            'label' => 'marketing_listas',
+            'module' => 'marketing'
+            ],
+            ['name' => 'marketing campaigns',
+            'slug' => 'marketing-campaigns',
+            'label' => 'campanyas',
+            'module' => 'marketing'
             ]
         ];
 
