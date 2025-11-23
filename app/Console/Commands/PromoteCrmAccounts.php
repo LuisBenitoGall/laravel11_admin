@@ -319,7 +319,6 @@ class PromoteCrmAccounts extends Command
             $wp->name       = 'Sede ' . $company->name;
             $wp->slug       = 'sede-' .  Str::slug($company->name);
             $wp->featured   = 1;
-            $wp->nif_norm   = null;
             $wp->save();
 
             $created = true;

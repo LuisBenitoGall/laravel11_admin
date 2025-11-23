@@ -954,7 +954,6 @@ class PromoteCrmMarketingListMembers extends Command
                     $wp->name       = ucfirst(trans('textos.sede')) . ' ' . $company->name;
                     $wp->slug       = Str::slug(trans('textos.sede') . '-' . $company->id);
                     $wp->featured   = 1;
-                    $wp->nif_norm   = null;
                     $wp->save();  
                 }
 

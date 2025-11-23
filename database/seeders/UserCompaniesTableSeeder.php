@@ -53,8 +53,7 @@ class UserCompaniesTableSeeder extends Seeder{
             'name' => 'ACME Headquarters',
             'slug' => 'acme-headquarters',
             'company_id' => $company->id,
-            'featured' => true,
-            'nif_norm' => null
+            'featured' => true
         ];
         Workplace::create($data);
 
