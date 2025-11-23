@@ -316,9 +316,10 @@ class PromoteCrmAccounts extends Command
             // Sede por defecto
             $wp = new Workplace();
             $wp->company_id = $company->id;
-            $wp->name       = ucfirst(trans('textos.sede')) . ' ' . $company->name;
-            $wp->slug       = Str::slug(trans('textos.sede') . '-' . $company->id);
+            $wp->name       = 'Sede ' . $company->name;
+            $wp->slug       = 'sede-' .  Str::slug($company->name);
             $wp->featured   = 1;
+            $wp->nif_norm   = null;
             $wp->save();
 
             $created = true;

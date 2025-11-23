@@ -96,8 +96,6 @@ En el archivo config/constants.php se definen constantes personalizadas.
 - php artisan crm:import-campaigns-express --dry-run
 - php artisan crm:import-campaigns-express
 
-- php artisan crm:import-marketing-list-members --dry-run
-- php artisan crm:import-marketing-list-members
 
 ## COMANDOS PROMOCIÓN DYNAMICS 35 --> BD:
 - php artisan crm:promote-accounts      !!Asegurarse que se ha hecho la importación de currencies.
@@ -106,6 +104,11 @@ En el archivo config/constants.php se definen constantes personalizadas.
 - php artisan crm:promote-marketing-lists
 - php artisan crm:promote-campaigns
 - php artisan crm:promote-campaigns-express
+
+  Esta importación debe ejecutarse en este orden, tras promote_marketing_lists:
+- php artisan crm:import-marketing-list-members --dry-run
+- php artisan crm:import-marketing-list-members
+
 - php artisan crm:promote-marketing-list-members
 
 
