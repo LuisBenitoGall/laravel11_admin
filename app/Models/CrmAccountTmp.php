@@ -10,9 +10,9 @@ class CrmAccountTmp extends Model
 
     protected $fillable = [
         'external_id',
-        'name',
+        'account_name',
         'main_phone',
-        'billing_city',
+        'city',
         'main_contact',
         'main_email',
         'second_email',

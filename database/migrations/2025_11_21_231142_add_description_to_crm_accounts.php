@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('crm_accounts', function (Blueprint $table) {
-            $table->string('normalized_name', 255)->nullable()->after('name')->index();
+            $table->text('description')->nullable()->after('shipping_country_code');
         });
     }
 
@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('crm_accounts', function (Blueprint $table) {
-            $table->dropColumn(['normalized_name']);
+            $table->dropColumn(['description']);
         });
     }
 };

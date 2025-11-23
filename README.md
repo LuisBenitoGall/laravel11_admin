@@ -77,12 +77,36 @@ En el archivo config/constants.php se definen constantes personalizadas.
 - Lanzar: php artisan schedule:run
 
 
-## IMPORTACIÓN DESDE DYNAMICS 365:
+## COMANDOS IMPORTACIÓN DESDE DYNAMICS 365:
 - php artisan crm:import-accounts --dry-run
 - php artisan crm:import-accounts
+
 - php artisan crm:import-contacts --dry-run
 - php artisan crm:import-contacts
 
+- php artisan crm:import-potential-customers --dry-run
+- php artisan crm:import-potential-customers
+
+- php artisan crm:import-marketing-lists --dry-run
+- php artisan crm:import-marketing-lists
+
+- php artisan crm:import-campaigns --dry-run
+- php artisan crm:import-campaigns
+
+- php artisan crm:import-campaigns-express --dry-run
+- php artisan crm:import-campaigns-express
+
+- php artisan crm:import-marketing-list-members --dry-run
+- php artisan crm:import-marketing-list-members
+
+## COMANDOS PROMOCIÓN DYNAMICS 35 --> BD:
+- php artisan crm:promote-accounts      !!Asegurarse que se ha hecho la importación de currencies.
+- php artisan crm:promote-contacts
+- php artisan crm:promote-potential-customers
+- php artisan crm:promote-marketing-lists
+- php artisan crm:promote-campaigns
+- php artisan crm:promote-campaigns-express
+- php artisan crm:promote-marketing-list-members
 
 
 ## IA CHAT GPT. Indicaciones para la réplica de elementos en el proyecto.

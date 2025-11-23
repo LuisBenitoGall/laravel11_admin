@@ -15,6 +15,7 @@ class CrmContactTmp extends Model{
         'external_id',
         'email',
         'company_name',
+        'normalized_company_name',
         'company_phone',
         'status',
         'user_name',

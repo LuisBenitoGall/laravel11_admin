@@ -832,6 +832,11 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::delete('/units/{unit}', [UnitController::class, 'destroy'])->name('units.destroy')->middleware('permission:units.destroy');
     Route::post('units/status', [UnitController::class, 'status'])->name('units.status')->middleware('permission:units.edit');
 
+    //User Addresses:
+    Route::post('/user-addresses', [UserAddressController::class, 'store'])->name('user-addresses.store');
+    Route::put('/user-addresses/{address}', [UserAddressController::class, 'update'])->name('user-addresses.update');
+    Route::delete('/user-addresses/{address}', [UserAddressController::class, 'destroy'])->name('user-addresses.destroy');
+
     //User Column Preferences:  No requiere permisos.
     Route::get('/column-preferences', [UserColumnPreferenceController::class, 'index'])->name('column-preferences.index');
     Route::post('/column-preferences', [UserColumnPreferenceController::class, 'store'])->name('column-preferences.store');
@@ -844,7 +849,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::delete('/user-images/{image}', [UserImageController::class, 'destroy'])->name('user-images.delete');
     Route::post('/user-images/set-featured', [UserImageController::class, 'setFeatured'])->name('user-images.set-featured');
 
-    //User notes:
+    //User Notes:
     Route::post('/user-notes/store', [UserNoteController::class, 'store'])->name('user-notes.store');
     Route::get('user-notes/{user}/show', [UserNoteController::class, 'show'])->name('user-notes.show');
     Route::put('user-notes/{note}/reminder', [UserNoteController::class, 'updateReminder'])->name('user-notes.update-reminder');

@@ -21,7 +21,7 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id');
 
             // Cuenta de CRM a la que se vincula este contacto
-            $table->unsignedBigInteger('crm_account_id');
+            $table->unsignedBigInteger('crm_account_id')->nullable();
 
             // Tipo de contacto (usar tamaño 4 por las claves del HasContactTypes)
             $table->char('contact_type', 4)->nullable();

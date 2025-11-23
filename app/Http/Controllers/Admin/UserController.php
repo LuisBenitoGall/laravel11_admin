@@ -340,6 +340,8 @@ class UserController extends Controller{
             $cc->user_id = $user->id;
             $cc->crm_account_id = $request->crm_account_id;
             $cc->contact_type = $request->contact_type;
+            $cc->position = $request->position;
+            $cc->department = $request->department;
             $cc->owner_id = Auth::id();
             $cc->save();
         }
