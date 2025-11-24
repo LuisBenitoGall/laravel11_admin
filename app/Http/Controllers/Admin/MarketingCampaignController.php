@@ -47,6 +47,7 @@ class MarketingCampaignController extends Controller
      * 1.1. Data para exportación.
      * 1.2. Data Query.
      * 2. Formulario nueva campaña.
+     * 3. Guarda nueva campaña.
      */
     
 
@@ -175,5 +176,12 @@ class MarketingCampaignController extends Controller
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions
         ]);    
+    }
+
+    /**
+     * 3. Guarda nueva campaña.
+     */
+    public function store(MarketingCampaignStoreRequest $request){
+        
     }
 }

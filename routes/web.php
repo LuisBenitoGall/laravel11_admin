@@ -480,6 +480,12 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
         Route::get('/crm-opportunities', [CrmOpportunityController::class, 'index'])->name('crm-opportunities.index')->middleware('permission:crm-opportunities.index');
     });
 
+    //CRM Opportunities:
+    Route::middleware('module_setted:crm')->group(function (){
+        Route::get('/crm-opportunities', [CrmAccountController::class, 'index'])->name('crm-opportunities.index');
+        Route::get('/crm-opportunities/filtered-data', [CrmAccountController::class, 'filteredData'])->name('crm-opportunities.filtered-data');
+    });
+
     //Currencies:
     Route::middleware('module_setted:settings')->group(function (){
         Route::get('/currencies', [CurrencyController::class, 'index'])->name('currencies.index')->middleware('permission:currencies.index');
@@ -605,8 +611,8 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/marketing-campaigns/{campaign}/edit/{tab?}', [MarketingCampaignController::class, 'edit'])->name('marketing-campaigns.edit')->middleware('permission:marketing-campaigns.edit');
     Route::delete('/marketing-campaigns/{campaign}', [MarketingCampaignController::class, 'destroy'])->name('marketing-campaigns.destroy')->middleware('permission:marketing-campaigns.destroy');
 
-    //Marketins Lists:
-    Route::get('/marketing/lists', [MarketingListController::class, 'index'])->name('marketing-lists.index')->middleware('permission:marketing');
+    //Marketing Lists:
+    Route::get('/marketing-lists', [MarketingListController::class, 'index'])->name('marketing-lists.index')->middleware('permission:marketing');
     Route::get('/marketing-lists/create', [MarketingListController::class, 'create'])->name('marketing-lists.create')->middleware('permission:marketing-lists.create');
     Route::post('/marketing-lists/store', [MarketingListController::class, 'store'])->name('marketing-lists.store')->middleware('permission:marketing-lists.create');
     Route::get('/marketing-lists/{campaign}/show', [MarketingListController::class, 'show'])->name('marketing-lists.show');
