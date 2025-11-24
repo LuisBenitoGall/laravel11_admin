@@ -101,7 +101,7 @@
     "/build/assets/useTableManagement-BYbZ3SAG.js"
   ],
   "resources/js/Components/RelevanceSelect.jsx": [
-    "/build/assets/Edit-OjQ45kW8.js",
+    "/build/assets/Edit-AknKIBmp.js",
     "/build/assets/react-draft-wysiwyg-B0OUxWBp.css",
     "/build/assets/react-datepicker-Do_pkREf.css"
   ],
@@ -155,7 +155,7 @@
     "/build/assets/react-draft-wysiwyg-B0OUxWBp.css"
   ],
   "resources/js/Components/UserNoteForm.jsx": [
-    "/build/assets/Edit-OjQ45kW8.js",
+    "/build/assets/Edit-AknKIBmp.js",
     "/build/assets/react-draft-wysiwyg-B0OUxWBp.css",
     "/build/assets/react-datepicker-Do_pkREf.css"
   ],
@@ -183,7 +183,7 @@
     "/build/assets/ModalUserCreate-BDh7CCp1.js"
   ],
   "resources/js/Components/modals/ModalUserNoteCreate.jsx": [
-    "/build/assets/Edit-OjQ45kW8.js",
+    "/build/assets/Edit-AknKIBmp.js",
     "/build/assets/react-draft-wysiwyg-B0OUxWBp.css",
     "/build/assets/react-datepicker-Do_pkREf.css"
   ],
@@ -445,10 +445,13 @@
     "/build/assets/Show-5Jo2PY6T.js"
   ],
   "resources/js/Pages/Admin/MarketingCampaign/Index.jsx": [
-    "/build/assets/Index-gJoY6Lo4.js"
+    "/build/assets/Index-bANe3-xY.js"
+  ],
+  "resources/js/Pages/Admin/MarketingCampaign/Partials/MarketingCampaignShowView.jsx": [
+    "/build/assets/MarketingCampaignShowView-CqvayBUA.js"
   ],
   "resources/js/Pages/Admin/MarketingList/Index.jsx": [
-    "/build/assets/Index-DINEdXhj.js"
+    "/build/assets/Index-gJoY6Lo4.js"
   ],
   "resources/js/Pages/Admin/Module/Create.jsx": [
     "/build/assets/Create-CBUz2o8d.js",
@@ -601,7 +604,7 @@
     "/build/assets/Create-DonVKn-D.js"
   ],
   "resources/js/Pages/Admin/User/Edit.jsx": [
-    "/build/assets/Edit-OjQ45kW8.js",
+    "/build/assets/Edit-AknKIBmp.js",
     "/build/assets/react-draft-wysiwyg-B0OUxWBp.css",
     "/build/assets/react-datepicker-Do_pkREf.css"
   ],
@@ -619,7 +622,7 @@
     "/build/assets/UserImages-CZESt1jq.js"
   ],
   "resources/js/Pages/Admin/User/Partials/UserNotes.jsx": [
-    "/build/assets/UserNotes-CAq11WAr.js",
+    "/build/assets/UserNotes-T01UE5--.js",
     "/build/assets/react-datepicker-Do_pkREf.css",
     "/build/assets/react-draft-wysiwyg-B0OUxWBp.css"
   ],

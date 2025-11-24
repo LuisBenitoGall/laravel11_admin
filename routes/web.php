@@ -594,11 +594,16 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
 
 
         Route::get('/marketing/lists', [MarketingListController::class, 'index'])->name('marketing-lists.index')->middleware('permission:marketing');
-
-
-
-        Route::get('/marketing-campaigns', [MarketingCampaignController::class, 'index'])->name('marketing-campaigns.index')->middleware('permission:marketing');
+        
     });
+
+    //Marketing Campaigns:
+    Route::get('/marketing-campaigns', [MarketingCampaignController::class, 'index'])->name('marketing-campaigns.index')->middleware('permission:marketing');
+    Route::get('/marketing-campaigns/create', [MarketingCampaignController::class, 'create'])->name('marketing-campaigns.create')->middleware('permission:marketing-campaigns.create');
+    Route::post('/marketing-campaigns/store', [MarketingCampaignController::class, 'store'])->name('marketing-campaigns.store')->middleware('permission:marketing-campaigns.create');
+    Route::get('/marketing-campaigns/{campaign}/show', [MarketingCampaignController::class, 'show'])->name('marketing-campaigns.show');
+    Route::get('/marketing-campaigns/{campaign}/edit/{tab?}', [MarketingCampaignController::class, 'edit'])->name('marketing-campaigns.edit')->middleware('permission:marketing-campaigns.edit');
+    Route::delete('/marketing-campaigns/{campaign}', [MarketingCampaignController::class, 'destroy'])->name('marketing-campaigns.destroy')->middleware('permission:marketing-campaigns.destroy');
 
     //Modules:
     Route::middleware('module_setted:settings')->group(function (){

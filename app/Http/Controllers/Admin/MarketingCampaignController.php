@@ -60,15 +60,13 @@ class MarketingCampaignController extends Controller
     public function __construct(){
         if(session('currentCompany')){
             $this->permissions = $this->resolvePermissions([
-                'marketing.create',
-                'marketing.destroy',
-                'marketing.edit',
-                'marketing.index',
-                'marketing.search',
-                'marketing.show',
-                'marketing.update',
-                'customers.create',
-                'providers.create'
+                'marketing-campaigns.create',
+                'marketing-campaigns.destroy',
+                'marketing-campaigns.edit',
+                'marketing-campaigns.index',
+                'marketing-campaigns.search',
+                'marketing-campaigns.show',
+                'marketing-campaigns.update'
             ]);   
         } 
     }   

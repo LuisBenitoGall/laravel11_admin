@@ -514,8 +514,8 @@ export default function UserNotes({
                 )}
 
                 {notes.length === 0 && !loading && !error && (
-                    <p className="text-muted mb-0">
-                        {__('sin_notas_para_usuario') || 'No hay notas para este usuario.'}
+                    <p className="text-center text-warning my-5">
+                        {__('notas_no_mas') || 'No hay notas para este usuario.'}
                     </p>
                 )}
 
