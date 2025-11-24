@@ -27,7 +27,7 @@ return new class extends Migration
 
             // Datos básicos
             $table->string('name');
-            $table->string('campaign_code');
+            $table->string('campaign_code')->nullable();
             $table->string('campaign_type', 50)->nullable();
 
             $table->text('description')->nullable();

@@ -245,7 +245,7 @@ export default function Index({ auth, session, title, subtitle, contacts, queryP
                     currentPage={contacts.meta.current_page}
                     perPage={contacts.meta.per_page}
                     onPageChange={(page) => {
-                        router.get(route("contacts.index"), {
+                        router.get(route("crm-contacts.index"), {
                             ...queryParams,
                             page,
                             per_page: perPage,

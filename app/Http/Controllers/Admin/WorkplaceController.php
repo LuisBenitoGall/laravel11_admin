@@ -127,7 +127,7 @@ class WorkplaceController extends Controller{
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions,
             "columnPreferences" => UserColumnPreference::forUserAndTables(
-                auth()->id(),
+                Auth::id(),
                 ['tblWorkplaces']
             ),
         ]);

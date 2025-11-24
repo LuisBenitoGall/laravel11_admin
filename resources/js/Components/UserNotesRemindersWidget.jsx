@@ -129,7 +129,7 @@ export default function UserNotesRemindersWidget() {
 
                 {!loading && !error && !hasReminders && (
                     <p className="text-muted small mb-0">
-                        {__('sin_recordatorios_notas') ||
+                        {__('notas_no_mas') ||
                             'No tienes recordatorios de notas pendientes.'}
                     </p>
                 )}

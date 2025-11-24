@@ -20,7 +20,7 @@ class Workplace extends Model{
     protected $table = 'workplaces';
 
     protected $fillable = [
-        'company_id','name','slug','featured','logo','address','cp','town_id','nif','website','description','status', 'nif_norm'
+        'company_id','name','slug','featured','logo','address','cp','town_id','nif','website','description','status'
     ];
 
     protected function casts(): array {

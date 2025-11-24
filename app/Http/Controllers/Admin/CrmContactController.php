@@ -161,36 +161,48 @@ class CrmContactController extends Controller{
             return User::query()->whereRaw('1 = 0');
         }
 
-        // 5) Query base con joins y campos extra
         $query = User::query()
-            ->from('users')
-            // empresa distinta de la de sesión (para position)
-            ->leftJoin('user_companies as uc', function ($j) use ($company_id) {
-                $j->on('uc.user_id', '=', 'users.id')
-                  ->where('uc.company_id', '!=', $company_id);
-            })
-            // cuenta CRM vinculada (para edit_crm_account_id)
-            ->leftJoin('crm_accounts as ca', function ($j) use ($company_id) {
-                $j->on('ca.linked_company_id', '=', 'uc.company_id')
-                  ->where('ca.company_id', '=', $company_id);
-            })
-            // contactos CRM para la empresa en sesión (para contact_type)
-            ->leftJoin('crm_contacts as cc', function ($j) use ($company_id) {
-                $j->on('cc.user_id', '=', 'users.id')
-                  ->where('cc.company_id', '=', $company_id);
-            })
-            ->with(['avatar', 'phones'])
-            ->whereIn('users.id', $userIds)
-            ->select([
-                'users.*',
-                DB::raw('MIN(uc.company_id)   as edit_company_id'),
-                DB::raw('MIN(ca.id)           as edit_crm_account_id'),
-                DB::raw('MIN(uc.position)     as position'),
-                DB::raw('MAX(cc.contact_type) as contact_type'),
-            ])
-            ->groupBy('users.id');
+        ->from('users')
+        // empresa distinta de la de sesión (para position)
+        ->leftJoin('user_companies as uc', function ($j) use ($company_id) {
+            $j->on('uc.user_id', '=', 'users.id')
+              ->where('uc.company_id', '!=', $company_id);
+        })
+        // cuenta CRM vinculada (para edit_crm_account_id)
+        ->leftJoin('crm_accounts as ca', function ($j) use ($company_id) {
+            $j->on('ca.linked_company_id', '=', 'uc.company_id')
+              ->where('ca.company_id', '=', $company_id);
+        })
+        // contactos CRM para la empresa en sesión (para contact_type)
+        ->leftJoin('crm_contacts as cc', function ($j) use ($company_id) {
+            $j->on('cc.user_id', '=', 'users.id')
+              ->where('cc.company_id', '=', $company_id);
+        })
+        ->with(['avatar', 'phones'])
+        ->whereIn('users.id', $userIds)
+        ->select([
+            // SOLO las columnas de users que necesitas en el listado
+            'users.id',
+            'users.name',
+            'users.surname',
+            'users.email',
+            'users.status',
 
-        // 6) Filtros
+            // Campos agregados
+            DB::raw('MIN(uc.company_id)   as edit_company_id'),
+            DB::raw('MIN(ca.id)           as edit_crm_account_id'),
+            DB::raw('MIN(uc.position)     as position'),
+            DB::raw('MAX(cc.contact_type) as contact_type'),
+        ])
+        ->groupBy(
+            'users.id',
+            'users.name',
+            'users.surname',
+            'users.email',
+            'users.status',
+        );
+
+        // 6) Filtros (lo de abajo lo puedes dejar igual)
         $filters = [
             'name' => function ($q, $v) {
                 $q->where(function ($sub) use ($v) {
@@ -202,7 +214,6 @@ class CrmContactController extends Controller{
             'phones' => function ($q, $v) {
                 $q->whereHas('phones', fn ($sub) => $sub->where('phone_number', 'like', "%$v%"));
             },
-            // si sigues usando categorías en otros contextos, esto puede quedarse
             'categories' => function ($q, $v) use ($company_id) {
                 $q->whereHas('categories', function ($sub) use ($company_id, $v) {
                     if ($company_id !== 'all') {
@@ -212,9 +223,7 @@ class CrmContactController extends Controller{
                         ->where('categories.name', 'like', "%$v%");
                 });
             },
-            // nuevo: filtro por cargo
             'position' => fn ($q, $v) => $q->where('uc.position', 'like', "%{$v}%"),
-            // nuevo: filtro por tipo de contacto (código)
             'contact_type' => fn ($q, $v) => $q->where('cc.contact_type', 'like', "%{$v}%"),
         ];
 
@@ -224,7 +233,7 @@ class CrmContactController extends Controller{
             }
         }
 
-        // 7) Rango de fechas
+        // 7) Rango de fechas (igual)
         $from = $request->input('date_from');
         $to   = $request->input('date_to');
 
@@ -236,7 +245,7 @@ class CrmContactController extends Controller{
             $query->where('users.created_at', '<=', "$to 23:59:59");
         }
 
-        // 8) Orden
+        // 8) Orden (todos los campos permitidos están en el SELECT y en el GROUP BY)
         $sortField     = $request->input('sort_field', 'name');
         $sortDirection = $request->input('sort_direction', 'ASC');
         $allowedSortFields = ['name', 'surname', 'email'];
