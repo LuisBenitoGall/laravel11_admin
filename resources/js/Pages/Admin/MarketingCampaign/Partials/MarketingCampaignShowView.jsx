@@ -3,7 +3,7 @@ import React from 'react';
 //Hooks:
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function CrmcampaignShowView({ record }) {
+export default function CrmCampaignShowView({ record }) {
     const __ = useTranslation();
     const campaign = record;
     const today = new Date();
@@ -30,7 +30,7 @@ export default function CrmcampaignShowView({ record }) {
             <hr />
 
             <div className="vertical-scroll">
-                {/* Datos personales */}
+                {/* Datos genéricos */}
                 <div className="row mb-4">
                     <div className="col-md-9">
                         <h5 className="mb-3">{ __('datos_basicos') }</h5>

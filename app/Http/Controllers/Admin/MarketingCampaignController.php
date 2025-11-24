@@ -125,9 +125,6 @@ class MarketingCampaignController extends Controller
         // Filtros dinámicos
         $filters = [
             'name' => fn($q, $v) => $q->where('name', 'like', "%$v%"),
-            'tradename' => fn($q, $v) => $q->where('tradename', 'like', "%$v%"),
-            'nif' => fn($q, $v) => $q->where('nif', 'like', "%$v%"),
-            'is_ute' => fn($q, $v) => $q->where('is_ute', $v)
         ];
 
         foreach($filters as $key => $callback){
@@ -174,7 +171,7 @@ class MarketingCampaignController extends Controller
             "title" => __($this->option),
             "subtitle" => __('campanya_nueva'),
             'module' => $this->module,
-            "slug" => 'companies',
+            "slug" => 'marketing-campaigns',
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions
         ]);    
