@@ -913,12 +913,8 @@ class UserController extends Controller{
             ->pluck('user_id');
 
         // 3) Users vinculados por crm_contacts a la empresa en sesión
-        // $userIdsFromCrm = DB::table('crm_contacts')
-        //     ->where('company_id', $company_id)
-        //     ->pluck('user_id');
-        
-        //20/11/2025: Omitimos los contactos CRM y dejamos sólo de empresa, clientes y proveedores:
-        $userIdsFromCrm = [];
+        // 20/11/2025: Omitimos los contactos CRM y dejamos sólo de empresa, clientes y proveedores:
+        $userIdsFromCrm = collect(); // mejor colección vacía que array
 
         // 4) Unión
         $userIds = $userIdsFromCompanies
@@ -952,13 +948,25 @@ class UserController extends Controller{
             ->with(['avatar', 'phones'])
             ->whereIn('users.id', $userIds)
             ->select([
-                'users.*',
+                // SOLO las columnas de users que vas a usar en la vista
+                'users.id',
+                'users.name',
+                'users.surname',
+                'users.email',
+                'users.status',
+
                 DB::raw('MIN(uc.company_id)   as edit_company_id'),
                 DB::raw('MIN(ca.id)           as edit_crm_account_id'),
                 DB::raw('MIN(uc.position)     as position'),
                 DB::raw('MAX(cc.contact_type) as contact_type'),
             ])
-            ->groupBy('users.id');
+            ->groupBy(
+                'users.id',
+                'users.name',
+                'users.surname',
+                'users.email',
+                'users.status',
+            );
 
         // 6) Filtros
         $filters = [
@@ -972,7 +980,6 @@ class UserController extends Controller{
             'phones' => function ($q, $v) {
                 $q->whereHas('phones', fn ($sub) => $sub->where('phone_number', 'like', "%$v%"));
             },
-            // si sigues usando categorías en otros contextos, esto puede quedarse
             'categories' => function ($q, $v) use ($company_id) {
                 $q->whereHas('categories', function ($sub) use ($company_id, $v) {
                     if ($company_id !== 'all') {
@@ -982,9 +989,7 @@ class UserController extends Controller{
                         ->where('categories.name', 'like', "%$v%");
                 });
             },
-            // nuevo: filtro por cargo
             'position' => fn ($q, $v) => $q->where('uc.position', 'like', "%{$v}%"),
-            // nuevo: filtro por tipo de contacto (código)
             'contact_type' => fn ($q, $v) => $q->where('cc.contact_type', 'like', "%{$v}%"),
         ];
 
