@@ -45,12 +45,27 @@ class WpFormController extends Controller
 
         $contact_type = 'otrc';
 
-        $name = $request->input('your_name');
-        $surname = $request->input('your_surname');
-        $email = $request->input('your_email');
-        $subject = $request->input('your_subject');
-        $message = $request->input('your_message');
-        $acceptance = $request->input('acceptance_951');
+        $name    = trim((string) $request->input('your_name'));
+        $surname = trim((string) $request->input('your_surname'));
+        $email   = trim((string) $request->input('your_email'));
+        $subject = (string) $request->input('your_subject');
+        $message =  (string)$request->input('your_message');
+        //$acceptance = $request->input('acceptance_951');
+
+        if ($email === '') {
+            return response()->json([
+                'success' => false,
+                'error'   => 'Missing email',
+            ], 400);
+        }
+
+        // Si quieres rizar un poco el rizo:
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return response()->json([
+                'success' => false,
+                'error'   => 'Invalid email format',
+            ], 400);
+        }
 
         //Verificamos existencia por email:
         $user = User::where('email', trim($email))->first();
@@ -106,12 +121,27 @@ class WpFormController extends Controller
 
         $contact_type = 'newl';
 
-        $name = $request->input('your_name');
-        $surname = $request->input('your_surname');
-        $email = $request->input('your_email');
-        $product = $request->input('producto');
-        $service = $request->input('servicio');
+        $name    = trim((string) $request->input('your_name'));
+        $surname = trim((string) $request->input('your_surname'));
+        $email   = trim((string) $request->input('your_email'));
+        $product = (string) $request->input('producto');
+        $service = (string) $request->input('servicio');
         //$acceptance = $request->input('acceptance_951');
+
+        if ($email === '') {
+            return response()->json([
+                'success' => false,
+                'error'   => 'Missing email',
+            ], 400);
+        }
+
+        // Si quieres rizar un poco el rizo:
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return response()->json([
+                'success' => false,
+                'error'   => 'Invalid email format',
+            ], 400);
+        }
 
         //Verificamos existencia por email:
         $user = User::where('email', trim($email))->first();
