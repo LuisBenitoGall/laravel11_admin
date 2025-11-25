@@ -29,7 +29,7 @@ export default function Index({ auth, session, title, subtitle, list, availableL
     // Set formulario:
     const {data, setData, errors, processing} = useForm({
         name: list.name || '',
-        status: relation.status
+        status: list.status
     });
 
     //Acciones:
@@ -64,11 +64,11 @@ export default function Index({ auth, session, title, subtitle, list, availableL
                     {/* Info */}
                     <div className="col-12 mt-2 mb-4">
                         <span className="text-muted me-5">
-                            {__('creado')}: <strong>{relation.formatted_created_at}</strong> 
+                            {__('creado')}: <strong>{list.formatted_created_at}</strong> 
                         </span>
 
                         <span className="text-muted">
-                            {__('actualizado')}: <strong>{relation.formatted_updated_at}</strong>
+                            {__('actualizado')}: <strong>{list.formatted_updated_at}</strong>
                         </span>
                     </div>
                 </div>
