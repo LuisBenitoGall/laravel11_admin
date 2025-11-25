@@ -253,7 +253,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/agencies', [AgencyController::class, 'index'])->name('agencies.index')->middleware('permission:agencies.index');
 
     //Admin Dashboard:
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index')->middleware('permission:dashboard.index');
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
 
     //Amortizations:
     Route::middleware('module_setted:accounting')->group(function (){
@@ -596,10 +596,6 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     //Marketing:
     Route::middleware('module_setted:settings')->group(function (){
         Route::get('/marketing', [MarketingController::class, 'index'])->name('marketing.index')->middleware('permission:marketing');
-
-
-
-        
         
     });
 
@@ -618,6 +614,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/marketing-lists/{campaign}/show', [MarketingListController::class, 'show'])->name('marketing-lists.show');
     Route::get('/marketing-lists/{campaign}/edit/{tab?}', [MarketingListController::class, 'edit'])->name('marketing-lists.edit')->middleware('permission:marketing-lists.edit');
     Route::delete('/marketing-lists/{campaign}', [MarketingListController::class, 'destroy'])->name('marketing-lists.destroy')->middleware('permission:marketing-lists.destroy');
+    Route::post('marketing-lists/status', [MarketingListController::class, 'status'])->name('marketing-lists.status')->middleware('permission:marketing-lists.edit');
 
     //Modules:
     Route::middleware('module_setted:settings')->group(function (){

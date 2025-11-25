@@ -85,7 +85,7 @@ export default function Create({ auth, session, title, subtitle, owners = [], cu
                 {/* Formulario */}
                 <form onSubmit={handleSubmit}>
                     <div className="row gy-3">
-                        {/* Nombre campanya */}
+                        {/* Nombre campaña */}
                         <div className="col-lg-6">
                             <div>
                                 <label htmlFor="name" className="form-label">

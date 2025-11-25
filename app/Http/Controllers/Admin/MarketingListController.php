@@ -47,6 +47,12 @@ class MarketingListController extends Controller
      * 1.1. Data para exportación.
      * 1.2. Data Query.
      * 2. Formulario nueva lista.
+     * 3. Guardar nueva lista.
+     * 4. Mostrar lista.
+     * 5. Editar lista.
+     * 6. Actualizar lista.
+     * 7. Eliminar lista.
+     * 8. Actualizar estado.
      */
 
     use HasUserPermissionsTrait;
@@ -171,5 +177,66 @@ class MarketingListController extends Controller
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions
         ]);    
+    }
+
+    /**
+     * 3. Guardar nueva lista.
+     */
+    public function store(MarketingListStoreRequest $request){
+
+
+
+    }
+
+    /**
+     * 4. Mostrar lista.
+     */
+    public function show(Request $request, MarketingList $list){
+
+    }
+
+    /**
+     * 5. Editar lista.
+     */
+    public function edit(MarketingList $list){
+
+    }
+
+    /**
+     * 6. Actualizar lista.
+     */
+    public function update(MarketingListUpdateRequest $request, MarketingList $list){
+
+    }
+
+    /**
+     * 7. Eliminar lista.
+     */
+    public function destroy(MarketingList $list){
+        $list_id = $list->id;
+    
+        $list->delete();
+
+        return redirect()->route('marketing-lists.index')->with('msg', __('lista_eliminada'));
+    }
+
+    /**
+     * 8. Actualizar estado.
+     */
+    public function status(Request $request){
+        $list = MarketingList::find($request->id);
+
+        if(!$list){
+            return response()->json(['error' => __('lista_no_encontrada')], 404);
+        }
+
+        $list->status = !$list->status;
+        $list->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => __('estado_actualizado_ok'),
+            'new_status' => $list->status
+        ]);
     }
 }

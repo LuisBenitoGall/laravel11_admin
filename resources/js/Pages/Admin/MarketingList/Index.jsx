@@ -47,10 +47,8 @@ export default function Index({ auth, session, title, subtitle, lists, queryPara
     //Columnas:
     const columns = [
         { key: 'name', label: __('lista'), sort: true, filter: 'text', type: 'link', link: 'marketing-lists.edit', class_th: '', class_td: '', placeholder: __('lista_filtrar') },
-        { key: 'code', label: __('codigo'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('codigo_filtrar') },
-        { key: 'type', label: __('tipo'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('tipo_filtrar') },
-        { key: 'start_at', label: __('fecha_inicio'), sort: true, filter: 'date', class_th: 'text-center', class_td: 'text-end', placeholder: __('fecha_inicio'), dateKeys: ['date_from', 'date_to'] },
-        { key: 'finish_at', label: __('fecha_fin'), sort: true, filter: 'date', class_th: 'text-center', class_td: 'text-end', placeholder: __('fecha_fin'), dateKeys: ['date_from', 'date_to'] },
+        { key: 'members_count', label: __('miembros'), sort: true, filter: '', class_th: 'text-center', class_td: 'text-end' },
+        { key: 'created_by', label: __('creado'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_filtrar') }
     ];    
 
     //Métodos de la tabla:

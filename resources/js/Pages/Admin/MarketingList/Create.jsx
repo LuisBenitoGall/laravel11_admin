@@ -114,281 +114,68 @@ export default function Create({
         <AdminAuthenticatedLayout
             user={auth.user}
             title={title}
-            subtitle={subtitle || __('Nueva lista de marketing')}
+            subtitle={subtitle}
             actions={actions}
         >
             <Head title={title} />
 
             <div className="contents pb-4">
-                <div className="row">
-                    <div className="col-lg-9">
-                        <div className="card">
-                            <div className="card-header d-flex justify-content-between align-items-center">
-                                <h5 className="mb-0">{__('Datos principales')}</h5>
-                                {currentCompany && (
-                                    <span className="badge bg-light text-muted">
-                                        {__('Empresa')}: {currentCompany.name}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="card-body">
-                                <form onSubmit={handleSubmit} noValidate>
-                                    <div className="row mb-3">
-                                        {/* Propietario */}
-                                        <div className="col-md-6">
-                                            <label htmlFor="owner_id" className="form-label">
-                                                {__('Propietario')}
-                                            </label>
-                                            <SelectInput
-                                                id="owner_id"
-                                                name="owner_id"
-                                                className="form-select"
-                                                value={data.owner_id || ''}
-                                                onChange={(e) =>
-                                                    setData('owner_id', e.target.value || '')
-                                                }
-                                            >
-                                                <option value="">
-                                                    {__('Selecciona un usuario responsable')}
-                                                </option>
-                                                {owners.map((user) => (
-                                                    <option key={user.id} value={user.id}>
-                                                        {user.full_name || user.name}
-                                                    </option>
-                                                ))}
-                                            </SelectInput>
-                                            <InputError message={errors.owner_id} className="mt-1" />
-                                        </div>
-
-                                        {/* Estado */}
-                                        <div className="col-md-3">
-                                            <label htmlFor="status" className="form-label d-flex">
-                                                <span>{__('Estado')}</span>
-                                                <InfoPopover
-                                                    id="status_help"
-                                                    content={__('Determina si la lista está activa o inactiva.')}
-                                                />
-                                            </label>
-                                            <SelectInput
-                                                id="status"
-                                                name="status"
-                                                className="form-select"
-                                                value={data.status}
-                                                onChange={(e) =>
-                                                    setData('status', Number(e.target.value))
-                                                }
-                                            >
-                                                {(statusOptions.length
-                                                    ? statusOptions
-                                                    : [
-                                                        { value: 1, label: __('Activa') },
-                                                        { value: 0, label: __('Inactiva') },
-                                                    ]
-                                                ).map((status) => (
-                                                    <option
-                                                        key={status.value}
-                                                        value={status.value}
-                                                    >
-                                                        {status.label}
-                                                    </option>
-                                                ))}
-                                            </SelectInput>
-                                            <InputError message={errors.status} className="mt-1" />
-                                        </div>
-
-                                        {/* Tipo */}
-                                        <div className="col-md-3">
-                                            <label htmlFor="type" className="form-label d-flex">
-                                                <span>{__('Tipo')}</span>
-                                                <InfoPopover
-                                                    id="type_help"
-                                                    content={__(
-                                                        'Puedes usarlo para clasificar listas (estática, dinámica, importar, etc.).'
-                                                    )}
-                                                />
-                                            </label>
-                                            <SelectInput
-                                                id="type"
-                                                name="type"
-                                                className="form-select"
-                                                value={data.type || ''}
-                                                onChange={(e) => setData('type', e.target.value)}
-                                            >
-                                                <option value="">{__('Sin especificar')}</option>
-                                                {(listTypes.length
-                                                    ? listTypes
-                                                    : [
-                                                        { value: 'static', label: __('Estática') },
-                                                        { value: 'dynamic', label: __('Dinámica') },
-                                                    ]
-                                                ).map((item) => (
-                                                    <option key={item.value} value={item.value}>
-                                                        {item.label}
-                                                    </option>
-                                                ))}
-                                            </SelectInput>
-                                            <InputError message={errors.type} className="mt-1" />
-                                        </div>
-                                    </div>
-
-                                    <div className="row mb-3">
-                                        {/* Nombre */}
-                                        <div className="col-md-8">
-                                            <label htmlFor="name" className="form-label">
-                                                {__('Nombre de la lista')}
-                                            </label>
-                                            <TextInput
-                                                id="name"
-                                                name="name"
-                                                type="text"
-                                                className="form-control"
-                                                value={data.name}
-                                                onChange={(e) =>
-                                                    setData('name', e.target.value)
-                                                }
-                                                required
-                                                autoFocus
-                                            />
-                                            <InputError message={errors.name} className="mt-1" />
-                                        </div>
-
-                                        {/* Slug */}
-                                        <div className="col-md-4">
-                                            <label htmlFor="slug" className="form-label d-flex">
-                                                <span>{__('Slug')}</span>
-                                                <InfoPopover
-                                                    id="slug_help"
-                                                    content={__(
-                                                        'Identificador interno único por empresa. Se genera a partir del nombre, pero puedes editarlo.'
-                                                    )}
-                                                />
-                                            </label>
-                                            <TextInput
-                                                id="slug"
-                                                name="slug"
-                                                type="text"
-                                                className="form-control"
-                                                value={data.slug}
-                                                onChange={(e) =>
-                                                    setData('slug', e.target.value)
-                                                }
-                                                required
-                                            />
-                                            <InputError message={errors.slug} className="mt-1" />
-                                        </div>
-                                    </div>
-
-                                    {/* Dinámica / reglas */}
-                                    <div className="row mb-3">
-                                        <div className="col-md-6 d-flex align-items-center">
-                                            <Checkbox
-                                                id="is_dynamic"
-                                                name="is_dynamic"
-                                                checked={Boolean(data.is_dynamic)}
-                                                onChange={(e) =>
-                                                    setData('is_dynamic', e.target.checked)
-                                                }
-                                            />
-                                            <label
-                                                htmlFor="is_dynamic"
-                                                className="ms-2 mb-0"
-                                            >
-                                                {__('Lista dinámica (basada en reglas)')}
-                                            </label>
-                                            <InfoPopover
-                                                id="dynamic_help"
-                                                content={__(
-                                                    'Marca esta opción si la lista se genera o actualiza automáticamente mediante reglas o filtros.'
-                                                )}
-                                            />
-                                            <InputError
-                                                message={errors.is_dynamic}
-                                                className="ms-2"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Observaciones */}
-                                    <div className="mb-3">
-                                        <label htmlFor="observations" className="form-label">
-                                            {__('Observaciones')}
-                                        </label>
-                                        <textarea
-                                            id="observations"
-                                            name="observations"
-                                            className="form-control"
-                                            rows={4}
-                                            value={data.observations || ''}
-                                            onChange={(e) =>
-                                                setData('observations', e.target.value)
-                                            }
-                                        />
-                                        <InputError
-                                            message={errors.observations}
-                                            className="mt-1"
-                                        />
-                                    </div>
-
-                                    <div className="d-flex justify-content-end gap-2 mt-4">
-                                        <SecondaryButton
-                                            type="button"
-                                            className="btn btn-outline-secondary"
-                                            onClick={handleCancel}
-                                            disabled={processing}
-                                        >
-                                            {__('Cancelar')}
-                                        </SecondaryButton>
-                                        <PrimaryButton
-                                            type="submit"
-                                            className="btn btn-primary"
-                                            disabled={processing}
-                                        >
-                                            {processing
-                                                ? __('Guardando...')
-                                                : __('Crear lista')}
-                                        </PrimaryButton>
-                                    </div>
-                                </form>
+                {/* Formulario */}
+                <form onSubmit={handleSubmit}>
+                    <div className="row gy-3">
+                        {/* Nombre lista */}
+                        <div className="col-lg-6">
+                            <div>
+                                <label htmlFor="name" className="form-label">
+                                    {__('nombre')}*
+                                </label>
+                                <TextInput
+                                    id="name"
+                                    type="text"
+                                    placeholder={__('nombre')}
+                                    value={data.name}
+                                    onChange={(e) => setData('name', e.target.value)}
+                                    maxLength={255}
+                                    required
+                                />
+                                <InputError message={errors.name} />
                             </div>
                         </div>
-                    </div>
 
-                    {/* Panel lateral de info / ayuda si quieres rellenarlo luego */}
-                    <div className="col-lg-3 mt-3 mt-lg-0">
-                        <div className="card">
-                            <div className="card-header">
-                                <h6 className="mb-0">{__('Información')}</h6>
-                            </div>
-                            <div className="card-body small text-muted">
-                                <p className="mb-2">
-                                    {__(
-                                        'Una lista de marketing agrupa contactos o cuentas que comparten algún criterio de segmentación.'
-                                    )}
-                                </p>
-                                <p className="mb-0">
-                                    {__(
-                                        'Puedes reutilizar las listas en múltiples campañas, y controlar su uso mediante el campo "Estado" y el tipo.'
-                                    )}
-                                </p>
+                        {/* Observaciones */}
+                        <div className="col-12">
+                            <div>
+                                <label htmlFor="observations" className="form-label">
+                                    {__('Observaciones')}
+                                </label>
+                                <textarea
+                                    id="observations"
+                                    name="observations"
+                                    className="form-control"
+                                    rows={4}
+                                    value={data.observations || ''}
+                                    onChange={(e) =>
+                                        setData('observations', e.target.value)
+                                    }
+                                />
+                                <InputError
+                                    message={errors.observations}
+                                    className="mt-1"
+                                />
                             </div>
                         </div>
+
+
+                        <div className='mt-4 text-end'>
+                            <PrimaryButton disabled={processing} className='btn btn-rdn'>
+                                {processing ? __('procesando')+'...':__('guardar')}
+                            </PrimaryButton>    
+                        </div>
                     </div>
-                </div>
+                </form>
             </div>
         </AdminAuthenticatedLayout>
     );
 }
 
-/**
- * Pequeño helper local para generar slugs
- */
-function slugify(value) {
-    return (value || '')
-        .toString()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-}
+

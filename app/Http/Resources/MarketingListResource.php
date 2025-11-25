@@ -29,6 +29,7 @@ class MarketingListResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'type' => $this->campaign_type,
+            'members_count' => $this->members_count > 0? $this->members_count:'',
             'status' => $this->status,
             'last_used_at' => $this->last_used_at ? Carbon::parse($this->last_used_at)->format($locale[4]):'',
             'created_by' => new UserResource($this->createdBy),
