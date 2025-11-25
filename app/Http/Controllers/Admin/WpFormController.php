@@ -45,12 +45,12 @@ class WpFormController extends Controller
 
         $contact_type = 'otrc';
 
-        $name    = trim((string) $request->input('your_name'));
-        $surname = trim((string) $request->input('your_surname'));
-        $email   = trim((string) $request->input('your_email'));
-        $subject = (string) $request->input('your_subject');
-        $message =  (string)$request->input('your_message');
-        //$acceptance = $request->input('acceptance_951');
+        $name    = trim((string) $request->input('name'));
+        $surname = trim((string) $request->input('surname'));
+        $email   = trim((string) $request->input('email'));
+        $subject = (string) $request->input('subject');
+        $message =  (string)$request->input('message');
+        //$acceptance = $request->input('acceptance');
 
         if ($email === '') {
             return response()->json([
@@ -121,12 +121,12 @@ class WpFormController extends Controller
 
         $contact_type = 'newl';
 
-        $name    = trim((string) $request->input('your_name'));
-        $surname = trim((string) $request->input('your_surname'));
-        $email   = trim((string) $request->input('your_email'));
-        $product = (string) $request->input('producto');
-        $service = (string) $request->input('servicio');
-        //$acceptance = $request->input('acceptance_951');
+        $name    = trim((string) $request->input('name'));
+        $surname = trim((string) $request->input('surname'));
+        $email   = trim((string) $request->input('email'));
+        $product = (string) $request->input('product');
+        $service = (string) $request->input('service');
+        //$acceptance = $request->input('acceptance');
 
         if ($email === '') {
             return response()->json([
@@ -195,7 +195,7 @@ class WpFormController extends Controller
     public function felipao(Request $request){
         $contact_type = 'otrc';  
         
-        $email = $request->input('your_email');  
+        $email = $request->input('email');  
 
         //Verificamos existencia por email:
         $user = User::where('email', trim($email))->first();
