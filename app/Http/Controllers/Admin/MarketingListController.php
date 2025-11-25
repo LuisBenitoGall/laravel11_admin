@@ -198,8 +198,26 @@ class MarketingListController extends Controller
     /**
      * 5. Editar lista.
      */
-    public function edit(MarketingList $list){
+    public function edit(MarketingList $list, $tab = false){
+        $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 
+
+        //Formateo de datos:
+        $list->formatted_created_at = Carbon::parse($list->created_at)->format($locale[4].' H:i:s');
+        $list->formatted_updated_at = Carbon::parse($list->updated_at)->format($locale[4].' H:i:s');
+
+        return Inertia::render('Admin/MarketingList/Edit', [
+            "title" => __($this->option),
+            "subtitle" => __('lista_editar'),
+            "module" => $this->module,
+            "slug" => 'marketing-lists',
+            "availableLocales" => LocaleTrait::availableLocales(),
+            "list" => $list,
+            "tab" => $tab,
+            "msg" => session('msg'),
+            "alert" => session('alert'),
+            "permissions" => $this->permissions
+        ]);
     }
 
     /**

@@ -41,7 +41,7 @@ export default function Index({ auth, session, title, subtitle, customer, relati
     const {data, setData, errors, processing} = useForm({
         name: customer.name || '',
         status: relation.status
-    })
+    });
 
     //Envío formulario:
     function handleSubmit(e) {
