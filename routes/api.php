@@ -10,6 +10,7 @@ use App\Models\Town;
 
 //Admin:
 use App\Http\Controllers\Admin\ContentController;
+use App\Http\Controllers\Admin\WpFormController;
 
 Route::middleware(['web', 'auth'])->prefix('admin')->group(function(){   
     //Content
@@ -56,3 +57,28 @@ Route::get('/town/{id}', function($id) {
         'country_id' => $countryId
     ]);
 });
+
+// Formularios desde WP:
+Route::post('/wp/contact-es', [WpFormController::class, 'contact'])
+    ->name('wp.contact-es')->defaults('lang', 'es');
+
+Route::post('/wp/contact-en', [WpFormController::class, 'contact'])
+    ->name('wp.contact-en')->defaults('lang', 'en');
+
+Route::post('/wp/newsletter-es', [WpFormController::class, 'newsletter'])
+    ->name('wp.newsletter-es')->defaults('lang', 'es');
+
+Route::post('/wp/newsletter-en', [WpFormController::class, 'newsletter'])
+    ->name('wp.newsletter-en')->defaults('lang', 'en');
+
+Route::post('/wp/felipao', [WpFormController::class, 'felipao'])
+    ->name('wp.felipao');
+
+
+//Endpoints:
+// https://crm.realfabricadetapices.com/api/wp/contact-es
+// https://crm.realfabricadetapices.com/api/wp/contact-en
+// https://crm.realfabricadetapices.com/api/wp/newsletter-es
+// https://crm.realfabricadetapices.com/api/wp/newsletter-en
+// https://crm.realfabricadetapices.com/api/wp/felipao
+

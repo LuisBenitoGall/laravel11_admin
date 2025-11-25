@@ -587,7 +587,6 @@ class PromoteCrmContacts extends Command
         return $clean;
     }
 
-
     // NO TOCAR: referencia de la lógica original en bruto
     protected function myLogica(){
         $ownerId = 1;
