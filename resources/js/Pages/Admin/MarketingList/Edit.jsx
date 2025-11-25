@@ -28,7 +28,7 @@ export default function Index({ auth, session, title, subtitle, list, availableL
 
     // Set formulario:
     const {data, setData, errors, processing} = useForm({
-        name: customer.name || '',
+        name: list.name || '',
         status: relation.status
     });
 
