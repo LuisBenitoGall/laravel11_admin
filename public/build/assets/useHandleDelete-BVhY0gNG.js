@@ -1,0 +1,1 @@
+import{A as s}from"./app-CQ89OaDt.js";import{u as a}from"./useSweetAlert-BwJQd6Pr.js";import{u as l}from"./useTranslation-ca9fkDdm.js";function _(e="",n="",o=[]){const{showConfirm:r}=a(),t=l();return{handleDelete:i=>{r({title:t(`${e}_eliminar`),text:t(`${e}_eliminar_confirm`),icon:"warning",onConfirm:()=>{s.delete(route(n,[...o,i]))}})}}}export{_ as u};

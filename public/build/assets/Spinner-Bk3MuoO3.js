@@ -1,0 +1,1 @@
+import{u as m,y as x}from"./OverlayTrigger-DU4zI8K9.js";import{r as f,j as $}from"./app-CQ89OaDt.js";const c=f.forwardRef(({bsPrefix:r,variant:s,animation:t="border",size:e,as:n="div",className:p,...a},i)=>{r=m(r,"spinner");const o=`${r}-${t}`;return $.jsx(n,{ref:i,...a,className:x(p,o,e&&`${o}-${e}`,s&&`text-${s}`)})});c.displayName="Spinner";export{c as S};

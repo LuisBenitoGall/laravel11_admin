@@ -1,1 +1,0 @@
-import{j as r}from"./app-T1joGYlD.js";import a from"./Header-CP-vrPd8.js";import{u as o}from"./useTranslation-BmSHRnyB.js";function n({children:s}){return o(),r.jsxs("div",{className:"layout-wrapper landing",children:[r.jsx(a,{}),s]})}export{n as G};
