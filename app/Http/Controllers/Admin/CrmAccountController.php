@@ -142,8 +142,8 @@ class CrmAccountController extends Controller{
 
         // Filtros dinámicos
         $filters = [
-            'name' => fn($q, $v) => $q->where('name', 'like', "%$v%"),
-            'tradename' => fn($q, $v) => $q->where('tradename', 'like', "%$v%")
+            'name' => fn($q, $v) => $q->where('companies.name', 'like', "%$v%"),
+            'tradename' => fn($q, $v) => $q->where('companies.tradename', 'like', "%$v%")
         ];
 
         foreach($filters as $key => $callback){
