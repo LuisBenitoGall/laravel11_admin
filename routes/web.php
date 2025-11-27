@@ -611,9 +611,9 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/marketing-lists', [MarketingListController::class, 'index'])->name('marketing-lists.index')->middleware('permission:marketing');
     Route::get('/marketing-lists/create', [MarketingListController::class, 'create'])->name('marketing-lists.create')->middleware('permission:marketing-lists.create');
     Route::post('/marketing-lists/store', [MarketingListController::class, 'store'])->name('marketing-lists.store')->middleware('permission:marketing-lists.create');
-    Route::get('/marketing-lists/{campaign}/show', [MarketingListController::class, 'show'])->name('marketing-lists.show');
-    Route::get('/marketing-lists/{campaign}/edit/{tab?}', [MarketingListController::class, 'edit'])->name('marketing-lists.edit')->middleware('permission:marketing-lists.edit');
-    Route::delete('/marketing-lists/{campaign}', [MarketingListController::class, 'destroy'])->name('marketing-lists.destroy')->middleware('permission:marketing-lists.destroy');
+    Route::get('/marketing-lists/{list}/show', [MarketingListController::class, 'show'])->name('marketing-lists.show');
+    Route::get('/marketing-lists/{list}/edit/{tab?}', [MarketingListController::class, 'edit'])->name('marketing-lists.edit')->middleware('permission:marketing-lists.edit');
+    Route::delete('/marketing-lists/{list}', [MarketingListController::class, 'destroy'])->name('marketing-lists.destroy')->middleware('permission:marketing-lists.destroy');
     Route::post('marketing-lists/status', [MarketingListController::class, 'status'])->name('marketing-lists.status')->middleware('permission:marketing-lists.edit');
 
     //Modules:
@@ -896,7 +896,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('permission:users.destroy');
     Route::post('users/status', [UserController::class, 'status'])->name('users.status')->middleware('permission:users.edit');
     Route::delete('/users/{user}/signature', [UserController::class, 'deleteSignature'])->name('users.signature.delete')->middleware('permission:users.edit');
-    Route::put('/users/{user}/update-pwd', [UserController::class, 'updatePwd'])->name('users.pwd.update')->middleware('permission:users.edit');
+    Route::put('/users/{user}/update-pwd', [UserController::class, 'updatePwd'])->name('users.pwd-update')->middleware('permission:users.edit');
 
     //Users Profile:
     Route::get('/profile', [UserController::class, 'editProfile'])->name('profile.edit')->middleware('permission:users.edit');

@@ -154,7 +154,7 @@ class CompanyAccountController extends Controller{
         dd($account);
         //La cuenta debe pertenecer a la empresa en sesión:
         if($account->company_id != session('currentCompany')){
-            $alert = trans('textos.no_permisos_accion');
+            $alert = __('no_permisos_accion');
             return redirect()->route('company-accounts.index')->with(compact('alert'));  
             exit;      
         }

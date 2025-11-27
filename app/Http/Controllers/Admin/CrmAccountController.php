@@ -31,6 +31,7 @@ use App\Models\Company;
 use App\Models\Country;
 use App\Models\CrmAccount;
 use App\Models\Currency;
+use App\Models\CustomerProvider;
 use App\Models\User;
 use App\Models\UserColumnPreference;
 use App\Models\UserCompany;
@@ -508,8 +509,8 @@ class CrmAccountController extends Controller{
         }  
 
         $data = $request->validate([
-        'as_customer' => ['boolean'],
-        'as_provider' => ['boolean'],
+            'as_customer' => ['boolean'],
+            'as_provider' => ['boolean'],
         ]);
 
         if (!($data['as_customer'] ?? false) && !($data['as_provider'] ?? false)) {
@@ -518,10 +519,35 @@ class CrmAccountController extends Controller{
             ]);
         }
 
+        $crm_account = CrmAccount::find($request->crm_account_id);
 
+        //Como cliente:
+        if($data['as_customer']){
+            CustomerProvider::firstOrCreate([
+                'provider_id' => $currentCompanyId,
+                'customer_id' => $crm_account->linked_company_id
+            ], [
+                'created_by' => Auth::id(),
+                'updated_by' => Auth::id(),
+                'default_currency_id' => $crm_account->currency_id,
+                'status' => 1,
+            ]);    
+        }
 
+        //Como proveedor:
+        if($data['as_provider']){
+            CustomerProvider::firstOrCreate([
+                'provider_id' => $crm_account->linked_company_id,
+                'customer_id' => $currentCompanyId
+            ], [
+                'created_by' => Auth::id(),
+                'updated_by' => Auth::id(),
+                'default_currency_id' => $crm_account->currency_id,
+                'status' => 1,
+            ]);        
+        }
 
-        return redirect()->route('crm-accounts.index')->with('msg', __('conversion_completada'));  
+        return redirect()->route('companies.edit', $crm_account->linked_company_id)->with('msg', __('conversion_completada'));  
     }
 
 }

@@ -18,13 +18,20 @@ import TextInput from '@/Components/TextInput';
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function Index({ auth, session, title, subtitle, list, availableLocales }){
+//Tabs:
+import MarketingListInfoTab from './Partials/MarketingListInfoTab';
+import MarketingListMembersTab from './Partials/MarketingListMembersTab';
+
+export default function Index({ auth, session, title, subtitle, list, tab, members, rows, availableLocales }){
     const __ = useTranslation();
     const props = usePage()?.props || {};
     const locale = props.locale || false;
     const languages = props.languages || [];
     const { showConfirm } = useSweetAlert();
     const permissions = props.permissions || {};
+
+    const rawQueryParams = props.queryParams || {};
+    const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
 
     // Set formulario:
     const {data, setData, errors, processing} = useForm({
@@ -39,6 +46,15 @@ export default function Index({ auth, session, title, subtitle, list, availableL
             text: __('listas_volver'),
             icon: 'la-angle-left',
             url: 'marketing-lists.index',
+            modal: false
+        });
+    }
+
+    if (permissions?.['marketing-lists.create']) {
+        actions.push({
+            text: __('lista_nueva'),
+            icon: 'la-plus',
+            url: 'marketing-lists.create',
             modal: false
         });
     }
@@ -67,13 +83,54 @@ export default function Index({ auth, session, title, subtitle, list, availableL
                             {__('creado')}: <strong>{list.formatted_created_at}</strong> 
                         </span>
 
+                        {list.created_by_name && (
+                            <span className="text-muted me-5">
+                                {__('creado_por')}: <strong>{list.created_by_name}</strong>
+                            </span>
+                        )}
+
                         <span className="text-muted">
                             {__('actualizado')}: <strong>{list.formatted_updated_at}</strong>
                         </span>
                     </div>
                 </div>
 
+                {/* Tabs */}
+                <Tabs 
+                    tabs={[
+                        {
+                            key: 'info',
+                            label: __('informacion_general'),
+                            content: (
+                                <MarketingListInfoTab
+                                    list={list}
+                                    side={'marketing-lists'}
+                                    updateRoute={'marketing-lists.update'}
+                                    updateParams={[list.id]}
+                                />
+                            )
+                        },
+                        {
+                            key: 'members',
+                            label: __('miembros'),
+                            content: (
+                                <MarketingListMembersTab
+                                    users={members ?? null}
+                                    rows={rows ?? []}
+                                    // Para recargar el tab con filtros/orden en contexto CRM:
+                                    indexRoute={'marketing-lists.edit'}
+                                    indexParams={[list.id, 'members']}
+                                    tableId={'tblMarketingListMembers'}
+                                    // Para exportar / filteredData como un Index:
+                                    filteredDataRoute={'marketing-lists.members.filtered-data'}
+                                    queryParams={queryParams}
+                                />
+                            )
+                        },
 
+                    ]}
+                    defaultActive={tab}
+                />
 
             </div>
         </AdminAuthenticatedLayout>

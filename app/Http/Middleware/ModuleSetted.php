@@ -35,7 +35,7 @@ class ModuleSetted{
         $activeModules = session('modules', []); // array de IDs
 
         if (!in_array($associatedModule->id, $activeModules, true)) {
-            $alert = trans('textos.modulo_no_activo', ['module' => $associatedModule->name]);
+            $alert = __('modulo_no_activo', ['module' => $associatedModule->name]);
             return redirect()->route('dashboard')->with(compact('alert'));
         }
 

@@ -1,8 +1,10 @@
 <?php
 
 namespace App\Http\Requests;
-
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Http\FormRequest;
+
+use App\Exceptions\CustomAuthorizationException;
 
 class MarketingListUpdateRequest extends FormRequest
 {
@@ -11,7 +13,7 @@ class MarketingListUpdateRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return $this->user()->can('marketing-lists.edit');
     }
 
     /**
@@ -19,10 +21,19 @@ class MarketingListUpdateRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
-    public function rules(): array
-    {
+    public function rules(): array{
         return [
-            //
+            'name' => 'required|string|max:255'
         ];
+    }
+
+    public function messages(): array{
+        return [
+            'name.required' => __('campo_requerido')
+        ];
+    }
+
+    protected function failedAuthorization() {
+        throw new CustomAuthorizationException(__('permiso_carente_aviso'));
     }
 }

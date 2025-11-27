@@ -12,7 +12,16 @@ import TextInput from '@/Components/TextInput';
 // Hooks
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function ModalUserCreate({ show, onClose, onCreate, companyId, side, salutations, contact_types, crm_account }) {
+export default function ModalUserCreate({ 
+    show, 
+    onClose, 
+    onCreate, 
+    companyId, 
+    side, 
+    salutations, 
+    contact_types, 
+    crm_account 
+}){
     const __ = useTranslation();
     const pageProps = usePage()?.props || {};
 

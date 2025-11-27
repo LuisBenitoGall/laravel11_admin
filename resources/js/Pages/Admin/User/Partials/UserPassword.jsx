@@ -33,7 +33,7 @@ export default function UserPassword({ user }) {
             }
         });
 
-        router.post(route('users.pwd.update', user.id), formData, {
+        router.post(route('users.pwd-update', user.id), formData, {
             forceFormData: true,
             preserveScroll: true,
             //onSuccess: () => console.log('Usuario actualizado'),

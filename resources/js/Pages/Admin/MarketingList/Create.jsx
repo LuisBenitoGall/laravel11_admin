@@ -33,7 +33,7 @@ export default function Create({
 
 
     const { currentCompany } = useCompanySession();
-    const { successAlert, errorAlert } = useSweetAlert();
+    const { showAlert } = useSweetAlert();
 
     const { data, setData, post, processing, errors, reset } = useForm({
         owner_id: '',
@@ -44,31 +44,7 @@ export default function Create({
         status: 1,
         observations: '',
     });
-
-    // Autogenerar slug a partir del nombre (si el usuario no lo ha tocado "a mano")
-    useEffect(() => {
-        if (!data.name) {
-            return;
-        }
-
-        // Solo autogeneramos si slug está vacío o coincide con el anterior patrón
-        setData((prev) => {
-            const currentSlug = prev.slug || '';
-            const autoFromName = slugify(data.name);
-
-            // Si el slug está vacío o parece auto generado, lo reemplazamos
-            if (!currentSlug || currentSlug === autoFromName) {
-                return {
-                    ...prev,
-                    slug: autoFromName,
-                };
-            }
-
-            return prev;
-        });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [data.name]);
-
+    
     // Si el tipo es "dynamic", marcamos automáticamente is_dynamic
     useEffect(() => {
         if (data.type === 'dynamic' || data.type === 'dinamica') {
@@ -86,11 +62,11 @@ export default function Create({
         post(route('marketing-lists.store'), {
             preserveScroll: true,
             onSuccess: () => {
-                successAlert(__('La lista de marketing se ha creado correctamente.'));
+                showAlert(__('Éxito'), __('La lista de marketing se ha creado correctamente.'), 'success');
                 reset('observations');
             },
             onError: () => {
-                errorAlert(__('Se ha producido un error al crear la lista de marketing.'));
+                showAlert(__('Error'), __('Se ha producido un error al crear la lista de marketing.'), 'error');
             },
         });
     };
@@ -140,6 +116,20 @@ export default function Create({
                                 />
                                 <InputError message={errors.name} />
                             </div>
+                        </div>
+
+                        <div className="col-lg-2 text-center">
+                            <div>
+                                <label htmlFor="status" className="form-label">{ __('estado') }</label>
+                                <div className='pt-1 position-relative'>
+                                    <Checkbox 
+                                        className="xl"
+                                        name="status"
+                                        checked={data.status}
+                                        onChange={(e) => setData('status', e.target.checked)}
+                                    />
+                                </div>
+                            </div>    
                         </div>
 
                         {/* Observaciones */}

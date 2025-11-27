@@ -25,7 +25,6 @@ import UserNotes from './Partials/UserNotes.jsx';
 import UserPersonalData from './Partials/UserPersonalData';
 import UserPassword from './Partials/UserPassword.jsx';
 
-
 export default function Index({
     auth, session, title, subtitle,
     user, roles, user_roles, images,

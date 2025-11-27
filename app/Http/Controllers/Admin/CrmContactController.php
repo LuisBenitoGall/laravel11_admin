@@ -80,12 +80,15 @@ class CrmContactController extends Controller{
 
         $contacts = $this->dataQuery($request)->paginate($perPage)->onEachSide(1);
 
+        $contact_types = HasContactTypes::typesMap();
+
         return Inertia::render('Admin/CrmContact/Index', [
             "title" => __($this->option),
             "subtitle" => __('contactos'),
             "module" => $this->module,
             "slug" => 'crm-contacts',
             "contacts" => UserResource::collection($contacts),
+            "contact_types" => $contact_types,
             "queryParams" => request()->query() ?: null,
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions,
@@ -123,6 +126,8 @@ class CrmContactController extends Controller{
     private function dataQuery(Request $request): Builder
     {
         $company_id = (int) $request->input('company_id', session('currentCompany'));
+
+        $contact_types = HasContactTypes::typesMap();
 
         // 1) Empresas relacionadas vía customer_providers (clientes/proveedores)
         $relatedCompanyIds = CustomerProvider::query()
@@ -224,7 +229,7 @@ class CrmContactController extends Controller{
                 });
             },
             'position' => fn ($q, $v) => $q->where('uc.position', 'like', "%{$v}%"),
-            'contact_type' => fn ($q, $v) => $q->where('cc.contact_type', 'like', "%{$v}%"),
+            'contact_type' => fn ($q, $v) => $q->where('cc.contact_type', $v),
         ];
 
         foreach ($filters as $key => $callback) {

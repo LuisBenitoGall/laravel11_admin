@@ -127,7 +127,10 @@ export default function Index({ auth, session, title, subtitle, availableLocales
     const handleCloseModalUserCreate = () => setShowModalUserCreate(false);
     const refreshUsersTable = () => setRefreshKey(prev => prev + 1);
     const [showConvertModal, setShowConvertModal] = useState(false);
-    const handleOpenConvertModal = () => setShowConvertModal(true);
+    const handleOpenConvertModal = () => {
+        console.log('Abriendo modal de conversión');
+        setShowConvertModal(true);
+    };
     const handleCloseConvertModal = () => setShowConvertModal(false);
 
     //Acciones:
@@ -166,8 +169,8 @@ export default function Index({ auth, session, title, subtitle, availableLocales
         actions.push({ 
             text: __('convertir_cliente_proveedor'), 
             icon: 'la-plus', 
-            //url: '', 
-            //modal: true,
+            url: '', 
+            modal: true,
             onClick: handleOpenConvertModal
         });   
     }
@@ -177,6 +180,7 @@ export default function Index({ auth, session, title, subtitle, availableLocales
             text: __('centros_trabajo'),
             icon: 'la-map-marker-alt',
             url: 'workplaces.index',
+            params: [company.id],
             modal: false
         });
     }   

@@ -24,6 +24,8 @@ class CustomerProvider extends Model{
     protected $fillable = [
         'customer_id',
         'provider_id',
+        'status',
+        'default_currency_id',
         'created_by',
         'updated_by'
     ];

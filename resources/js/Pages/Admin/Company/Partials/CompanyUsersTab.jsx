@@ -1,4 +1,3 @@
-// CompanyUsersTab.jsx
 import React, { useMemo } from 'react';
 import { usePage } from '@inertiajs/react';
 import TableUsers from '@/Components/TableUsers';
@@ -54,28 +53,28 @@ export default function CompanyUsersTab({
 
     return (
         <div>
-          <TableUsers
-            rows={rows}
-            users={users}
-            tableId={tableId}
-            queryParams={pageProps.queryParams ?? {}}
-            indexRoute={indexRoute}
-            indexParams={indexParams}
-            filteredDataRoute={filteredDataRoute}
-            entityName={entityName}
-            disablePagination={true}
-            userEditCompanyId={editCtxId}
-            i18n={{
-              name: __('nombre'),
-              position: __('puesto'),
-              phone: __('telefono'),
-              whatsapp: 'WhatsApp',
-              others: __('otros'),
-              email: 'Email',
-              none: '—',
-              moreSuffix: __('mas'),
-            }}
-          />
+            <TableUsers
+                rows={rows}
+                users={users}
+                tableId={tableId}
+                queryParams={pageProps.queryParams ?? {}}
+                indexRoute={indexRoute}
+                indexParams={indexParams}
+                filteredDataRoute={filteredDataRoute}
+                entityName={entityName}
+                disablePagination={true}
+                userEditCompanyId={editCtxId}
+                i18n={{
+                    name: __('nombre'),
+                    position: __('puesto'),
+                    phone: __('telefono'),
+                    whatsapp: 'WhatsApp',
+                    others: __('otros'),
+                    email: 'Email',
+                    none: '—',
+                    moreSuffix: __('mas')
+                }}
+            />
         </div>
     );
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { OverlayTrigger, Table, Tooltip } from 'react-bootstrap';
 
@@ -6,6 +6,8 @@ import { OverlayTrigger, Table, Tooltip } from 'react-bootstrap';
 import ColumnFilter from '@/Components/ColumnFilter';
 import FilterRow from '@/Components/FilterRow';
 import RecordsPerPage from '@/Components/RecordsPerPage';
+import ShowRegister from '@/Components/ShowRegister/ShowRegister';
+import ShowRegisterButton from '@/Components/ShowRegister/ShowRegisterButton';
 import TableExporter from '@/Components/TableExporter';
 import StatusButton from '@/Components/StatusButton';
 import { Pagination } from '@/Components/Pagination';
@@ -14,6 +16,11 @@ import { SortControl } from '@/Components/SortControl';
 // Hooks & Utils
 import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
+
+//Partials:
+import UserShowView from '@/Pages/Admin/User/Partials/UserShowView';
+
+//Utils:
 import renderCellContent from '@/Utils/renderCellContent.jsx';
 
 export default function TableUsers({
@@ -34,6 +41,20 @@ export default function TableUsers({
 }) {
     const __ = useTranslation();
     const queryParams = (typeof rawQueryParams === 'object' && rawQueryParams !== null) ? rawQueryParams : {};
+
+    //Columna Show Register
+    const [showId, setShowId] = useState(null);
+    const [showPanelOpen, setShowPanelOpen] = useState(false);
+
+    const handleShowRegister = (user) => {
+        setShowId(user.id);
+        setShowPanelOpen(true);
+    };
+
+    const handleCloseShowPanel = () => {
+        setShowPanelOpen(false);
+        setShowId(null);
+    };
 
     // Helper: formatea tooltip de teléfonos
     const phonesTooltip = (phones = []) => {
@@ -173,24 +194,28 @@ export default function TableUsers({
                 <Table className="table table-nowrap table-striped align-middle mb-0" id={tableId}>
                     <thead>
                         <tr>
-                        {columns.map(col => (
-                            <th
-                            key={col.key}
-                            className={`${col.class_th ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}
-                            >
-                            {__(col.label)}
-
-                            {col.sort && (
-                                <SortControl
-                                name={col.key}
-                                sortable={true}
-                                sort_field={queryParams.sort_field}
-                                sort_direction={queryParams.sort_direction}
-                                sortChanged={sortChanged}
-                                />
-                            )}
+                            <th className="text-center first-column">
+                                &nbsp;
                             </th>
-                        ))}
+
+                            {columns.map(col => (
+                                <th
+                                key={col.key}
+                                className={`${col.class_th ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}
+                                >
+                                {__(col.label)}
+
+                                {col.sort && (
+                                    <SortControl
+                                    name={col.key}
+                                    sortable={true}
+                                    sort_field={queryParams.sort_field}
+                                    sort_direction={queryParams.sort_direction}
+                                    sortChanged={sortChanged}
+                                    />
+                                )}
+                                </th>
+                            ))}
 
                         <th className="text-center">{__('acciones')}</th>
                         </tr>
@@ -203,11 +228,17 @@ export default function TableUsers({
                         SearchFieldChanged={SearchFieldChanged}
                         indexRoute={disablePagination ? null : indexRoute}
                         indexParams={indexParams}
+                        PrependColumns={1}
                     />
 
                     <tbody>
                         {rows.map(user => (
                         <tr key={user.id}>
+                            {/* Columna "show" fija */}
+                            <td className="text-center">
+                                <ShowRegisterButton onClick={() => handleShowRegister(user)} />
+                            </td>
+
                             {columns.map(col => (
                             <td
                                 key={col.key}
@@ -275,6 +306,15 @@ export default function TableUsers({
                     </tbody>
                 </Table>
             </div>
+
+            <ShowRegister
+                id={showId}
+                open={showPanelOpen}
+                onClose={handleCloseShowPanel}
+                routeName="users.show"        // tu ruta JSON
+                title={__('usuario')}         // o lo que quieras
+                ViewComponent={UserShowView}
+            />
 
             {!disablePagination && meta && (
                 <Pagination

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
@@ -17,6 +18,10 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
 use File;
+
+//Concerns:
+use App\Concerns\HasContactTypes;
+use App\Concerns\HasSalutation;
 
 //Models:
 use App\Models\Company;
@@ -34,6 +39,9 @@ use App\Http\Requests\MarketingListUpdateRequest;
 
 //Resources:
 use App\Http\Resources\MarketingListResource;
+
+//Services:
+use App\Services\SlugService;
 
 //Traits:
 use App\Traits\HasUserPermissionsTrait;
@@ -53,6 +61,7 @@ class MarketingListController extends Controller
      * 6. Actualizar lista.
      * 7. Eliminar lista.
      * 8. Actualizar estado.
+     * 9. Mapeo de miembros.
      */
 
     use HasUserPermissionsTrait;
@@ -80,7 +89,7 @@ class MarketingListController extends Controller
         $perPage = $request->input('per_page', config('constants.RECORDS_PER_PAGE_DEFAULT_'));
 
         $lists = $this->dataQuery($request)->paginate($perPage)->onEachSide(1);
-
+        
         return Inertia::render('Admin/MarketingList/Index', [
             "title" => __($this->option),
             "subtitle" => __('listado'),
@@ -182,10 +191,33 @@ class MarketingListController extends Controller
     /**
      * 3. Guardar nueva lista.
      */
-    public function store(MarketingListStoreRequest $request){
+    public function store(MarketingListStoreRequest $request, SlugService $slugService){
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            abort(422, __('no_hay_empresa_activa'));
+        }  
 
+        $slug = $slugService->generate(MarketingList::class, $request->name, [
+            'company_id' => $currentCompanyId,
+        ]);
 
+        $status = filter_var($request->status, FILTER_VALIDATE_BOOLEAN)? 1:0;
 
+        $list = new MarketingList();
+        $list->owner_id = Auth::id();
+        $list->company_id = $currentCompanyId;
+        $list->name = $request->name;
+        $list->slug = $slug;
+        $list->observations = $request->observations;
+        $list->status = $status;
+        $list->is_dynamic = 1;
+        $list->created_by = Auth::id();
+        $list->updated_by = Auth::id();
+        $list->save();
+
+        return redirect()->route('marketing-lists.edit', $list->id)
+            ->with('msg', __('lista_creada_msg'));
     }
 
     /**
@@ -201,10 +233,24 @@ class MarketingListController extends Controller
     public function edit(MarketingList $list, $tab = false){
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 
-
         //Formateo de datos:
         $list->formatted_created_at = Carbon::parse($list->created_at)->format($locale[4].' H:i:s');
         $list->formatted_updated_at = Carbon::parse($list->updated_at)->format($locale[4].' H:i:s');
+
+        $list->created_by_name = optional($list->createdBy)->full_name ?? false;
+        $list->updated_by_name = optional($list->updatedBy)->full_name ?? false;
+
+        //Miembros del listado:
+        $members = User::select('users.id', 'users.name', 'users.surname', 'users.email', 'marketing_list_users.id AS mlu_id', 'marketing_list_users.observations', 'marketing_list_users.status AS mlu_status', 'marketing_list_users.created_at', 'user_companies.company_id')
+        ->join('marketing_list_users', 'users.id', '=', 'marketing_list_users.user_id')
+        ->leftJoin('user_companies', 'users.id', '=', 'user_companies.user_id')
+        ->where('marketing_list_users.marketing_list_id', $list->id)
+        ->where('users.status', 1)
+        ->orderBy('users.name', 'ASC')
+        ->get();
+
+        //Mapeo de miembros:
+        $table = $this->mapUsersForTable($members, $locale);
 
         return Inertia::render('Admin/MarketingList/Edit', [
             "title" => __($this->option),
@@ -214,6 +260,8 @@ class MarketingListController extends Controller
             "availableLocales" => LocaleTrait::availableLocales(),
             "list" => $list,
             "tab" => $tab,
+            "members" => $members,
+            "rows" => $table,
             "msg" => session('msg'),
             "alert" => session('alert'),
             "permissions" => $this->permissions
@@ -223,8 +271,21 @@ class MarketingListController extends Controller
     /**
      * 6. Actualizar lista.
      */
-    public function update(MarketingListUpdateRequest $request, MarketingList $list){
+    public function update(MarketingListUpdateRequest $request, MarketingList $list, SlugService $slugService){
+        $slug = $slugService->generate(MarketingList::class, $request->name, [
+            'company_id' => $list->company_id,
+            'ignore_id'  => $list->id,
+        ]);
 
+        $list->name = $request->name;
+        $list->slug = $slug;
+        $list->observations = $request->observations;
+        $list->status = $status;
+        $list->updated_by = Auth::id();
+        $list->save();
+
+        return redirect()->route('marketing-lists.edit', $list->id)
+            ->with('msg', __('lista_actualizada_msg'));
     }
 
     /**
@@ -256,5 +317,37 @@ class MarketingListController extends Controller
             'message' => __('estado_actualizado_ok'),
             'new_status' => $list->status
         ]);
+    }
+
+    /**
+     * 9. Mapeo de miembros.
+     */
+    private function mapUsersForTable(Collection $users, array $locale): Collection
+    {
+        return $users->map(function ($u) use ($locale) {
+            $primary = $u->phones->firstWhere('is_primary', true) ?: $u->phones->first();
+            $salutation = $u->salutation ? HasSalutation::salutationAbbrOf($u->salutation) : '';
+
+            return [
+                'id'            => $u->id,
+                'name'          => trim($salutation . ' ' . ucwords($u->name) . ' ' . ucwords($u->surname)),
+                'position'      => $u->position,
+                'created_at'    => Carbon::parse($u->created_at)->format($locale[4]),
+                'email'         => $u->email,
+                'avatar'        => $u->avatar && $u->avatar->image
+                                    ? \Storage::url('users/' . $u->avatar->image)
+                                    : null,
+                'phone_primary' => $primary?->e164,
+                'whatsapp'      => (bool) optional($primary)->is_whatsapp,
+                'phones_count'  => $u->phones->count(),
+                'phones'        => $u->phones->map(fn($p) => [
+                    'e164'        => $p->e164,
+                    'type'        => $p->type,
+                    'label'       => $p->label,
+                    'is_primary'  => $p->is_primary,
+                    'is_whatsapp' => $p->is_whatsapp,
+                ])->values(),
+            ];
+        });
     }
 }
