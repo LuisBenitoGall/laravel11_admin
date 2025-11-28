@@ -16,11 +16,12 @@ export default function ModalUserCreate({
     show, 
     onClose, 
     onCreate, 
-    companyId, 
+    companyId = false, 
     side, 
     salutations, 
     contact_types, 
-    crm_account 
+    crm_account = false,
+    linkCompany = true
 }){
     const __ = useTranslation();
     const pageProps = usePage()?.props || {};
@@ -34,7 +35,7 @@ export default function ModalUserCreate({
         surname: '',
         email: '',
         status: true,
-        link_company: true,
+        link_company: linkCompany,
         send_pwd: false,
         birthday: null,
         position: '',

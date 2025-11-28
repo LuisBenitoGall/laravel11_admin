@@ -61,13 +61,13 @@ class CrmContactController extends Controller{
     public function __construct(){
         if(session('currentCompany')){
             $this->permissions = $this->resolvePermissions([
-                'crm-accounts.create',
-                'crm-accounts.destroy',
-                'crm-accounts.edit',
-                'crm-accounts.index',
-                'crm-accounts.search',
-                'crm-accounts.show',
-                'crm-accounts.update'
+                'crm-contacts.create',
+                'crm-contacts.destroy',
+                'crm-contacts.edit',
+                'crm-contacts.index',
+                'crm-contacts.search',
+                'crm-contacts.show',
+                'crm-contacts.update'
             ]);   
         } 
     }   
@@ -80,7 +80,13 @@ class CrmContactController extends Controller{
 
         $contacts = $this->dataQuery($request)->paginate($perPage)->onEachSide(1);
 
+        //Tratamientos:
+        $salutations = HasSalutation::comboOptions();
+
         $contact_types = HasContactTypes::typesMap();
+
+        //Tipos de contacto para selector:
+        $contact_types_combo = HasContactTypes::comboOptions();
 
         return Inertia::render('Admin/CrmContact/Index', [
             "title" => __($this->option),
@@ -88,7 +94,9 @@ class CrmContactController extends Controller{
             "module" => $this->module,
             "slug" => 'crm-contacts',
             "contacts" => UserResource::collection($contacts),
+            "salutations" => $salutations,
             "contact_types" => $contact_types,
+            "contact_types_combo" => $contact_types_combo,
             "queryParams" => request()->query() ?: null,
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions,

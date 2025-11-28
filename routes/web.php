@@ -924,7 +924,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     });
 
 
-    Route::get('/test1/', [WorkplaceController::class, 'test'])->whereNumber('company_id')->name('test1.index');
+    Route::get('/test1/', [WorkplaceController::class, 'test'])->name('test1.index');
 });
 
 Route::middleware('auth')->group(function(){

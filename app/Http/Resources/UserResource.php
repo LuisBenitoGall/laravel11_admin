@@ -60,6 +60,7 @@ class UserResource extends JsonResource{
                 return $this->categories->pluck('name')->toArray();
             }),
             'position'      => $this->position ?? null,
+            'department'    => $this->department ?? null,
             'contact_type'  => $contact_type ?? null,
             'companies' => $this->companies()->map(function($company) {
                 return [

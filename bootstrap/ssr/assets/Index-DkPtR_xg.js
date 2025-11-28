@@ -12,6 +12,7 @@ import { S as StatusButton } from "./StatusButton-DfO41WfJ.js";
 import { T as TableExporter } from "./TableExporter-DatfQStH.js";
 import "./TextInput-CzxrbIpp.js";
 import "sweetalert2";
+import { M as ModalUserCreate } from "./ModalUserCreate-Dc8c444O.js";
 import UserShowView from "./UserShowView-BsMJBKtO.js";
 import { r as renderCellContent } from "./renderCellContent-uXg9jeR2.js";
 import "@inertiajs/inertia";
@@ -31,8 +32,22 @@ import "jspdf";
 import "jspdf-autotable";
 import "exceljs";
 import "file-saver";
+import "./DatePickerToForm-DlY2BJGL.js";
+import "./InputError-DME5vguS.js";
+import "./ModalTemplate-BcyfW0_g.js";
 import "./ManagePhones-C_mhnW8c.js";
-function Index({ auth, session, title, subtitle, contacts, contact_types, queryParams: rawQueryParams = {}, availableLocales }) {
+function Index({
+  auth,
+  session,
+  title,
+  subtitle,
+  contacts,
+  contact_types,
+  contact_types_combo,
+  salutations,
+  queryParams: rawQueryParams = {},
+  availableLocales
+}) {
   const queryParams = typeof rawQueryParams === "object" && rawQueryParams !== null ? rawQueryParams : {};
   const __ = useTranslation();
   const [showId, setShowId] = useState(null);
@@ -49,6 +64,11 @@ function Index({ auth, session, title, subtitle, contacts, contact_types, queryP
     value: key,
     label: value
   }));
+  const [showModalUserCreate, setShowModalUserCreate] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const handleOpenModalUserCreate = () => setShowModalUserCreate(true);
+  const handleCloseModalUserCreate = () => setShowModalUserCreate(false);
+  const refreshUsersTable = () => setRefreshKey((prev) => prev + 1);
   const columns = [
     { key: "name", label: __("nombre"), sort: true, filter: "text", class_th: "", class_td: "", placeholder: __("nombre_filtrar") },
     { key: "created_at", label: __("fecha_alta"), sort: true, filter: "date", class_th: "text-center", class_td: "text-end", placeholder: __("fecha_alta"), dateKeys: ["date_from", "date_to"] },
@@ -80,12 +100,13 @@ function Index({ auth, session, title, subtitle, contacts, contact_types, queryP
     queryParams
   });
   const actions = [];
-  if (permissions == null ? void 0 : permissions["contacts.create"]) {
+  if (permissions == null ? void 0 : permissions["crm-contacts.create"]) {
     actions.push({
       text: __("contacto_nuevo"),
       icon: "la-plus",
-      url: "contacts.create",
-      modal: false
+      url: "",
+      modal: true,
+      onClick: handleOpenModalUserCreate
     });
   }
   return /* @__PURE__ */ jsxs(
@@ -219,6 +240,18 @@ function Index({ auth, session, title, subtitle, contacts, contact_types, queryP
                   sort_direction: sortParams.sort_direction
                 }, { preserveState: true });
               }
+            }
+          ),
+          /* @__PURE__ */ jsx(
+            ModalUserCreate,
+            {
+              show: showModalUserCreate,
+              onClose: handleCloseModalUserCreate,
+              onCreate: refreshUsersTable,
+              side: "crm-accounts",
+              salutations,
+              contact_types: contact_types_combo,
+              linkCompany: false
             }
           )
         ] })

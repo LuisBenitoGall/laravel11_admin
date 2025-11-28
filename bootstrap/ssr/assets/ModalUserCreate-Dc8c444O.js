@@ -11,11 +11,12 @@ function ModalUserCreate({
   show,
   onClose,
   onCreate,
-  companyId,
+  companyId = false,
   side,
   salutations,
   contact_types,
-  crm_account
+  crm_account = false,
+  linkCompany = true
 }) {
   var _a;
   const __ = useTranslation();
@@ -28,7 +29,7 @@ function ModalUserCreate({
     surname: "",
     email: "",
     status: true,
-    link_company: true,
+    link_company: linkCompany,
     send_pwd: false,
     birthday: null,
     position: "",

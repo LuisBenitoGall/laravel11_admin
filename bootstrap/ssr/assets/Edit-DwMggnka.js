@@ -10,7 +10,7 @@ import { u as useSweetAlert } from "./useSweetAlert-D4PAsWYN.js";
 import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
 import { T as Tabs } from "./Tabs-CZO-HKNH.js";
 import "./TextInput-CzxrbIpp.js";
-import { M as ModalUserCreate } from "./ModalUserCreate-UFZWDEY6.js";
+import { M as ModalUserCreate } from "./ModalUserCreate-Dc8c444O.js";
 import { C as Checkbox } from "./Checkbox-B7oBdKeZ.js";
 import { R as ReusableModal } from "./ModalTemplate-BcyfW0_g.js";
 import { I as InputError } from "./InputError-DME5vguS.js";

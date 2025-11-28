@@ -8,7 +8,7 @@ import { T as Tabs } from "./Tabs-CZO-HKNH.js";
 import "./TextInput-CzxrbIpp.js";
 import { u as useSweetAlert } from "./useSweetAlert-D4PAsWYN.js";
 import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
-import { M as ModalUserCreate } from "./ModalUserCreate-UFZWDEY6.js";
+import { M as ModalUserCreate } from "./ModalUserCreate-Dc8c444O.js";
 import CompanyInfoTab from "./CompanyInfoTab-BIw-jHIK.js";
 import CompanyUsersTab from "./CompanyUsersTab-BLGuw5eX.js";
 import "./Header-dr5I36ZE.js";

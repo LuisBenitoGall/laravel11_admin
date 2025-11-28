@@ -27,13 +27,27 @@ import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
 
+//Modals:
+import ModalUserCreate from '@/Components/modals/ModalUserCreate';
+
 //Partials:
 import UserShowView from '@/Pages/Admin/User/Partials/UserShowView';
 
 //Utils:
 import renderCellContent from '@/Utils/renderCellContent.jsx';
 
-export default function Index({ auth, session, title, subtitle, contacts, contact_types, queryParams: rawQueryParams = {}, availableLocales }) {
+export default function Index({ 
+    auth, 
+    session, 
+    title, 
+    subtitle, 
+    contacts, 
+    contact_types, 
+    contact_types_combo,
+    salutations,
+    queryParams: rawQueryParams = {}, 
+    availableLocales 
+}) {
     const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
     const __ = useTranslation();
 
@@ -54,6 +68,13 @@ export default function Index({ auth, session, title, subtitle, contacts, contac
 		value: key,
 		label: value
 	}));
+
+    //Modals:
+    const [showModalUserCreate, setShowModalUserCreate] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
+    const handleOpenModalUserCreate = () => setShowModalUserCreate(true);
+    const handleCloseModalUserCreate = () => setShowModalUserCreate(false);
+    const refreshUsersTable = () => setRefreshKey(prev => prev + 1);
 
     //Columnas:
     const columns = [
@@ -91,12 +112,13 @@ export default function Index({ auth, session, title, subtitle, contacts, contac
     });
 
     const actions = [];
-    if (permissions?.['contacts.create']) {
+    if (permissions?.['crm-contacts.create']) {
         actions.push({
             text: __('contacto_nuevo'),
             icon: 'la-plus',
-            url: 'contacts.create',
-            modal: false
+            url: '',
+            modal: true,
+            onClick: handleOpenModalUserCreate
         });
     }
 
@@ -259,6 +281,17 @@ export default function Index({ auth, session, title, subtitle, contacts, contac
                             sort_direction: sortParams.sort_direction,
                         }, { preserveState: true });
                     }}
+                />
+
+                {/* Modals */}
+                <ModalUserCreate
+                    show={showModalUserCreate}
+                    onClose={handleCloseModalUserCreate}
+                    onCreate={refreshUsersTable}
+                    side={'crm-accounts'}
+                    salutations={salutations}
+                    contact_types={contact_types_combo}
+                    linkCompany={false}
                 />
             </div>
         </AdminAuthenticatedLayout>
