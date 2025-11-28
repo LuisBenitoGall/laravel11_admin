@@ -15,7 +15,14 @@ import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function FunctionalitiesTab({ module_data, functionalities, refreshKey, queryParams: rawQueryParams = {}, availableLocales, onDeleted }) {
+export default function FunctionalitiesTab({ 
+    module_data, 
+    functionalities, 
+    refreshKey, 
+    queryParams: rawQueryParams = {}, 
+    availableLocales, 
+    onDeleted 
+}) {
     const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
     const __ = useTranslation();
 
@@ -156,15 +163,23 @@ export default function FunctionalitiesTab({ module_data, functionalities, refre
                                             placement="top"
                                             overlay={<Tooltip className="ttp-top">{ __('eliminar') }</Tooltip>}
                                         >
-                                            <span>
-                                                <button
+                                            <Link
+                                                href={route('functionalities.destroy', func.id)}
+                                                className="btn btn-sm btn-danger ms-1"
+                                                title={ __('eliminar') }
+                                            >
+                                                <i className="la la-trash"></i>
+                                            </Link>
+                                                
+                                                
+                                                
+                                                {/* <button
                                                     type="button"
                                                     className="btn btn-sm btn-danger ms-1"
                                                     onClick={() => handleDelete(func.id, refreshData)}
                                                 >
                                                     <i className="la la-trash"></i>
-                                                </button>
-                                            </span>
+                                                </button> */}
                                         </OverlayTrigger>
                                     )}
                                 </td>

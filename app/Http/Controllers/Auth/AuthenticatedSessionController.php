@@ -50,7 +50,7 @@ class AuthenticatedSessionController extends Controller{
         $companies = UserCompany::userCompanies();
 
         //Empresa actual:
-        if($companies->count() == 1){
+        //if($companies->count() == 1){
             session(['currentCompany' => $companies[0]->id]); 
 
             //Módulos de la empresa:
@@ -61,13 +61,13 @@ class AuthenticatedSessionController extends Controller{
             $settings = CompanySetting::companySettings($companies[0]->id);
             session(['companySettings' => $settings]);
 
-        }elseif($companies->count() == 0){
-            session()->flash('error', __('usuario_sin_empresa'));
-            $this->destroy($request);
+        // }elseif($companies->count() == 0){
+        //     session()->flash('error', __('usuario_sin_empresa'));
+        //     $this->destroy($request);
 
-        }else{
+        // }else{
             
-        }
+        // }
 
         return redirect()->intended(route('dashboard.index', absolute: false));
     }

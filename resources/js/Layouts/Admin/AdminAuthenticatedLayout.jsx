@@ -115,7 +115,7 @@ export default function AdminAuthenticated({ user, title, subtitle, actions, hea
 
                     {/* Modals */}
                     {/* Modal company session */}
-                    <ModalCompaniesSession
+                    {/* <ModalCompaniesSession
                         show={showModalCompaniesSession}
                         onClose={() => setShowModalCompaniesSession(false)}
                         onConfirm={selectCompanySubmit}
@@ -146,10 +146,10 @@ export default function AdminAuthenticated({ user, title, subtitle, actions, hea
                             <div className="modal-footer">
                                 {/* El modal de elección de empresa no permite cancelación, debe elegirse empresa */}
                                 {/* <button type="button" className="btn btn-secondary" onClick={onClose}>{ __('cancelar') }</button> */}
-                                <button type="submit" className="btn btn-primary" disabled={processing}>{processing ? __('enviando') : __('enviar')}</button>
+                                {/* <button type="submit" className="btn btn-primary" disabled={processing}>{processing ? __('enviando') : __('enviar')}</button>
                             </div>
                         </form>
-                    </ModalCompaniesSession>
+                    </ModalCompaniesSession> */} */}
                 </div>
             // </StrictMode>
         // </div>
