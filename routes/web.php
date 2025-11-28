@@ -922,6 +922,9 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
         Route::delete('/workplaces/{workplace}/logo', [WorkplaceController::class, 'deleteLogo'])->name('workplaces.logo.delete')->middleware('permission:workplaces.edit');
         Route::post('workplaces/status', [WorkplaceController::class, 'status'])->name('workplaces.status')->middleware('permission:workplaces.edit');
     });
+
+
+    Route::get('/test1/', [WorkplaceController::class, 'test'])->whereNumber('company_id')->name('test1.index')
 });
 
 Route::middleware('auth')->group(function(){
