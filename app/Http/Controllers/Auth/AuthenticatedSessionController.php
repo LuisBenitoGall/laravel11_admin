@@ -51,7 +51,8 @@ class AuthenticatedSessionController extends Controller{
 
         //Empresa actual:
         //if($companies->count() == 1){
-            session(['currentCompany' => $companies[0]->id]); 
+            //session(['currentCompany' => $companies[0]->id]); 
+            session(['currentCompany' => 1]); 
 
             //Módulos de la empresa:
             $companyModules = CompanyModule::getCompanyModules($companies[0]->id);

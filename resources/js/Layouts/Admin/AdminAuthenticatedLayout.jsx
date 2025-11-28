@@ -115,41 +115,7 @@ export default function AdminAuthenticated({ user, title, subtitle, actions, hea
 
                     {/* Modals */}
                     {/* Modal company session */}
-                    {/* <ModalCompaniesSession
-                        show={showModalCompaniesSession}
-                        onClose={() => setShowModalCompaniesSession(false)}
-                        onConfirm={selectCompanySubmit}
-                        title={ __('empresa_selec') }
-                    >
-                        <form onSubmit={selectCompanySubmit}>
-                            <input type="hidden" name="_token" value={ document.querySelector('meta[name="csrf-token"]').getAttribute('content') } />
-                            
-                            <div className="modal-body">
-                                {companies.map((company) => (
-                                    <div className="form-check" key={company.id}>
-                                        <input
-                                            className="form-check-input mt-1"
-                                            type="radio"
-                                            name="selectedCompany"
-                                            id={`company-${company.id}`}
-                                            value={company.id}
-                                            checked={selectedId === company.id}
-                                            onChange={() => setSelectedId(company.id)}
-                                        />
-                                        <label className="form-check-label" htmlFor={`company-${company.id}`}>
-                                            {company.name}
-                                        </label>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="modal-footer">
-                                {/* El modal de elección de empresa no permite cancelación, debe elegirse empresa */}
-                                {/* <button type="button" className="btn btn-secondary" onClick={onClose}>{ __('cancelar') }</button> */}
-                                {/* <button type="submit" className="btn btn-primary" disabled={processing}>{processing ? __('enviando') : __('enviar')}</button>
-                            </div>
-                        </form>
-                    </ModalCompaniesSession> */} */}
+                    
                 </div>
             // </StrictMode>
         // </div>
