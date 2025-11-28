@@ -847,12 +847,15 @@ class UserController extends Controller{
         ->paginate($perPage)
         ->appends($request->all());
 
+        $contact_types = HasContactTypes::typesMap();
+
         return Inertia::render('Admin/User/Contacts', [
             "title" => __($this->option),
             "subtitle" => __('contactos_cli_pro'),
             "module" => $this->module,
             "slug" => 'contacts',
             "contacts" => UserResource::collection($contacts),
+            "contact_types" => $contact_types,
             "queryParams" => request()->query() ?: null,
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions,
@@ -929,44 +932,46 @@ class UserController extends Controller{
 
         // 5) Query base con joins y campos extra
         $query = User::query()
-            ->from('users')
-            // empresa distinta de la de sesión (para position)
-            ->leftJoin('user_companies as uc', function ($j) use ($company_id) {
-                $j->on('uc.user_id', '=', 'users.id')
-                  ->where('uc.company_id', '!=', $company_id);
-            })
-            // cuenta CRM vinculada (para edit_crm_account_id)
-            ->leftJoin('crm_accounts as ca', function ($j) use ($company_id) {
-                $j->on('ca.linked_company_id', '=', 'uc.company_id')
-                  ->where('ca.company_id', '=', $company_id);
-            })
-            // contactos CRM para la empresa en sesión (para contact_type)
-            ->leftJoin('crm_contacts as cc', function ($j) use ($company_id) {
-                $j->on('cc.user_id', '=', 'users.id')
-                  ->where('cc.company_id', '=', $company_id);
-            })
-            ->with(['avatar', 'phones'])
-            ->whereIn('users.id', $userIds)
-            ->select([
-                // SOLO las columnas de users que vas a usar en la vista
-                'users.id',
-                'users.name',
-                'users.surname',
-                'users.email',
-                'users.status',
+        ->from('users')
+        // empresa distinta de la de sesión (para position)
+        ->leftJoin('user_companies as uc', function ($j) use ($company_id) {
+            $j->on('uc.user_id', '=', 'users.id')
+              ->where('uc.company_id', '!=', $company_id);
+        })
+        // JOIN A COMPANIES PARA NOMBRE
+        ->leftJoin('companies as c', 'c.id', '=', 'uc.company_id')
+        // cuenta CRM vinculada (para edit_crm_account_id)
+        ->leftJoin('crm_accounts as ca', function ($j) use ($company_id) {
+            $j->on('ca.linked_company_id', '=', 'uc.company_id')
+              ->where('ca.company_id', '=', $company_id);
+        })
+        // contactos CRM para la empresa en sesión (para contact_type)
+        ->leftJoin('crm_contacts as cc', function ($j) use ($company_id) {
+            $j->on('cc.user_id', '=', 'users.id')
+              ->where('cc.company_id', '=', $company_id);
+        })
+        ->with(['avatar', 'phones'])
+        ->whereIn('users.id', $userIds)
+        ->select([
+            'users.id',
+            'users.name',
+            'users.surname',
+            'users.email',
+            'users.status',
 
-                DB::raw('MIN(uc.company_id)   as edit_company_id'),
-                DB::raw('MIN(ca.id)           as edit_crm_account_id'),
-                DB::raw('MIN(uc.position)     as position'),
-                DB::raw('MAX(cc.contact_type) as contact_type'),
-            ])
-            ->groupBy(
-                'users.id',
-                'users.name',
-                'users.surname',
-                'users.email',
-                'users.status',
-            );
+            DB::raw('MIN(uc.company_id)   as edit_company_id'),
+            DB::raw('MIN(ca.id)           as edit_crm_account_id'),
+            DB::raw('MIN(uc.position)     as position'),
+            DB::raw('MAX(cc.contact_type) as contact_type'),
+            DB::raw('MIN(c.name)          as company_name'),   // 👈 nombre de empresa
+        ])
+        ->groupBy(
+            'users.id',
+            'users.name',
+            'users.surname',
+            'users.email',
+            'users.status',
+        );
 
         // 6) Filtros
         $filters = [
@@ -990,7 +995,8 @@ class UserController extends Controller{
                 });
             },
             'position' => fn ($q, $v) => $q->where('uc.position', 'like', "%{$v}%"),
-            'contact_type' => fn ($q, $v) => $q->where('cc.contact_type', 'like', "%{$v}%"),
+            'contact_type' => fn ($q, $v) => $q->where('cc.contact_type', $v),
+            'companies' => fn ($q, $v) => $q->where('c.name', 'like', "%{$v}%")
         ];
 
         foreach ($filters as $key => $callback) {

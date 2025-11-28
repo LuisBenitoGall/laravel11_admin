@@ -22,8 +22,8 @@ class CompanyUpdateRequest extends FormRequest{
     public function rules(): array{
         return [
             'name' => 'required|string|max:255',
-            'tradename' => 'required|string|max:255',
-            'nif' => 'required|string|max:15',
+            'tradename' => 'nullable|string|max:255',
+            'nif' => 'nullable|string|max:15',
             'logo' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:1024'
         ];
     }

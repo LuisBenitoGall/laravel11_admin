@@ -14,18 +14,27 @@ import TextInput from '@/Components/TextInput';
 import { useTranslation } from '@/Hooks/useTranslation';
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
 
-export default function CompanyFormEdit({ company = {}, side = false, updateRoute = 'companies.update', updateParams = null }){
+export default function CompanyFormEdit({ 
+    company = {}, 
+    side = false, 
+    updateRoute = 'companies.update', 
+    updateParams = null,
+    crm_account = false
+}){
     const __ = useTranslation();
     const { showConfirm } = useSweetAlert();
-
+console.log(crm_account);
     const params = updateParams ?? [company?.id];
 
     const { data, setData, post, reset, errors, processing } = useForm({
         name: company.name ?? '',
         tradename: company.tradename ?? '',
+        email: crm_account?.main_email ?? company.main_email ?? '',
         nif: company.nif ?? '',
         side: side || '',
-        logo: null
+        logo: null,
+        crm_account_id: crm_account.id || false,
+        crm_account_linked_company_id: crm_account.linked_company_id || false
     });
 
     // Ensure form is populated if company prop changes
@@ -133,52 +142,72 @@ export default function CompanyFormEdit({ company = {}, side = false, updateRout
                         <InputError message={errors.tradename} />
                     </div>
 
-                    {/* NIF */}
-                    <div className="col-lg-3">
-                        <label className="form-label">{ __('nif') }*</label>
-                        <TextInput
-                            type="text"
-                            placeholder={__('nif')}
-                            value={data.nif}
-                            onChange={(e) => setData('nif', e.target.value)}
-                            maxLength={15}
-                            required
-                        />
-                        <InfoPopover code="company-nif" />
-                        <InputError message={errors.nif} />
-                    </div>
-
-                    {/* Logo */}
-                    <div className="offset-lg-1 col-lg-8">
-                        <label className="form-label">{ __('logo') }</label>
-
-                        {company.logo ? (
-                            <div className="d-flex align-items-start">
-                                <img
-                                    src={company.logo_url ?? computeLogoSrc(company.logo)}
-                                    alt={company.name}
-                                    className="img-thumbnail me-3"
-                                    style={{ maxWidth: '300px', objectFit: 'contain' }}
+                    {crm_account == false && (
+                        <>
+                            {/* NIF */}
+                            <div className="col-lg-3">
+                                <label className="form-label">{ __('nif') }*</label>
+                                <TextInput
+                                    type="text"
+                                    placeholder={__('nif')}
+                                    value={data.nif}
+                                    onChange={(e) => setData('nif', e.target.value)}
+                                    maxLength={15}
+                                    required
                                 />
-
-                                <button
-                                    type="button"
-                                    className="ms-2 btn btn-sm btn-danger"
-                                    onClick={handleDeleteLogo}
-                                >
-                                    <i className="la la-trash"></i>
-                                </button>
+                                <InfoPopover code="company-nif" />
+                                <InputError message={errors.nif} />
                             </div>
-                        ) : (
-                            <FileInput name="logo" accept="image/*" onChange={handleChange} error={errors.logo} />
-                        )}
 
-                        <p className='pt-1 text-warning small'>
-                            <span className='me-5'>{ __('imagen_formato') }</span>
-                            <span className='me-5'>{ __('imagen_peso_max') }: 1MB</span>
-                            { __('imagen_medidas_recomendadas') }: 400x400px
-                        </p>
-                    </div>
+                            {/* Logo */}
+                            <div className="offset-lg-1 col-lg-8">
+                                <label className="form-label">{ __('logo') }</label>
+
+                                {company.logo ? (
+                                    <div className="d-flex align-items-start">
+                                        <img
+                                            src={company.logo_url ?? computeLogoSrc(company.logo)}
+                                            alt={company.name}
+                                            className="img-thumbnail me-3"
+                                            style={{ maxWidth: '300px', objectFit: 'contain' }}
+                                        />
+
+                                        <button
+                                            type="button"
+                                            className="ms-2 btn btn-sm btn-danger"
+                                            onClick={handleDeleteLogo}
+                                        >
+                                            <i className="la la-trash"></i>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <FileInput name="logo" accept="image/*" onChange={handleChange} error={errors.logo} />
+                                )}
+
+                                <p className='pt-1 text-warning small'>
+                                    <span className='me-5'>{ __('imagen_formato') }</span>
+                                    <span className='me-5'>{ __('imagen_peso_max') }: 1MB</span>
+                                    { __('imagen_medidas_recomendadas') }: 400x400px
+                                </p>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Email */}
+                    <div className="col-md-6">
+                        <div>
+                            <label htmlFor="name" className="form-label">{ __('email') }</label>
+                            <TextInput
+                                type="email"
+                                name="email"
+                                value={data.email}
+                                onChange={(e) => setData('email', e.target.value)}
+                                maxLength={100}
+                            />
+
+                            <InputError message={errors.email} />
+                        </div>
+                    </div>   
 
                     <div className='mt-4 text-end'>
                         <PrimaryButton disabled={processing} className='btn btn-rdn'>

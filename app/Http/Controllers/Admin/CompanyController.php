@@ -286,7 +286,6 @@ class CompanyController extends Controller{
      * 6. Actualizar empresa.
      */
     public function update(CompanyUpdateRequest $request, Company $company){
-        //dd($request->all());
         try {
             $validated = $request->validated();
 
@@ -295,16 +294,25 @@ class CompanyController extends Controller{
             $company->name = $validated['name'];
             $company->slug = $slug;
             $company->tradename = $validated['tradename'];
-            $company->nif = $validated['nif'];
+            //28/11/2025: los campos nif y logo se bloquean para RFT:
+            //$company->nif = $validated['nif'];
 
             //Guardando logo:
-            $filename = Company::saveCompanyLogo($request, $company->slug);
+            // $filename = Company::saveCompanyLogo($request, $company->slug);
 
-            if($filename){
-                $company->logo = $filename; 
-            }
+            // if($filename){
+            //     $company->logo = $filename; 
+            // }
 
             $company->save();
+
+            if($request->crm_account_id){
+
+                $crm_account = CrmAccount::select('id', 'main_email')->find($request->crm_account_id);
+
+                $crm_account->main_email = $request->email;
+                $crm_account->save();
+            }
 
             if($request->side == 'customers'){
                 return redirect()->route('customers.edit', $company->id)
@@ -313,8 +321,14 @@ class CompanyController extends Controller{
                 return redirect()->route('providers.edit', $company->id)
                 ->with('msg', __('proveedor_actualizado_msg'));
             }else{
-                return redirect()->route('companies.edit', $company->id)
-                ->with('msg', __('empresa_actualizada_msg'));
+                //CRM accounts:
+                if($request->crm_account_id){
+                    return redirect()->route('crm-accounts.edit', $request->crm_account_id)
+                    ->with('msg', __('empresa_actualizada_msg'));
+                }else{
+                    return redirect()->route('companies.edit', $company->id)
+                    ->with('msg', __('empresa_actualizada_msg'));
+                }
             }
             
         } catch (\Throwable $e) {

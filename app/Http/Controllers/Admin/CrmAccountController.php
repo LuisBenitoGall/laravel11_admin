@@ -143,7 +143,8 @@ class CrmAccountController extends Controller{
         // Filtros dinámicos
         $filters = [
             'name' => fn($q, $v) => $q->where('companies.name', 'like', "%$v%"),
-            'tradename' => fn($q, $v) => $q->where('companies.tradename', 'like', "%$v%")
+            'tradename' => fn($q, $v) => $q->where('companies.tradename', 'like', "%$v%"),
+            'nif' => fn($q, $v) => $q->where('companies.nif', 'like', "%$v%"),
         ];
 
         foreach($filters as $key => $callback){
@@ -202,15 +203,17 @@ class CrmAccountController extends Controller{
     public function store(CrmAccountStoreRequest $request){
         $linkedCompanyId = null;
 
-        if ($request->filled('nif')) {
-            $company = Company::where('nif', $request->nif)->first();
+        //if ($request->filled('nif')) {
+            $company = Company::where('nif', $request->nif)
+            ->where('nif', '!=', '')
+            ->first();
 
             if (!$company) {
                 $company = Company::saveCompany($request, false); // no crea cuenta de empresa
             }
 
             $linkedCompanyId = $company->id;
-        }
+        //}
 
         $scopeCompanyId = session('currentCompany'); // la empresa activa que “posee” la cuenta CRM
 
@@ -523,7 +526,7 @@ class CrmAccountController extends Controller{
 
         //Como cliente:
         if($data['as_customer']){
-            CustomerProvider::firstOrCreate([
+            $cp = CustomerProvider::firstOrCreate([
                 'provider_id' => $currentCompanyId,
                 'customer_id' => $crm_account->linked_company_id
             ], [
@@ -531,12 +534,14 @@ class CrmAccountController extends Controller{
                 'updated_by' => Auth::id(),
                 'default_currency_id' => $crm_account->currency_id,
                 'status' => 1,
-            ]);    
+            ]); 
+
+            //TO-DO: generar cuenta contable.   
         }
 
         //Como proveedor:
         if($data['as_provider']){
-            CustomerProvider::firstOrCreate([
+            $cp = CustomerProvider::firstOrCreate([
                 'provider_id' => $crm_account->linked_company_id,
                 'customer_id' => $currentCompanyId
             ], [
@@ -544,7 +549,9 @@ class CrmAccountController extends Controller{
                 'updated_by' => Auth::id(),
                 'default_currency_id' => $crm_account->currency_id,
                 'status' => 1,
-            ]);        
+            ]);  
+
+            //TO-DO: generar cuenta contable.       
         }
 
         return redirect()->route('companies.edit', $crm_account->linked_company_id)->with('msg', __('conversion_completada'));  

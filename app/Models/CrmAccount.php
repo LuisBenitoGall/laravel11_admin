@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
 use File;
 use Carbon\Carbon;
 
@@ -106,10 +107,13 @@ class CrmAccount extends Model{
         // scope de multiempresa (empresa “dueña” de la cuenta CRM)
         $a->company_id = $scopeCompanyId;
 
+        $slug = Str::slug($request->name);
+
         // enlace a maestro (solo si procede)
         //$a->linked_company_id = $request->boolean('auto_link') && $linkedCompanyId ? $linkedCompanyId : null;
         $a->linked_company_id = $linkedCompanyId;
         $a->name        = $request->name;
+        $a->normalized_name = $slug;
         $a->tradename   = $request->tradename;
         $a->owner_id    = Auth::id();
         $a->created_by  = Auth::id();

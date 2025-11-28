@@ -109,7 +109,7 @@ export default function Index({ auth, session, title, subtitle, availableLocales
 						</div>
 
 						{/* NIF */}
-						<div className="col-lg-3">
+						{/* <div className="col-lg-3">
 							<div className='position-relative'>
     							<label htmlFor="nif" className="form-label">{ __('nif') }</label>
     							<TextInput 
@@ -124,10 +124,10 @@ export default function Index({ auth, session, title, subtitle, availableLocales
 
 								<InputError message={errors.nif} />
 							</div>
-						</div>
+						</div> */}
 
 						{/* Logo */}
-						<div className="col-lg-6">
+						{/* <div className="col-lg-6">
 							<div>
     							<label htmlFor="logo" className="form-label">{ __('logo') }</label>
 								<FileInput 
@@ -142,7 +142,7 @@ export default function Index({ auth, session, title, subtitle, availableLocales
 								<span className='me-5'>{ __('imagen_peso_max') }: 1MB</span>
 								{ __('imagen_medidas_recomendadas') }: 400x400px
 							</p>
-						</div>
+						</div> */}
 
 						<div className='mt-4 text-end'>
 							<PrimaryButton disabled={processing} className='btn btn-rdn'>

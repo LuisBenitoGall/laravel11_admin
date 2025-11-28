@@ -29,7 +29,21 @@ import CompanyInfoTab from './Partials/CompanyInfoTab';
 import CompanyUsersTab from './Partials/CompanyUsersTab.jsx';
 import CrmAccountAddressTab from '../CrmAccount/Partials/CrmAccountAddressTab.jsx';
 
-export default function Index({ auth, session, title, subtitle, availableLocales, company, crm_account, users, rows, salutations, contact_types, countries, currencies, tab }){
+export default function Index({ 
+    auth, 
+    session, 
+    title, 
+    subtitle, 
+    availableLocales, 
+    company, 
+    crm_account, 
+    users, 
+    rows, 
+    salutations, 
+    contact_types, 
+    countries, 
+    currencies, tab 
+}){
     const __ = useTranslation();
     const props = usePage()?.props || {};
     const locale = props.locale || false;
@@ -279,6 +293,7 @@ export default function Index({ auth, session, title, subtitle, availableLocales
                                     side={'companies'}
                                     updateRoute={'companies.update'}
                                     updateParams={[company.id]}
+                                    crm_account={crm_account}
                                 />
                             )
                         },
