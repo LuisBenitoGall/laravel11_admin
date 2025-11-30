@@ -21,7 +21,7 @@ import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
 
 //Partials:
-//import MarketingopportunitieshowView from '@/Pages/Admin/MarketingCampaign/Partials/MarketingopportunitieshowView';
+import CrmOpportunitiesShowView from '@/Pages/Admin/CrmOpportunity/Partials/CrmOpportunitiesShowView';
 
 //Utils:
 import renderCellContent from '@/Utils/renderCellContent.jsx';
@@ -46,7 +46,7 @@ export default function Index({ auth, session, title, subtitle, opportunities, q
 
     //Columnas:
     const columns = [
-        { key: 'name', label: __('campanya'), sort: true, filter: 'text', type: 'link', link: 'crm-opportunities.edit', class_th: '', class_td: '', placeholder: __('campanya_filtrar') },
+        { key: 'name', label: __('oportunidad'), sort: true, filter: 'text', type: 'link', link: 'crm-opportunities.edit', class_th: '', class_td: '', placeholder: __('oportunidad_filtrar') },
         { key: 'code', label: __('codigo'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('codigo_filtrar') },
         { key: 'type', label: __('tipo'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('tipo_filtrar') },
         { key: 'start_at', label: __('fecha_inicio'), sort: true, filter: 'date', class_th: 'text-center', class_td: 'text-end', placeholder: __('fecha_inicio'), dateKeys: ['date_from', 'date_to'] },
@@ -81,7 +81,7 @@ export default function Index({ auth, session, title, subtitle, opportunities, q
     const actions = [];
     if (permissions?.['crm-opportunities.create']) {
         actions.push({
-            text: __('campanya_nueva'),
+            text: __('oportunidad_nueva'),
             icon: 'la-plus',
             url: 'crm-opportunities.create',
             modal: false
@@ -163,7 +163,7 @@ export default function Index({ auth, session, title, subtitle, opportunities, q
                                             <OverlayTrigger
                                                 key={"status-"+campaign.id}
                                                 placement="top"
-                                                overlay={<Tooltip className="ttp-top">{ campaign.status == 1 ? __('campanya_activa') : __('campanya_inactiva') }</Tooltip>}
+                                                overlay={<Tooltip className="ttp-top">{ campaign.status == 1 ? __('oportunidad_activa') : __('oportunidad_inactiva') }</Tooltip>}
                                             >
                                                 <StatusButton 
                                                     status={campaign.status} 
@@ -218,8 +218,8 @@ export default function Index({ auth, session, title, subtitle, opportunities, q
                     open={showPanelOpen}
                     onClose={handleCloseShowPanel}
                     routeName="crm-opportunities.show"        // tu ruta JSON
-                    title={__('campanya')}         // o lo que quieras
-                    ViewComponent={MarketingopportunitieshowView}
+                    title={__('oportunidad')}        
+                    ViewComponent={CrmOpportunitiesShowView}
                 />
 
                 <Pagination 

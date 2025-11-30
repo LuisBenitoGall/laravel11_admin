@@ -33,9 +33,20 @@ class UserPreferenceController extends Controller{
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request, CompanyContext $ctx){
-        $companyId = (int) $ctx->id();
-        if ($companyId <= 0) {
-            abort(422, __('no_hay_empresa_activa'));
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
 
         $data = $request->validate([
@@ -49,7 +60,7 @@ class UserPreferenceController extends Controller{
             'url'        => trim($data['url']),
             'module'     => $data['module'] ?? '',
             'user_id'    => Auth::id(),
-            'company_id' => $companyId,
+            'company_id' => $currentCompanyId,
         ]);
 
         // Petición Inertia: 204 + X-Inertia para no mostrar el overlay

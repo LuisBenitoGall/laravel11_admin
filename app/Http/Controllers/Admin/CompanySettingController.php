@@ -59,12 +59,22 @@ class CompanySettingController extends Controller{
      */
     public function index(Request $request){
         $ctx = app(CompanyContext::class);
-        $currentId = (int) $ctx->id();
-        if($currentId <= 0){
-            abort(422, __('no_hay_empresa_activa'));
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
 
-        $company = Company::find($currentId);
+        $company = Company::find($currentCompanyId);
         if (!$company) {
             abort(404, __('empresa_no_encontrada'));
         }

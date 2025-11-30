@@ -358,10 +358,21 @@ class CustomerProviderController extends Controller{
     /**
      * 4. Guardar nuevo cliente.
      */
-    public function storeCustomer(CustomerStoreRequest $request, CompanyContext $ctx){
-        $companyId = (int) $ctx->id();
-        if($companyId <= 0){
-            abort(422, __('no_hay_empresa_activa'));
+    public function storeCustomer(CustomerStoreRequest $request){
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
 
         //Guardando empresa. El método del Model guarda también company_account, roles, workplace y user_company.
@@ -371,7 +382,7 @@ class CustomerProviderController extends Controller{
         $relation = CustomerProvider::firstOrCreate(
             [
                 'customer_id' => $customer->id,
-                'provider_id' => $companyId
+                'provider_id' => $currentCompanyId
             ],
             [
                 'created_by' => Auth::id(),
@@ -388,10 +399,21 @@ class CustomerProviderController extends Controller{
     /**
      * 5. Guardar nuevo proveedor.
      */
-    public function storeProvider(CustomerStoreRequest $request, CompanyContext $ctx){
-        $companyId = (int) $ctx->id();
-        if($companyId <= 0){
-            abort(422, __('no_hay_empresa_activa'));
+    public function storeProvider(CustomerStoreRequest $request){
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
 
         //Guardando empresa. El método del Model guarda también company_account, roles, workplace y user_company.
@@ -400,7 +422,7 @@ class CustomerProviderController extends Controller{
         //Guardar relación:
         $relation = CustomerProvider::firstOrCreate(
             [
-                'customer_id' => $companyId,
+                'customer_id' => $currentCompanyId,
                 'provider_id' => $provider->id
             ],
             [
@@ -451,12 +473,21 @@ class CustomerProviderController extends Controller{
      * 7. Editar cliente.
      */
     public function editCustomer(Company $customer, $tab = false){
-        // CompanyContext resolved manually to avoid controller injection issues when route provides optional params
         $ctx = app(CompanyContext::class);
         $providerId = (int) $ctx->id();
         if($providerId <= 0){
-            abort(422, __('no_hay_empresa_activa'));
-        }  
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
 
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 
@@ -540,8 +571,18 @@ class CustomerProviderController extends Controller{
         $ctx = app(CompanyContext::class);
         $customerId = (int) $ctx->id();
         if($customerId <= 0){
-            abort(422, __('no_hay_empresa_activa'));
-        }  
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
 
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 

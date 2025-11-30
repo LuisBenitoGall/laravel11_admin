@@ -15,7 +15,13 @@ import TextInput from '@/Components/TextInput';
 //Hooks:
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function Index({ auth, session, title, subtitle, availableLocales }){
+export default function Index({ 
+	auth, 
+	session, 
+	title, 
+	subtitle, 
+	availableLocales 
+}){
 	const __ = useTranslation();
 	const props = usePage()?.props || {};
     const locale = props.locale || false;

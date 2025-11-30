@@ -215,14 +215,25 @@ class BankAccountController extends Controller{
     /**
      * 3. Guardar nueva cuenta.
      */
-    public function store(BankAccountStoreRequest $request, CompanyContext $ctx){
-        $companyId = (int) $ctx->id();
-        if ($companyId <= 0) {
-            abort(422, __('no_hay_empresa_activa'));
+    public function store(BankAccountStoreRequest $request){
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
 
         //Guardando cuenta:
-        $account = BankAccount::saveAccount($request->validated(), $companyId);        
+        $account = BankAccount::saveAccount($request->validated(), $currentCompanyId);        
 
         return redirect()->route('bank-accounts.edit', $account->id)
             ->with('msg', __('cuenta_creada_msg'));

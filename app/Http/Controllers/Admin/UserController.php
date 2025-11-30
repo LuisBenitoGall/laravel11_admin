@@ -26,6 +26,8 @@ use App\Concerns\HasContactTypes;
 use App\Concerns\HasSalutation;
 
 //Models:
+use App\Models\Categorizable;
+use App\Models\Category;
 use App\Models\Company;
 use App\Models\CrmAccount;
 use App\Models\CrmContact;
@@ -72,6 +74,9 @@ class UserController extends Controller{
      * 12. Listado de contactos.
      * 12.1. Contactos para exportación.
      * 12.2. Data Query contactos.
+     * 13. Usuarios por categorías.
+     * 13.1. Búsqueda de usuarios por categorías.
+     * 14. Buscador de usuarios.
      */
     
     use ConvertDateTrait;
@@ -400,9 +405,19 @@ class UserController extends Controller{
      */
     public function edit_DEPRECATED(User $user, $company_id = false, $profile = false){
         $ctx = app(CompanyContext::class);
-        $companyId = (int) $ctx->id();
-        if($companyId <= 0){
-            abort(422, __('no_hay_empresa_activa'));
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
 
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
@@ -430,7 +445,7 @@ class UserController extends Controller{
         // Obtener company_ids distintos de la compañía en session + datos de empresa y pivot.id
         $relations = UserCompany::query()
         ->where('user_id', $user->id)
-        ->where('company_id', '!=', $companyId)
+        ->where('company_id', '!=', $currentCompanyId)
         ->with('company') // asume relación userCompany->company
         ->get(['id', 'company_id', 'position', 'department']); // id = pivot id user_companies
 
@@ -530,9 +545,19 @@ class UserController extends Controller{
     public function edit(User $user, $company_id = null, $profile = false)
     {
         $ctx = app(CompanyContext::class);
-        $sessionCompanyId = (int) $ctx->id();
-        if ($sessionCompanyId <= 0) {
-            abort(422, __('no_hay_empresa_activa'));
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
 
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
@@ -553,7 +578,7 @@ class UserController extends Controller{
             // Primero intentamos CRM
             $crm = CrmAccount::select('id','name','company_id','linked_company_id')
                 ->where('linked_company_id', $company_id)
-                ->where('company_id', $sessionCompanyId)
+                ->where('company_id', $currentCompanyId)
                 ->first();
 
             if ($crm) {
@@ -580,7 +605,7 @@ class UserController extends Controller{
             }
         } else {
             // Sin parámetro: usar empresa en sesión como contexto company
-            $company = Company::select('id','name')->findOrFail($sessionCompanyId);
+            $company = Company::select('id','name')->findOrFail($currentCompanyId);
             $companyContext = (object)[
                 'type'            => 'company',
                 'crm_id'          => false,
@@ -612,7 +637,7 @@ class UserController extends Controller{
         // CrmContact solo si el contexto es CRM y la cuenta pertenece a la empresa en sesión
         $crm_contact = false;
         if ($companyContext->type === 'crm_account') {
-            $crm_contact = CrmContact::where('company_id', $sessionCompanyId)
+            $crm_contact = CrmContact::where('company_id', $currentCompanyId)
                 ->where('user_id', $user->id)
                 ->first();
         }
@@ -1027,6 +1052,226 @@ class UserController extends Controller{
         }
 
         return $query->orderBy("users.$sortField", $sortDirection);
+    }
+
+    /**
+     * 13. Usuarios por categorías.
+     */
+    public function categories(){
+        return Inertia::render('Admin/User/Categories', [
+            "title" => __($this->option),
+            "subtitle" => __('usuarios_x_categoria'),
+            "module" => $this->module,
+            "slug" => 'categories',
+            "queryParams" => request()->query() ?: null,
+            "availableLocales" => LocaleTrait::availableLocales(),
+            "permissions" => $this->permissions
+        ]);        
+    }
+
+    /**
+     * 13.1. Búsqueda de usuarios por categorías.
+     */
+    public function usersByCategorySearch(Request $request)
+    {
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if ($currentCompanyId <= 0) {
+            $url = route('companies.refresh-session');
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+            return redirect($url);
+        }
+
+        $request->validate([
+            'category_id' => ['required','integer','min:1'],
+            'q'           => ['nullable','string','max:150'],
+            // por si más tarde quieres cambiar el scope
+            'environment' => ['nullable','in:users'],
+        ]);
+
+        $companyId = $currentCompanyId;
+
+        // Categoría (módulo 'users')
+        $category = Category::where('company_id', $companyId)
+            ->where('module', 'users')
+            ->orderBy('name', 'ASC')
+            ->findOrFail($request->integer('category_id'));
+
+        // IDs de la categoría seleccionada + descendientes
+        $prefix = $category->path;
+        $descendantIds = Category::where('company_id', $companyId)
+            ->where('module', 'users')
+            ->where(function ($q) use ($prefix) {
+                $q->where('path', $prefix)->orWhere('path', 'like', $prefix.'/%');
+            })
+            ->orderBy('name', 'ASC')
+            ->pluck('id')
+            ->all();
+
+        $q = trim((string) $request->get('q', ''));
+
+        // 1) USUARIOS (categorizados como 'users')
+        $userRows = User::query()
+            ->from('users')
+            ->select([
+                'users.id',
+                'users.name',
+                'users.surname',
+                'users.email',
+                DB::raw('MIN(uc.company_id) as any_company_id') // por si quieres mostrar algo
+            ])
+            ->join('categorizables as cz', function ($j) {
+                $j->on('cz.categorizable_id', '=', 'users.id')
+                  ->where('cz.categorizable_type', User::class);
+            })
+            // vinculaciones posibles del usuario (puede tener varias)
+            ->leftJoin('user_companies as uc', 'uc.user_id', '=', 'users.id')
+            ->where('cz.company_id', $companyId)
+            ->whereIn('cz.category_id', $descendantIds)
+            ->when($q !== '', function ($qq) use ($q) {
+                $qq->where(function ($w) use ($q) {
+                    $w->where('users.name', 'like', "%{$q}%")
+                      ->orWhere('users.surname', 'like', "%{$q}%")
+                      ->orWhere('users.email', 'like', "%{$q}%");
+                });
+            })
+            ->groupBy('users.id','users.name','users.surname','users.email')
+            ->orderBy('users.name')
+            ->get()
+            ->map(function ($u) {
+                return [
+                    'id'    => (int) $u->id,
+                    'type'  => 'user',
+                    'name'  => trim(($u->name ?? '').' '.($u->surname ?? '')),
+                    'email' => (string) ($u->email ?? ''),
+                    // edición genérica de usuario (sin contexto CRM)
+                    'url'   => route('users.edit', [$u->id]),
+                ];
+            })
+            ->all();
+
+        // 2) CONTACTOS CRM de la empresa en sesión, pero categorizados como 'users'
+        //    Calculamos linked_company_id con user_companies + crm_accounts
+        $crmContactRows = User::query()
+            ->from('users')
+            ->select([
+                'users.id',
+                'users.name',
+                'users.surname',
+                'users.email',
+                DB::raw('MIN(uc.company_id) as linked_company_id'),
+                DB::raw('MIN(ca.id) as crm_account_id')
+            ])
+            // categorías del usuario (module=users)
+            ->join('categorizables as cz', function ($j) {
+                $j->on('cz.categorizable_id', '=', 'users.id')
+                  ->where('cz.categorizable_type', User::class);
+            })
+            // contactos CRM de la empresa en sesión
+            ->join('crm_contacts as cc', function ($j) use ($companyId) {
+                $j->on('cc.user_id', '=', 'users.id')
+                  ->where('cc.company_id', '=', $companyId);
+            })
+            // empresa vinculada del usuario (distinta de la empresa en sesión)
+            ->leftJoin('user_companies as uc', function ($j) use ($companyId) {
+                $j->on('uc.user_id', '=', 'users.id')
+                  ->where('uc.company_id', '!=', $companyId);
+            })
+            // mapeo a crm_accounts: session company + linked_company_id
+            ->leftJoin('crm_accounts as ca', function ($j) use ($companyId) {
+                $j->on('ca.linked_company_id', '=', 'uc.company_id')
+                  ->where('ca.company_id', '=', $companyId);
+            })
+            ->where('cz.company_id', $companyId)
+            ->whereIn('cz.category_id', $descendantIds)
+            ->when($q !== '', function ($qq) use ($q) {
+                $qq->where(function ($w) use ($q) {
+                    $w->where('users.name', 'like', "%{$q}%")
+                      ->orWhere('users.surname', 'like', "%{$q}%")
+                      ->orWhere('users.email', 'like', "%{$q}%");
+                });
+            })
+            ->groupBy('users.id','users.name','users.surname','users.email')
+            ->orderBy('users.name')
+            ->get()
+            ->map(function ($u) {
+                $linked = $u->linked_company_id ? (int) $u->linked_company_id : null;
+                return [
+                    'id'    => (int) $u->id,
+                    'type'  => 'crm_contact',
+                    'name'  => trim(($u->name ?? '').' '.($u->surname ?? '')),
+                    'email' => (string) ($u->email ?? ''),
+                    'linked_company_id' => $linked,
+                    'crm_account_id'    => $u->crm_account_id ? (int) $u->crm_account_id : null,
+                    // edición de usuario en contexto CRM:
+                    // pasamos linked_company_id como 2º parámetro tal y como has estandarizado
+                    'url'   => $linked ? route('users.edit', [$u->id, $linked]) : route('users.edit', [$u->id]),
+                ];
+            })
+            ->all();
+
+        return response()->json([
+            'category' => [
+                'id'   => (int) $category->id,
+                'name' => (string) $category->name,
+                'path' => (string) $category->path,
+            ],
+            'users'         => $userRows,
+            'crm_contacts'  => $crmContactRows,
+            'total'         => count($userRows) + count($crmContactRows),
+        ]);
+    }
+
+    /**
+     * 14. Buscador de usuarios.
+     */
+    public function search(Request $request)
+    {
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
+
+        $request->validate([
+            'q'     => ['nullable', 'string', 'max:150'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ]);
+
+        $q     = trim((string) $request->input('q', ''));
+        $limit = (int) $request->input('limit', 10);
+
+        $users = User::query()
+            ->select('id', 'name', 'email')
+            ->orderBy('name')
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('name', 'like', "%{$q}%")
+                        ->orWhere('email', 'like', "%{$q}%");
+                });
+            })
+            // TODO: si tienes relación user<->company, filtra aquí:
+            // ->whereHas('companies', fn ($c) => $c->where('companies.id', $companyId))
+            ->limit($limit)
+            ->get();
+
+        return response()->json([
+            'data' => $users,
+        ]);
     }
 
 }

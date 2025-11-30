@@ -5,6 +5,7 @@ import { useHandleDelete } from '@/Utils/useHandleDelete.jsx';
 import { useEffect, useState } from 'react';
 
 //Components:
+import CategoryAssigner from '@/Components/CategoryAssigner';
 import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import RadioButton from '@/Components/RadioButton';
@@ -128,12 +129,25 @@ export default function Index({
         });
     }
 
+    // Environment para categorías de clientes: usamos 'sectors' para mapear a module 'companies'
+    const envForCategories = 'users';
+
+    // Endpoints que consume CategoryAssigner
+    const categoryEndpoints = {
+        list: route('categorizables.list'),                               // GET  ?environment=&type=&id=
+        assign: route('categorizables.assign'),                           // POST body {environment,type,id,category_ids}
+        unassign: route('categorizables.unassign'),                       // POST body {environment,type,id,category_ids}
+        tree: route('categories.tree', { environment: envForCategories }),// GET  ?environment=
+        create: route('categories.store', { environment: envForCategories }) // POST body {environment,name,parent_id?}
+    };
+
     // -----------------------
     // TABS
     // -----------------------
     const tabs = [
         { key: 'user-personal-data', label: __('datos_personales') },
         ...(profile === true ? [{ key: 'user-password', label: __('contrasena') }] : []),
+        { key: 'user-categories', label: __('categorias') },
         { key: 'user-images', label: __('imagenes') },
         { key: 'user-notes', label: __('notas') },
     ];
@@ -176,6 +190,16 @@ export default function Index({
                             
                             case 'user-password':
                                 return <UserPassword user={user} />;
+
+                            case 'user-categories':
+                                return <CategoryAssigner
+                                    environment={envForCategories}
+                                    categorizable={{ type: 'App\\Models\\User', id: user.id }}
+                                    endpoints={categoryEndpoints}
+                                    title={__('categorias')}
+                                    allowCreate={true}
+                                    readOnly={false}
+                                />
 
                             case 'user-images': {
                                 const inferredImagePath = user?.image_path || user?.imagePath || 'users';

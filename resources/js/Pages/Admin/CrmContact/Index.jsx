@@ -45,6 +45,8 @@ export default function Index({
     contact_types, 
     contact_types_combo,
     salutations,
+    leads,
+    slug,
     queryParams: rawQueryParams = {}, 
     availableLocales 
 }) {
@@ -69,6 +71,18 @@ export default function Index({
 		label: value
 	}));
 
+    // Column config for contact_type: if we're in 'leads' context, remove filter and options
+    const contactTypeColumn = {
+        key: 'contact_type',
+        label: __('contacto_tipo'),
+        sort: false,
+        filter: leads === true ? '' : 'select',
+        class_th: '',
+        class_td: '',
+        placeholder: leads === true ? '' : __('contacto_tipo_filtrar'),
+        ...(leads === true ? {} : { options: contactTypesArray })
+    };
+
     //Modals:
     const [showModalUserCreate, setShowModalUserCreate] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
@@ -83,7 +97,7 @@ export default function Index({
         { key: 'email',      label: __('email'),       sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('email_filtrar') },
         { key: 'phones',     label: __('telefonos'),   sort: false, filter: '', class_th: '', class_td: '', placeholder: __('telefonos_filtrar') },
         { key: 'position',   label: __('cargo'),       sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('cargo_filtrar') },
-        { key: 'contact_type', label: __('contacto_tipo'), sort: false, filter: 'select', options: contactTypesArray, class_th: '', class_td: '', placeholder: __('contacto_tipo_filtrar') },
+        contactTypeColumn,
         { key: 'companies',  label: __('empresa'),     sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('empresa_filtrar') },
         { key: 'avatar',     label: __('imagen'),      sort: false, filter: '',     type: 'image', icon: 'user-tie', class_th: 'text-center', class_td: 'text-center', placeholder: '' }
     ];
@@ -104,9 +118,9 @@ export default function Index({
         table: 'tblContacts',
         allColumnKeys: columns.map(col => col.key),
         entityName: 'contacts',
-        indexRoute: 'crm-contacts.index',
+        indexRoute: slug + '.index',
         destroyRoute: 'users.destroy',
-        filteredDataRoute: 'crm-contacts.filtered-data',
+        filteredDataRoute: slug + '.filtered-data',
         labelName: 'contactos',
         queryParams
     });
@@ -273,7 +287,7 @@ export default function Index({
                     currentPage={contacts.meta.current_page}
                     perPage={contacts.meta.per_page}
                     onPageChange={(page) => {
-                        router.get(route("crm-contacts.index"), {
+                        router.get(route(slug + ".index"), {
                             ...queryParams,
                             page,
                             per_page: perPage,

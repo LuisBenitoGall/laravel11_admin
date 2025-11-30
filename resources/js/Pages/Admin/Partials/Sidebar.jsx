@@ -15,6 +15,7 @@ export default function Sidebar(auth) {
     const __ = useTranslation();
     const txt_areas_negocio = __('areas_negocio');
     const txt_bancos = __('bancos');
+    const txt_categorias_por = __('categorias_por');
     const txt_centros_coste = __('centros_coste');
     const txt_centros_trabajo = __('centros_trabajo');
     const txt_clientes = __('clientes');
@@ -48,6 +49,9 @@ export default function Sidebar(auth) {
     const props = useSafePage();
     const { currentCompany, companyModules, companySettings } = useCompanySession();
     const { module: currentModule, slug: currentSlug } = props;
+console.log('Modulos', modules);
+    //Módulos por defecto para RFT:
+    const default_modules = ['crm', 'marketing'];
 
     useEffect(() => {
         document.querySelectorAll('.menu-link[data-bs-toggle="collapse"]').forEach((el) => {
@@ -267,6 +271,12 @@ export default function Sidebar(auth) {
                                                     <span>{txt_cli_pro}</span>
                                                 </NavLink>
                                             </li>
+
+                                            <li>
+                                                <NavLink href={route('users.categories')} className={`nav-link menu-link ${currentSlug === 'categories' ? 'active text-white' : ''}`}>
+                                                    <span>{txt_categorias_por}</span>
+                                                </NavLink>
+                                            </li>
                                         </ul>
                                     </div>
                                 </li>
@@ -337,7 +347,9 @@ export default function Sidebar(auth) {
 
                         {/* Módulos dinámicos */}
                         {Array.isArray(modules) && modules.length > 0 ? (
-                            modules.map(module => {
+                            modules
+                                .filter(module => ((Array.isArray(module.functionalities) && module.functionalities.length > 0) || default_modules.includes(module.slug)))
+                                .map(module => {
                                 const menuId = `menu${module.slug.charAt(0).toUpperCase() + module.slug.slice(1)}`;
                                 const isModuleActive = currentModule === module.slug;
 

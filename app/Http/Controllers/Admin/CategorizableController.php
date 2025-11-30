@@ -23,6 +23,7 @@ class CategorizableController extends Controller{
             'customers' => 'companies',
             'providers' => 'companies',
             'crm'       => 'crm',
+            'users', 'contacts' => 'users',
             default     => 'companies',
         };
     }
@@ -68,12 +69,27 @@ class CategorizableController extends Controller{
             'id'          => 'required|integer',
         ]);
 
-        $module   = $this->moduleSlugFor($data['environment']); // usa tu helper
-        $companyId = (int) $ctx->id();
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
+
+        $module = $this->moduleSlugFor($data['environment']); // usa tu helper
 
         // IDs asignados (lo que necesita el front)
         $ids = Categorizable::query()
-            ->where('categorizables.company_id', $companyId)
+            ->where('categorizables.company_id', $currentCompanyId)
             ->where('categorizables.categorizable_type', $data['type'])
             ->where('categorizables.categorizable_id', $data['id'])
             ->join('categories', 'categories.id', '=', 'categorizables.category_id')
@@ -85,7 +101,7 @@ class CategorizableController extends Controller{
 
         // Items con breadcrumb (por si quieres mostrar algo ya listo)
         $items = Categorizable::query()
-            ->where('categorizables.company_id', $companyId)
+            ->where('categorizables.company_id', $currentCompanyId)
             ->where('categorizables.categorizable_type', $data['type'])
             ->where('categorizables.categorizable_id', $data['id'])
             ->join('categories', 'categories.id', '=', 'categorizables.category_id')
@@ -112,7 +128,7 @@ class CategorizableController extends Controller{
      * Body mínimo: environment, categorizable_type, categorizable_id, category_ids[]
      * Opcional: categorizable_ids[]
      */
-    public function assign(Request $request, CompanyContext $ctx)
+    public function assign(Request $request)
     {
         // Normaliza alias antes de validar
         $request->merge([
@@ -131,7 +147,22 @@ class CategorizableController extends Controller{
             'category_ids.*'      => 'integer',
         ]);
 
-        $companyId = (int) $ctx->id();
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
+
         $module    = $this->moduleSlugFor($data['environment']);
 
         $targetIds   = $this->idArray($request, 'categorizable_id', 'categorizable_ids');
@@ -141,16 +172,16 @@ class CategorizableController extends Controller{
             return response()->json(['message' => 'Parámetros insuficientes'], 422);
         }
 
-        $validCategoryIds = $this->validateCategoriesScope($categoryIds, $companyId, $module);
+        $validCategoryIds = $this->validateCategoriesScope($categoryIds, $currentCompanyId, $module);
         if (empty($validCategoryIds)) {
             return response()->json(['message' => 'Categorías no válidas en este ámbito'], 422);
         }
 
-        DB::transaction(function () use ($companyId, $data, $targetIds, $validCategoryIds) {
+        DB::transaction(function () use ($currentCompanyId, $data, $targetIds, $validCategoryIds) {
             foreach ($targetIds as $rid) {
                 foreach ($validCategoryIds as $cid) {
                     Categorizable::firstOrCreate([
-                        'company_id'         => $companyId,
+                        'company_id'         => $currentCompanyId,
                         'category_id'        => $cid,
                         'categorizable_type' => $data['categorizable_type'],
                         'categorizable_id'   => $rid,
@@ -166,7 +197,7 @@ class CategorizableController extends Controller{
      * UNASSIGN: elimina la relación para esas categorías.
      * Body: environment, categorizable_type, categorizable_id|categorizable_ids[], category_ids[]
      */
-    public function unassign(Request $request, CompanyContext $ctx)
+    public function unassign(Request $request)
     {
         $request->merge([
             'categorizable_type' => $request->input('categorizable_type', $request->input('type')),
@@ -184,7 +215,22 @@ class CategorizableController extends Controller{
             'category_ids.*'      => 'integer',
         ]);
 
-        $companyId   = (int) $ctx->id();
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
+
         $module      = $this->moduleSlugFor($data['environment']);
 
         $targetIds   = $this->idArray($request, 'categorizable_id', 'categorizable_ids');
@@ -194,12 +240,12 @@ class CategorizableController extends Controller{
             return response()->json(['message' => 'Parámetros insuficientes'], 422);
         }
 
-        $validCategoryIds = $this->validateCategoriesScope($categoryIds, $companyId, $module);
+        $validCategoryIds = $this->validateCategoriesScope($categoryIds, $currentCompanyId, $module);
         if (empty($validCategoryIds)) {
             return response()->noContent();
         }
 
-        Categorizable::where('company_id', $companyId)
+        Categorizable::where('company_id', $currentCompanyId)
             ->where('categorizable_type', $data['categorizable_type'])
             ->whereIn('categorizable_id', $targetIds)
             ->whereIn('category_id', $validCategoryIds)
@@ -229,7 +275,22 @@ class CategorizableController extends Controller{
             'category_ids.*'      => 'integer',
         ]);
 
-        $companyId   = (int) $ctx->id();
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
+
         $module      = $this->moduleSlugFor($data['environment']);
 
         $targetIds   = $this->idArray($request, 'categorizable_id', 'categorizable_ids');
@@ -239,10 +300,10 @@ class CategorizableController extends Controller{
             return response()->json(['message' => 'Parámetros insuficientes'], 422);
         }
 
-        $validCategoryIds = $this->validateCategoriesScope($categoryIds, $companyId, $module);
+        $validCategoryIds = $this->validateCategoriesScope($categoryIds, $currentCompanyId, $module);
 
-        DB::transaction(function () use ($companyId, $data, $targetIds, $validCategoryIds) {
-            Categorizable::where('company_id', $companyId)
+        DB::transaction(function () use ($currentCompanyId, $data, $targetIds, $validCategoryIds) {
+            Categorizable::where('company_id', $currentCompanyId)
                 ->where('categorizable_type', $data['categorizable_type'])
                 ->whereIn('categorizable_id', $targetIds)
                 ->delete();
@@ -250,7 +311,7 @@ class CategorizableController extends Controller{
             foreach ($targetIds as $rid) {
                 foreach ($validCategoryIds as $cid) {
                     Categorizable::create([
-                        'company_id'         => $companyId,
+                        'company_id'         => $currentCompanyId,
                         'category_id'        => $cid,
                         'categorizable_type' => $data['categorizable_type'],
                         'categorizable_id'   => $rid,

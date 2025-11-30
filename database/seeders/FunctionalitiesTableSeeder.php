@@ -202,8 +202,8 @@ class FunctionalitiesTableSeeder extends Seeder{
             'module' => 'rrhh'
             ],
 
-            ['name' => 'leads',
-            'slug' => 'leads',
+            ['name' => 'crm leads',
+            'slug' => 'crm-leads',
             'label' => 'leads',
             'module' => 'crm'
             ],

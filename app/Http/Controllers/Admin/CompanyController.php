@@ -484,16 +484,111 @@ class CompanyController extends Controller{
     /**
      * 11. Refrescar session.
      */
-    public function refreshSession(){
+    public function refreshSession_DEPRECATED(){
         $companyId = session('currentCompany');
 
-        if (!$companyId) {
-            return response()->json(['status' => 'error', 'message' => __('empresa_no_seleccionada')], 400);
+        if (! $companyId) {
+            $companies = UserCompany::userCompanies();
+
+            // 0 empresas → error duro: no se puede trabajar
+            if ($companies->count() === 0) {
+                return response()->json([
+                    'status'  => 'error',
+                    'code'    => 'no_companies',
+                    'message' => __('no_tienes_empresas_asignadas'),
+                ], 409);
+            }
+
+            // 1 empresa → la fijamos y seguimos
+            if ($companies->count() === 1) {
+                $companyId = $companies->first()->id;
+                session(['currentCompany' => $companyId]);
+
+                $this->setCompanyModules($companyId);
+
+                return response()->json([
+                    'status'     => 'ok',
+                    'company_id' => $companyId,
+                ]);
+            }
+
+            // >1 empresas → que el front abra selector
+            return response()->json([
+                'status'    => 'select',
+                'companies' => $companies->map(fn($c) => [
+                    'id'   => $c->id,
+                    'name'=> $c->name,
+                ]),
+            ]);
         }
 
+        // ya hay empresa en sesión, solo refrescamos módulos
         $this->setCompanyModules($companyId);
 
-        return response()->json(['status' => 'ok']);
+        return response()->json([
+            'status'     => 'ok',
+            'company_id' => $companyId,
+        ]);
+    }
+
+    public function refreshSession(Request $request, CompanyContext $ctx){
+        $user = $request->user();
+        if (! $user) {
+            return redirect()->route('login');
+        }
+
+        $companyId = session('currentCompany');
+
+        if (! $companyId) {
+            // Empresas vinculadas al usuario
+            $companies = UserCompany::userCompanies(); // asumo que ya filtra por user_id
+
+            // 0 empresas → no puede trabajar con el ERP
+            if ($companies->count() === 0) {
+                return redirect()
+                    ->route('error.no-company')      // o donde quieras
+                    ->with('alert', __('no_tienes_empresas_asignadas'));
+            }
+
+            // 1 empresa → la fijamos y seguimos
+            if ($companies->count() === 1) {
+                $company = $companies->first();
+                $companyId = $company->id;
+
+                session(['currentCompany' => $companyId]);
+
+                // sincroniza el contexto también
+                $ctx->set($companyId);
+                $this->setCompanyModules($companyId);
+
+                return $this->redirectAfterCompany();
+            }
+
+            // >1 empresas → mandar a selector de empresa
+            // aquí puedes usar una vista Inertia 'Companies/Select'
+            return redirect()->route('companies.select');
+        }
+
+        // Ya había empresa en sesión, solo refrescamos módulos / contexto
+        $ctx->set($companyId);
+        $this->setCompanyModules($companyId);
+
+        return $this->redirectAfterCompany();
+    }
+
+    /**
+     * Decide a dónde mandar al usuario una vez que ya hay empresa activa.
+     * Usa la URL "intended" si la habías guardado; si no, al dashboard o donde preferir.
+     */
+    protected function redirectAfterCompany(){
+        $intended = session('intended_after_company');
+
+        if ($intended) {
+            session()->forget('intended_after_company');
+            return redirect()->to($intended);
+        }
+
+        return redirect()->route('dashboard'); // o ruta que tenga sentido para ti
     }
 
     /**
@@ -507,11 +602,7 @@ class CompanyController extends Controller{
             "slug" => 'sectors',
             "queryParams" => request()->query() ?: null,
             "availableLocales" => LocaleTrait::availableLocales(),
-            "permissions" => $this->permissions,
-            "columnPreferences" => UserColumnPreference::forUserAndTables(
-                auth()->user()->id,
-                ['tblCompanySectors'] 
-            )
+            "permissions" => $this->permissions
         ]);    
     }
 

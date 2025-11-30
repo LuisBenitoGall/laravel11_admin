@@ -8,7 +8,6 @@
 package-lock.json
 
 # Vite build
-/public/build/assets/*
 
 # --------------------------------
 # Composer / PHP

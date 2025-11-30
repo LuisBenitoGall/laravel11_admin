@@ -333,7 +333,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     //El parámetro {environment} decide el “contexto”: sectors | customers | providers | crm | ...
     //Reutiliza el mismo CategoryController.
     Route::prefix('{environment}')
-    ->whereIn('environment', ['sectors','customers','providers','crm'])
+    ->whereIn('environment', ['sectors','customers','providers','crm','users'])
     ->group(function () {
         Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
         Route::get('/categories/create', [CategoryController::class, 'create'])->name('categories.create');
@@ -388,7 +388,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
         Route::get('/companies/{company}/select', [CompanyController::class, 'selectCompany'])->name('companies.select-get')->middleware('permission:companies.index');
         Route::post('/companies/select', [CompanyController::class, 'selectCompanyPost'])->name('companies.select')->withoutMiddleware(VerifyCsrfToken::class);
         //->middleware('permission:companies.index')
-        Route::get('/companies/refresh-session', [CompanyController::class, 'refreshSession'])->name('companies.refresh-session')->middleware('permission:companies.index');
+        Route::get('/companies/refresh-session', [CompanyController::class, 'refreshSession'])->name('companies.refresh-session');
     //});
 
     //Company Accounts:
@@ -478,12 +478,15 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     //CRM Accounts:
     Route::middleware('module_setted:crm')->group(function (){
         Route::get('/crm-opportunities', [CrmOpportunityController::class, 'index'])->name('crm-opportunities.index')->middleware('permission:crm-opportunities.index');
+        Route::get('/crm-opportunities/filtered-data', [CrmOpportunityController::class, 'filteredData'])->name('crm-opportunities.filtered-data')->middleware('permission:crm-opportunities.index');
+        Route::get('/crm-opportunities/create', [CrmOpportunityController::class, 'create'])->name('crm-opportunities.create')->middleware('permission:crm-opportunities.create');
+        Route::post('/crm-opportunities', [CrmOpportunityController::class, 'store'])->name('crm-opportunities.store')->middleware('permission:crm-opportunities.create');
     });
 
     //CRM Opportunities:
     Route::middleware('module_setted:crm')->group(function (){
-        Route::get('/crm-opportunities', [CrmAccountController::class, 'index'])->name('crm-opportunities.index');
-        Route::get('/crm-opportunities/filtered-data', [CrmAccountController::class, 'filteredData'])->name('crm-opportunities.filtered-data');
+        Route::get('/crm-opportunities', [CrmOpportunityController::class, 'index'])->name('crm-opportunities.index');
+        Route::get('/crm-opportunities/filtered-data', [CrmOpportunityController::class, 'filteredData'])->name('crm-opportunities.filtered-data');
     });
 
     //Currencies:
@@ -591,7 +594,9 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     });
 
     //Leads:
-    Route::get('/leads', [CrmAccountController::class, 'index'])->name('leads.index')->middleware('permission:leads');
+    Route::get('/crm-leads', [CrmContactController::class, 'index'])->name('crm-leads.index')->middleware('permission:leads');
+    Route::get('/crm-leads/filtered-data', [CrmContactController::class, 'filteredData'])
+    ->name('crm-leads.filtered-data');
 
     //Marketing:
     Route::middleware('module_setted:settings')->group(function (){
@@ -897,6 +902,10 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::post('users/status', [UserController::class, 'status'])->name('users.status')->middleware('permission:users.edit');
     Route::delete('/users/{user}/signature', [UserController::class, 'deleteSignature'])->name('users.signature.delete')->middleware('permission:users.edit');
     Route::put('/users/{user}/update-pwd', [UserController::class, 'updatePwd'])->name('users.pwd-update')->middleware('permission:users.edit');
+    Route::get('/users/search', [UserController::class, 'search'])
+        ->name('users.search');
+    Route::get('/users-categories', [UserController::class, 'categories'])->name('users.categories')->middleware('permission:users.index');
+    Route::get('/users-categories/search', [UserController::class, 'usersByCategorySearch'])->name('users.categories.search')->middleware('permission:users.index');
 
     //Users Profile:
     Route::get('/profile', [UserController::class, 'editProfile'])->name('profile.edit')->middleware('permission:users.edit');

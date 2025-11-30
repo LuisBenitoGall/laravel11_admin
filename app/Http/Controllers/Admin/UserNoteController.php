@@ -56,9 +56,19 @@ class UserNoteController extends Controller{
         $ctx = app(CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
         if($currentCompanyId <= 0){
-            abort(422, __('no_hay_empresa_activa'));
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
-        //dd($request->all());
+
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 
         //Tratamiento de fechas:
@@ -127,9 +137,18 @@ class UserNoteController extends Controller{
     {
         $ctx = app(CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
 
-        if ($currentCompanyId <= 0) {
-            abort(422, __('no_hay_empresa_activa'));
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
 
         $perPage = (int) $request->input('per_page', 10);
@@ -165,9 +184,18 @@ class UserNoteController extends Controller{
     {
         $ctx = app(CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
 
-        if ($currentCompanyId <= 0) {
-            abort(422, __('no_hay_empresa_activa'));
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
 
         // La nota debe pertenecer a la empresa en contexto
@@ -195,9 +223,18 @@ class UserNoteController extends Controller{
     {
         $ctx = app(CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
 
-        if ($currentCompanyId <= 0) {
-            abort(422, __('no_hay_empresa_activa'));
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
 
         // Seguridad básica: la nota debe pertenecer a la empresa en contexto
@@ -243,9 +280,18 @@ class UserNoteController extends Controller{
     {
         $ctx = app(CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
 
-        if ($currentCompanyId <= 0) {
-            abort(422, __('no_hay_empresa_activa'));
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
 
         // Seguridad básica: la nota debe ser de la empresa en contexto
@@ -266,9 +312,18 @@ class UserNoteController extends Controller{
     {
         $ctx = app(CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
 
-        if ($currentCompanyId <= 0) {
-            abort(422, __('no_hay_empresa_activa'));
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
 
         // La nota debe pertenecer a la empresa en contexto
@@ -295,9 +350,18 @@ class UserNoteController extends Controller{
     {
         $ctx = app(CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
 
-        if ($currentCompanyId <= 0) {
-            abort(422, __('no_hay_empresa_activa'));
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
 
         // Seguridad: nota debe pertenecer a la empresa de la sesión
@@ -323,9 +387,18 @@ class UserNoteController extends Controller{
     {
         $ctx = app(CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
 
-        if ($currentCompanyId <= 0) {
-            abort(422, __('no_hay_empresa_activa'));
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
 
         // Seguridad: la nota debe pertenecer a la empresa en contexto
@@ -357,11 +430,20 @@ class UserNoteController extends Controller{
      */
     public function ownerReminders(Request $request)
     {
-        $ctx = app(\App\Support\CompanyContext::class);
+        $ctx = app(CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
 
-        if ($currentCompanyId <= 0) {
-            abort(422, __('no_hay_empresa_activa'));
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
 
         $ownerId = Auth::id();

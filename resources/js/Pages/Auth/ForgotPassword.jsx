@@ -28,13 +28,20 @@ export default function ForgotPassword({ status }) {
         <GuestLayout>
             <Head title={__('contrasena_recuperar')} />
 
-            {status && <div className="mb-4 font-medium text-sm text-green-600">{status}</div>}
-            {errors && errors.length > 0 && (
-                <div className="mb-4 font-medium text-sm text-red-600">{errors[0]}</div>
-            )}
-
             <div className="auth-page-content overflow-hidden pt-lg-5" id="auth-page">
                 <div className="container">
+                    {status && 
+                        <div className="row">
+                            <div className="col-12 mb-4 font-medium text-center text-sm text-success">{status}</div>
+                        </div>
+                    }
+
+                    {errors && errors.length > 0 && (
+                        <div className="row">
+                            <div className="col-12 mb-4 font-medium text-center text-sm text-alert">{errors[0]}</div>
+                        </div>
+                    )}
+
                     <div className="row mt-5 mt-lg-0">
                         <div className="col-lg-12">
                             <div className="card overflow-hidden galaxy-border-none card-bg-fill">

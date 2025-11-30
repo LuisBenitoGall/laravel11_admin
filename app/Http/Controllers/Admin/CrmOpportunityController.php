@@ -19,7 +19,16 @@ use Carbon\Carbon;
 use File;
 
 //Models:
+use App\Models\CrmAccount;
 use App\Models\Company;
+use App\Models\CrmContact;
+use App\Models\CrmOpportunity;
+use App\Models\UserColumnPreference;
+
+//Requests:
+use App\Http\Requests\CrmOpportunityFilterRequest;
+use App\Http\Requests\CrmOpportunityStoreRequest;
+use App\Http\Requests\CrmOpportunityUpdateRequest;
 
 //Resources:
 use App\Http\Resources\CrmOpportunityResource;
@@ -32,24 +41,43 @@ use App\Traits\ModulesTrait;
 class CrmOpportunityController extends Controller
 {
     /**
-     * 
+     * 1. Listado de oportunidades.
+     * 1.1. Contactos para exportación.
+     * 1.2. Data Query contactos.
+     * 2. Formulario nueva oportunidad.
+     * 3. Guardar nueva oportunidad.
+     * 4. Editar oportunidad.
+     * 5. Actualizar oportunidad.
      */
     
     use HasUserPermissionsTrait;
     use LocaleTrait;
 
-    private $module = 'marketing';
-    private $option = 'campanyas';
+    private $module = 'crm';
+    private $option = 'oportunidades_crm';
     protected array $permissions = [];
 
+    public function __construct(){
+        if(session('currentCompany')){
+            $this->permissions = $this->resolvePermissions([
+                'crm-opportunities.create',
+                'crm-opportunities.destroy',
+                'crm-opportunities.edit',
+                'crm-opportunities.index',
+                'crm-opportunities.search',
+                'crm-opportunities.show',
+                'crm-opportunities.update'
+            ]);   
+        } 
+    }   
+
     /**
-     * 1. Listado de campañas de marketing por empresa.
+     * 1. Listado de oportunidades.
      */
-    public function index(Request $request){
+    public function index(CrmOpportunityFilterRequest $request){
         $perPage = $request->input('per_page', config('constants.RECORDS_PER_PAGE_DEFAULT_'));
 
-        //$opportunities = $this->dataQuery($request)->paginate($perPage)->onEachSide(1);
-        $opportunities = [];
+        $opportunities = $this->dataQuery($request)->paginate($perPage)->onEachSide(1);
 
         return Inertia::render('Admin/CrmOpportunity/Index', [
             "title" => __($this->option),
@@ -65,5 +93,194 @@ class CrmOpportunityController extends Controller
                 ['tblCrmOpportunities'] 
             )
         ]);
+    }
+
+    /**
+     * 1.1. Contactos para exportación.
+     */
+    public function filteredData(CrmOpportunityFilterRequest $request)
+    {
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
+
+        $company_id = $request->input('company_id', $currentCompanyId);
+
+        $cacheKey = 'filtered_crm_opportunities_' . $company_id . '_' . md5(json_encode($request->all()));
+
+        // Aseguramos que company_id esté en el request
+        $request->merge(['company_id' => $company_id]);
+
+        $opportunities = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($request) {
+            return $this->dataQuery($request)->get();
+        });
+
+        return response()->json([
+            'users' => CrmOpportunityResource::collection($opportunities),
+        ]);
+    }
+
+    /**
+     * 1.2. Data Query.
+     */
+    private function dataQuery(CrmOpportunityFilterRequest $request){
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
+
+        $query = CrmOpportunity::select('crm_opportunities.*')
+        ->join('users', 'crm_opportunities.user_id', '=', 'users.id')
+        ->leftJoin('crm_accounts', 'crm_opportunities.crm_account_id', '=', 'crm_accounts.id')
+        ->where('crm_opportunities.company_id', $currentCompanyId);
+
+        // Filtros dinámicos
+        $filters = [
+            'name' => fn($q, $v) => $q->where('name', 'like', "%$v%"),
+            'observations' => fn($q, $v) => $q->where('observations', 'like', "%$v%")
+        ];
+
+        foreach($filters as $key => $callback){
+            if ($request->filled($key)) {
+                $callback($query, $request->input($key));
+            }
+        }
+
+        // Filtros por rangos de fechas dinámicos
+        $dateFilters = [
+            'created_at' => ['date_from', 'date_to']
+        ];
+
+        foreach ($dateFilters as $column => [$fromKey, $toKey]) {
+            $from = $request->input($fromKey);
+            $to = $request->input($toKey);
+
+            if ($from && $to) {
+                $query->whereBetween($column, ["$from 00:00:00", "$to 23:59:59"]);
+            } elseif ($from) {
+                $query->where($column, '>=', "$from 00:00:00");
+            } elseif ($to) {
+                $query->where($column, '<=', "$to 23:59:59");
+            }
+        }
+
+        // Ordenación
+        $sortField = $request->input('sort_field', 'name');
+        $sortDirection = $request->input('sort_direction', 'ASC');
+        $allowedSortFields = ['name'];
+
+        if (!in_array($sortField, $allowedSortFields)) {
+            $sortField = 'name';
+        }
+
+        return $query->orderBy($sortField, $sortDirection);
+    }
+
+    /**
+     * 2. Formulario nueva oportunidad.
+     */
+    public function create(){
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }    
+
+        $crmAccounts = CrmAccount::select('id', 'name')
+        ->where('company_id', $currentCompanyId)
+        ->where('status', 1)
+        ->orderBy('name', 'ASC')
+        ->get();
+
+        return Inertia::render('Admin/CrmOpportunity/Create', [
+            "title" => __($this->option),
+            "subtitle" => __('oportunidad_nueva'),
+            "module" => $this->module,
+            "slug" => 'crm-opportunities',
+            "crmAccounts" => $crmAccounts,
+            "availableLocales" => LocaleTrait::availableLocales(),
+            "permissions" => $this->permissions
+        ]);    
+    }
+
+    /**
+     * 3. Guardar nueva oportunidad.
+     */
+    public function store(CrmOpportunityStoreRequest $request){
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }    
+
+        $op = new CrmOpportunity();
+        $op->name = $request->name;
+        $op->company_id = $currentCompanyId;
+        $op->user_id = $request->user_id;
+        $op->crm_account_id = 
+        $op->owner_id = Auth::id();
+        $op->observations = $request->observations;
+        $op->status = 
+        $op->save();
+
+        return redirect()->route('crm-opportunities.edit', $op->id)
+            ->with('msg', __('oportunidad_creada_msg'));
+    }
+
+    /**
+     * 4. Editar oportunidad.
+     */
+    public function edit(){
+
+    }
+
+    /**
+     * 5. Actualizar oportunidad.
+     */
+    public function update(){
+
     }
 }

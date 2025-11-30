@@ -176,7 +176,23 @@ class AccountingAccountController extends Controller{
     /**
      * 2. Formulario nueva cuenta.
      */
-    public function create(CompanyContext $ctx){
+    public function create(){
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
+
     	$types = AccountingAccountType::select(DB::raw("CONCAT(code, ' - ', name) as type"), 'id')
         ->where('autoreference', '0')
         ->orderBy('code', 'ASC')
@@ -187,14 +203,8 @@ class AccountingAccountController extends Controller{
         ->values()
         ->all();
 
-        //Agrupadoras de empresa:
-        $companyId = (int) $ctx->id();
-        if($companyId <= 0){
-            abort(422, __('no_hay_empresa_activa'));
-        }
-
         $parents = AccountingAccount::query()
-        ->where('company_id', $companyId)
+        ->where('company_id', $currentCompanyId)
         ->where('is_group', 1)
         ->where('status', 1)             // si quieres permitir inactivas, quita esta línea
         ->select('id','code','name','level','is_group')
@@ -236,13 +246,28 @@ class AccountingAccountController extends Controller{
     /**
      * 2.1. Obtener cuentas padre.
      */
-    public function parentOptions(Request $request, CompanyContext $ctx){
-        $companyId = (int) $ctx->id();
+    public function parentOptions(Request $request){
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
+
         $q = trim((string) $request->get('q', ''));
         $limit = (int) min(max((int) $request->get('limit', 20), 1), 50);
 
         $query = AccountingAccount::query()
-            ->where('company_id', $companyId)
+            ->where('company_id', $currentCompanyId)
             ->where('is_group', 1)
             ->where('status', 1);
 
@@ -268,7 +293,7 @@ class AccountingAccountController extends Controller{
                     'is_group' => (bool) $p->is_group,
                     'code'     => $p->code,
                     'name'     => $p->name,
-                ],
+                ]
             ];
         })->values();
 
@@ -278,10 +303,21 @@ class AccountingAccountController extends Controller{
     /**
      * 3. Guardar nueva cuenta.
      */
-    public function store(AccountingAccountStoreRequest $request, CompanyContext $ctx): RedirectResponse{
-        $companyId = (int) $ctx->id();
-        if($companyId <= 0){
-            abort(422, __('no_hay_empresa_activa'));
+    public function store(AccountingAccountStoreRequest $request): RedirectResponse{
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
 
         $data = $request->validated();
@@ -289,7 +325,7 @@ class AccountingAccountController extends Controller{
         // 1) Si viene parent_id, verificar que pertenece a la empresa y es agrupadora
         if (!empty($data['parent_id'])) {
             $parent = AccountingAccount::query()
-                ->where('company_id', $companyId)
+                ->where('company_id', $currentCompanyId)
                 ->whereKey($data['parent_id'])
                 ->first();
 
@@ -318,7 +354,7 @@ class AccountingAccountController extends Controller{
         unset($data['normal_side']);
 
         //Guardando cuenta:
-        $account = AccountingAccount::saveAccount($request->validated(), $companyId);        
+        $account = AccountingAccount::saveAccount($request->validated(), $currentCompanyId);        
 
         return redirect()->route('accounting-accounts.edit', $account->id)->with('msg', __('cuenta_creada_msg'));
     }
@@ -423,10 +459,21 @@ class AccountingAccountController extends Controller{
     /**
      * 8. Cuentas IVA.
      */
-    public function ivaAccounts(CompanyContext $ctx){
-        $companyId = (int) $ctx->id();
-        if ($companyId <= 0) {
-            abort(422, __('no_hay_empresa_activa'));
+    public function ivaAccounts(){
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
 
         // 1) Tipos de IVA completos para la vista
@@ -440,14 +487,14 @@ class AccountingAccountController extends Controller{
 
         // 3) Cuentas de la empresa (para pintar nombres/números y selects)
         $ivaAccounts = AccountingAccount::query()
-        ->where('company_id', $companyId)
+        ->where('company_id', $currentCompanyId)
         ->orderBy('code')
         ->get(['id', 'company_id', 'code', 'name', 'nature', 'normal_side', 'is_group']);
 
         // 4) Usos SIN groupBy (el front ya los mapea por iva_type_id/side)
         $usages = AccountingAccountUsage::query()
             ->with(['account:id,company_id,code,name,nature'])
-            ->where('company_id', $companyId)
+            ->where('company_id', $currentCompanyId)
             ->whereIn('iva_type_id', $ivaTypeIds)   // o ->forIvaSet($ivaTypeIds)
             ->get(['id','company_id','account_id','iva_type_id','side','locked']);
 
@@ -469,21 +516,32 @@ class AccountingAccountController extends Controller{
     /**
      * 8.1. Generación másiva cuentas de IVA.
      */
-    public function bulkGenerateIva(CompanyContext $ctx){
-        $companyId = (int) $ctx->id();
-        if ($companyId <= 0) {
-            abort(422, __('no_hay_empresa_activa'));
+    public function bulkGenerateIva(){
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
         }
 
-        $types = \App\Models\IvaType::where('status', 1)->orderBy('iva')->get();
+        $types = IvaType::where('status', 1)->orderBy('iva')->get();
         $created = ['output' => 0, 'input' => 0];
 
         foreach ($types as $t) {
             foreach (['output','input'] as $side) {
                 $exists = AccountingAccountUsage::query()
-                    ->where('company_id', $companyId)
+                    ->where('company_id', $currentCompanyId)
                     ->where('usage_code', 'iva')
-                    ->where('context_type', \App\Models\IvaType::class)
+                    ->where('context_type', IvaType::class)
                     ->where('context_id', $t->id)
                     ->where('side', $side)
                     ->exists();
@@ -498,7 +556,7 @@ class AccountingAccountController extends Controller{
                     $side === 'output' ? __('repercutido') : __('soportado')
                 );
 
-                AccountingAccount::createForProfile($companyId, [
+                AccountingAccount::createForProfile($currentCompanyId, [
                     'profile'      => 'iva',
                     'iva_type_id'  => $t->id,
                     'side'         => $side,
