@@ -101,8 +101,8 @@ export default function Index({
                             <TextInput
                                 type="text"
                                 name="name"
-                                value={data.name ?? ''}
-                                onChange={handleChange}
+                                value={data?.name ?? ''}
+                                onChange={(e) => setData('name', e?.target?.value ?? '')}
                                 maxLength={255}
                                 required
                             />
@@ -113,10 +113,10 @@ export default function Index({
                         <div className="col-md-4">
                             <div className="mb-3">
                                 <OpportunityStatusSelect
-                                    id="status"
+                                    id="opportunity_status"
                                     name="status"
-                                    value={data.status}
-                                    onChange={(e) => setData('status', e.target.value)}
+                                    value={data?.status ?? 1}
+                                    onChange={(e) => setData('status', e.target ? e.target.value : e)}
                                     error={errors.status}
                                     label={__('estado')}
                                 />
@@ -145,10 +145,10 @@ export default function Index({
                             </label>
                             <SelectSearch
                                 name="crm_account_id"
-                                value={data.crm_account_id}
+                                value={data?.crm_account_id ?? null}
                                 options={crmAccountOptions}
                                 onChange={(opt) => setData('crm_account_id', opt ? opt.value : null)}
-                                placeholder={__('oportunidad_cuenta_selec')}
+                                placeholder={__('cuenta_crm_selec')}
                             />
                             <InputError message={errors.crm_account_id} />
                         </div>
@@ -160,8 +160,8 @@ export default function Index({
                             </label>
                             <Textarea
                                 name="observations"
-                                value={data.observations || ''}
-                                onChange={(e) => setData('observations', e.target.value)}
+                                value={data?.observations ?? ''}
+                                onChange={(e) => setData('observations', e.target ? e.target.value : e)}
                                 className="form-control"
                                 rows={4}
                             />

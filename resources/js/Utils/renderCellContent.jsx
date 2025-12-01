@@ -230,5 +230,25 @@ export default function renderCellContent(value, column, rowData = {}) {
 		return '';
 	}
 
+	// Si es un objeto, intentar convertirlo a una representación legible
+	if (typeof value === 'object') {
+		// Usuario / persona: name + surname
+		if ('name' in value || 'surname' in value) {
+			return [value.name, value.surname].filter(Boolean).join(' ');
+		}
+
+		// Objetos con label / title / email
+		if ('label' in value) return value.label;
+		if ('title' in value) return value.title;
+		if ('email' in value) return value.email;
+
+		// Fallback: stringify (evitar devolver el objeto directamente)
+		try {
+			return JSON.stringify(value);
+		} catch (e) {
+			return String(value);
+		}
+	}
+
 	return value;
 }

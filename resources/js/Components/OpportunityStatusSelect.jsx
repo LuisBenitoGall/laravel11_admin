@@ -3,7 +3,7 @@ import InputError from '@/Components/InputError';
 import { useTranslation } from '@/Hooks/useTranslation';
 
 export default function OpportunityStatusSelect({
-    id = 'status',
+    id = 'opportunity_status',
     name = 'status',
     value,
     onChange,

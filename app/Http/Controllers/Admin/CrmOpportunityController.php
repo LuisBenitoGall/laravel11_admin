@@ -260,10 +260,10 @@ class CrmOpportunityController extends Controller
         $op->name = $request->name;
         $op->company_id = $currentCompanyId;
         $op->user_id = $request->user_id;
-        $op->crm_account_id = 
+        $op->crm_account_id = $request->crm_account_id;
         $op->owner_id = Auth::id();
         $op->observations = $request->observations;
-        $op->status = 
+        $op->status = $request->status;
         $op->save();
 
         return redirect()->route('crm-opportunities.edit', $op->id)
@@ -273,8 +273,43 @@ class CrmOpportunityController extends Controller
     /**
      * 4. Editar oportunidad.
      */
-    public function edit(){
+    public function edit(CrmOpportunity $opportunity){
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
 
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }    
+
+        //Formateo de datos:
+        $opportunity->formatted_created_at = Carbon::parse($opportunity->created_at)->format($locale[4].' H:i:s');
+        $opportunity->formatted_updated_at = Carbon::parse($opportunity->updated_at)->format($locale[4].' H:i:s');
+
+        $crmAccounts = CrmAccount::select('id', 'name')
+        ->where('company_id', $currentCompanyId)
+        ->where('status', 1)
+        ->orderBy('name', 'ASC')
+        ->get();
+
+        return Inertia::render('Admin/CrmOpportunity/Edit', [
+            "title" => __($this->option),
+            "subtitle" => __('oportunidad_editar'),
+            "module" => $this->module,
+            "slug" => 'crm-opportunities',
+            "opportunity" => $opportunity,
+            "crmAccounts" => $crmAccounts,
+            "availableLocales" => LocaleTrait::availableLocales(),
+            "permissions" => $this->permissions
+        ]);    
     }
 
     /**

@@ -49,7 +49,7 @@ export default function Sidebar(auth) {
     const props = useSafePage();
     const { currentCompany, companyModules, companySettings } = useCompanySession();
     const { module: currentModule, slug: currentSlug } = props;
-console.log('Modulos', modules);
+
     //Módulos por defecto para RFT:
     const default_modules = ['crm', 'marketing'];
 
