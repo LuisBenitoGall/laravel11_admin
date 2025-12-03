@@ -6,6 +6,7 @@ import Checkbox from '@/Components/Checkbox';
 import FileInput from '@/Components/FileInput';
 import InfoPopover from '@/Components/InfoPopover';
 import InputError from '@/Components/InputError';
+import ManageEmails from '@/Components/ManageEmails';
 import ManagePhones from '@/Components/ManagePhones';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
@@ -194,7 +195,7 @@ console.log(crm_account);
                     )}
 
                     {/* Email */}
-                    <div className="col-md-6">
+                    {/* <div className="col-md-6">
                         <div>
                             <label htmlFor="name" className="form-label">{ __('email') }</label>
                             <TextInput
@@ -207,7 +208,7 @@ console.log(crm_account);
 
                             <InputError message={errors.email} />
                         </div>
-                    </div>   
+                    </div>    */}
 
                     <div className='mt-4 text-end'>
                         <PrimaryButton disabled={processing} className='btn btn-rdn'>
@@ -222,6 +223,11 @@ console.log(crm_account);
                 phoneableType="Company"
                 phoneableId={company.id}
                 defaultWaMessage={__('whatsapp_mensaje')}
+            />
+
+            {/* Emails */}
+            <ManageEmails 
+                companyId={company.id}
             />
         </>
     );

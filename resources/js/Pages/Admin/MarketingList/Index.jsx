@@ -216,7 +216,7 @@ export default function Index({ auth, session, title, subtitle, lists, queryPara
                     open={showPanelOpen}
                     onClose={handleCloseShowPanel}
                     routeName="marketing-lists.show"        // tu ruta JSON
-                    title={__('lista')}         // o lo que quieras
+                    title={__('lista')}         
                     ViewComponent={MarketingListShowView}
                 />
 

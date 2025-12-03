@@ -1,7 +1,7 @@
-// resources/js/Components/UserNotes/UserNotesRemindersWidget.jsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
+//Hooks:
 import { useTranslation } from '@/Hooks/useTranslation';
 
 export default function UserNotesRemindersWidget() {

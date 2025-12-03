@@ -37,10 +37,8 @@ export default function Index({
 
     // Set formulario:
     const {data, setData, errors, processing} = useForm({
-        name: type.name || '',
-        iva: type.iva || '',
-        equivalence_surcharge: type.equivalence_surcharge || '',
-        status: type.status
+        name: opportunity.name || '',
+        status: opportunity.status
     })
 
     const handleChange = (e) => {
@@ -55,7 +53,7 @@ export default function Index({
     };
 
     //Confirmación de eliminación:
-    const { handleDelete } = useHandleDelete('iva_tipo', 'iva-types.destroy', [type.id]);
+    const { handleDelete } = useHandleDelete('iva_tipo', 'iva-types.destroy', [opportunity.id]);
 
     //Envío formulario:
     function handleSubmit(e) {
@@ -73,7 +71,7 @@ export default function Index({
             }
         });
 
-        router.post(route('iva-types.update', type.id), formData, {
+        router.post(route('crm-opportunities.update', opportunity.id), formData, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => console.log('Tipo IVA actualizado'),

@@ -1,3 +1,4 @@
+// resources/js/Components/LocationSelects.jsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useTranslation } from '@/Hooks/useTranslation';
@@ -11,7 +12,9 @@ export default function LocationSelects({
     townField = 'town_id',
     provincesUrl = '/api/provinces',
     townsUrl = '/api/towns',
-    labels = { country: 'Country', province: 'Province', town: 'Town' }
+    labels = { country: 'Country', province: 'Province', town: 'Town' },
+    layout = 'row3',              // <--- NUEVO
+    extraRight = null             // <--- NUEVO (para poner el CP al lado de población)
 }) {
     const __ = useTranslation();
     const [provinces, setProvinces] = useState([]);
@@ -21,19 +24,16 @@ export default function LocationSelects({
     const selectedCountry = formData[countryField] || '';
     const selectedProvince = formData[provinceField] || '';
 
-    // On mount: if a town_id is present, fetch town to initialize selects
     useEffect(() => {
         const initialTownId = formData[townField];
         if (initialTownId) {
             setLoading(l => ({ ...l, initial: true }));
             setError(null);
-            // fetch town details (province_id, country_id)
             (async () => {
                 try {
                     const res = await axios.get(`/api/town/${initialTownId}`);
                     const town = res.data;
                     if (town) {
-                        // If country_id is present and different, set it
                         if (town.country_id) {
                             setData(countryField, String(town.country_id));
                             await fetchProvinces(town.country_id);
@@ -44,11 +44,9 @@ export default function LocationSelects({
                             await fetchTowns(town.province_id);
                         }
 
-                        // Finally ensure town is set (in case it was numeric vs string)
                         setData(townField, String(town.id));
                     }
                 } catch (e) {
-                    // set an error so the UI can show it
                     console.error('Error fetching initial town:', e);
                     setError(__('Error cargando la ubicación') || 'Error loading location');
                 }
@@ -57,11 +55,10 @@ export default function LocationSelects({
                 }
             })();
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
-        // Load provinces if we have a selected country
         if (selectedCountry) {
             fetchProvinces(selectedCountry);
         } else {
@@ -71,15 +68,12 @@ export default function LocationSelects({
     }, [selectedCountry]);
 
     useEffect(() => {
-        // Load towns if we have a selected province
         if (selectedProvince) {
             fetchTowns(selectedProvince);
         } else {
             setTowns([]);
         }
     }, [selectedProvince]);
-
-    // If countries change we don't need to do anything else
 
     const fetchProvinces = async (countryId) => {
         try {
@@ -104,7 +98,6 @@ export default function LocationSelects({
     const onCountryChange = (e) => {
         const val = e.target.value;
         setData(countryField, val);
-        // reset dependent
         setData(provinceField, '');
         setData(townField, '');
         setProvinces([]);
@@ -122,42 +115,118 @@ export default function LocationSelects({
         setData(townField, e.target.value);
     };
 
-    return (
-        <>
-            <div className="row gy-3">
-                <div className="col-md-4">
-                    <label className="form-label">{labels.country}</label>
-                    <select className="form-select" name={countryField} value={selectedCountry} onChange={onCountryChange}>
-                        <option value="">{__('opcion_selec') || 'Select'}</option>
-                        {Array.isArray(countries) && countries.map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                    </select>
+    // ====== LAYOUT 2x2 PARA EL MODAL ======
+    if (layout === 'split2x2') {
+        return (
+            <>
+                {/* Fila 1: País + Provincia */}
+                <div className="row gy-3">
+                    <div className="col-md-6">
+                        <label className="form-label">{labels.country}</label>
+                        <select
+                            className="form-select"
+                            name={countryField}
+                            value={selectedCountry}
+                            onChange={onCountryChange}
+                        >
+                            <option value="">
+                                {__('opcion_selec') || 'Select'}
+                            </option>
+                            {Array.isArray(countries) && countries.map(c => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="col-md-6">
+                        <label className="form-label">{labels.province}</label>
+                        <select
+                            className="form-select"
+                            name={provinceField}
+                            value={selectedProvince}
+                            onChange={onProvinceChange}
+                        >
+                            <option value="">
+                                {loading.provinces
+                                    ? (__('cargando') || 'Cargando...')
+                                    : (__('opcion_selec') || 'Select')}
+                            </option>
+                            {provinces.map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
-                <div className="col-md-4">
-                    <label className="form-label">{labels.province}</label>
-                    <select className="form-select" name={provinceField} value={selectedProvince} onChange={onProvinceChange}>
-                        <option value="">{loading.provinces ? (__('cargando') || 'Cargando...') : (__('opcion_selec') || 'Select')}</option>
-                        {provinces.map(p => (
-                            <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                    </select>
-                </div>
+                {/* Fila 2: Población + hueco para CP */}
+                <div className="row gy-3 mt-0">
+                    <div className="col-md-6">
+                        <label className="form-label">{labels.town}</label>
+                        <select
+                            className="form-select"
+                            name={townField}
+                            value={formData[townField] || ''}
+                            onChange={onTownChange}
+                        >
+                            <option value="">
+                                {loading.towns
+                                    ? (__('cargando') || 'Cargando...')
+                                    : (__('opcion_selec') || 'Select')}
+                            </option>
+                            {towns.map(t => (
+                                <option key={t.id} value={t.id}>{t.name}</option>
+                            ))}
+                        </select>
+                        {error && (
+                            <small className="text-danger">{error}</small>
+                        )}
+                    </div>
 
-                <div className="col-md-4">
-                    <label className="form-label">{labels.town}</label>
-                    <select className="form-select" name={townField} value={formData[townField] || ''} onChange={onTownChange}>
-                        <option value="">{loading.towns ? (__('cargando') || 'Cargando...') : (__('opcion_selec') || 'Select')}</option>
-                        {towns.map(t => (
-                            <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
-                    </select>
-                    {error && (
-                        <small className="text-danger">{error}</small>
+                    {extraRight && (
+                        <div className="col-md-6">
+                            {extraRight}
+                        </div>
                     )}
                 </div>
+            </>
+        );
+    }
+
+    // ====== LAYOUT POR DEFECTO (3 EN UNA FILA) ======
+    return (
+        <div className="row gy-3">
+            <div className="col-md-4">
+                <label className="form-label">{labels.country}</label>
+                <select className="form-select" name={countryField} value={selectedCountry} onChange={onCountryChange}>
+                    <option value="">{__('opcion_selec') || 'Select'}</option>
+                    {Array.isArray(countries) && countries.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                </select>
             </div>
-        </>
+
+            <div className="col-md-4">
+                <label className="form-label">{labels.province}</label>
+                <select className="form-select" name={provinceField} value={selectedProvince} onChange={onProvinceChange}>
+                    <option value="">{loading.provinces ? (__('cargando') || 'Cargando...') : (__('opcion_selec') || 'Select')}</option>
+                    {provinces.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                </select>
+            </div>
+
+            <div className="col-md-4">
+                <label className="form-label">{labels.town}</label>
+                <select className="form-select" name={townField} value={formData[townField] || ''} onChange={onTownChange}>
+                    <option value="">{loading.towns ? (__('cargando') || 'Cargando...') : (__('opcion_selec') || 'Select')}</option>
+                    {towns.map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                </select>
+                {error && (
+                    <small className="text-danger">{error}</small>
+                )}
+            </div>
+        </div>
     );
 }

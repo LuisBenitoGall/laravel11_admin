@@ -48,6 +48,9 @@ class MarketingCampaignController extends Controller
      * 1.2. Data Query.
      * 2. Formulario nueva campaña.
      * 3. Guarda nueva campaña.
+     * 4. Editar campaña.
+     * 5. Actualizar campaña.
+     * 6. Actualizar estado.
      */
     
 
@@ -193,5 +196,67 @@ class MarketingCampaignController extends Controller
      */
     public function store(MarketingCampaignStoreRequest $request){
         
+    }
+
+    /**
+     * 4. Editar campaña.
+     */
+    public function edit(MarketingCampaign $campaign){
+        $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
+
+        // Formateo de datos:
+        $campaign->formatted_created_at = Carbon::parse($campaign->created_at)->format($locale[4] . ' H:i:s');
+        $campaign->formatted_updated_at = Carbon::parse($campaign->updated_at)->format($locale[4] . ' H:i:s');
+
+        $campaign->created_by_name = optional($campaign->createdBy)->full_name ?? false;
+        $campaign->updated_by_name = optional($campaign->updatedBy)->full_name ?? false;
+
+
+
+
+        return Inertia::render('Admin/MarketingCampaign/Edit', [
+            'title'            => __($this->option),
+            'subtitle'         => __('campanya_editar'),
+            'module'           => $this->module,
+            'slug'             => 'marketing-campaigns',
+            'availableLocales' => LocaleTrait::availableLocales(),
+            'campaign'         => $campaign,
+
+
+            // Para mensajes, permisos y compañía
+            'msg'              => session('msg'),
+            'alert'            => session('alert'),
+            'permissions'      => $this->permissions,
+
+            // Para que el frontend tenga el contexto de filtros / paginación
+            'queryParams'      => $request->all(),
+        ]);
+    }
+
+    /**
+     * 5. Actualizar campaña.
+     */
+    public function update(MarketingCampaignUpdateRequest $request, MarketingCampaign $campaign){
+
+    }
+
+    /**
+     * 6. Actualizar estado.
+     */
+    public function status(Request $request){
+        $campaign = MarketingCampaign::find($request->id);
+
+        if(!$campaign){
+            return response()->json(['error' => __('campanya_no_encontrada')], 404);
+        }
+
+        $campaign->status = !$campaign->status;
+        $campaign->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => __('estado_actualizado_ok'),
+            'new_status' => $campaign->status
+        ]);
     }
 }

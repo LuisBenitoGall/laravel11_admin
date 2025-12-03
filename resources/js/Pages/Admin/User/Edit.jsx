@@ -7,12 +7,12 @@ import { useEffect, useState } from 'react';
 //Components:
 import CategoryAssigner from '@/Components/CategoryAssigner';
 import InputError from '@/Components/InputError';
+import ManageUserAddresses from '@/Components/ManageUserAddresses';
 import PrimaryButton from '@/Components/PrimaryButton';
 import RadioButton from '@/Components/RadioButton';
 import Tabs from '@/Components/Tabs';
 import Textarea from '@/Components/Textarea';
 import TextInput from '@/Components/TextInput';
-import Checkbox from '@/Components/Checkbox';
 
 //Hooks:
 import { useTranslation } from '@/Hooks/useTranslation';
@@ -29,7 +29,7 @@ import UserPassword from './Partials/UserPassword.jsx';
 export default function Index({
     auth, session, title, subtitle,
     user, roles, user_roles, images,
-    salutations, contact_types, crm_contact, profile, company,
+    salutations, contact_types, crm_contact, addresses, countries, profile, company,
     company_context, pivot, user_company_id          
 }) {
     const __ = useTranslation();
@@ -147,6 +147,7 @@ export default function Index({
     const tabs = [
         { key: 'user-personal-data', label: __('datos_personales') },
         ...(profile === true ? [{ key: 'user-password', label: __('contrasena') }] : []),
+        { key: 'user-addresses', label: __('direcciones') },
         { key: 'user-categories', label: __('categorias') },
         { key: 'user-images', label: __('imagenes') },
         { key: 'user-notes', label: __('notas') },
@@ -190,6 +191,13 @@ export default function Index({
                             
                             case 'user-password':
                                 return <UserPassword user={user} />;
+
+                            case 'user-addresses':
+                                return <ManageUserAddresses 
+                                        userId={user.id} 
+                                        addresses={addresses} 
+                                        countries={countries} 
+                                        />;
 
                             case 'user-categories':
                                 return <CategoryAssigner

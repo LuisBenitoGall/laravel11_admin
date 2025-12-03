@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MarketingList extends Model
 {
@@ -86,5 +87,22 @@ class MarketingList extends Model
     public function isActive(): bool
     {
         return (int) $this->status === 1;
+    }
+
+    public function marketingListUsers(): HasMany
+    {
+        return $this->hasMany(MarketingListUser::class);
+    }
+
+    /**
+     * Nº de miembros por lista.
+     */
+    public function membersCount(): int
+    {
+        if ($this->relationLoaded('marketingListUsers')) {
+            return $this->marketingListUsers->count();
+        }
+
+        return $this->marketingListUsers()->count();
     }
 }

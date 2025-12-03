@@ -18,6 +18,9 @@ import TextInput from '@/Components/TextInput';
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTranslation } from '@/Hooks/useTranslation';
 
+//Modals:
+import ModalMarketingListAddUser from '@/Components/modals/ModalMarketingListAddUser';
+
 //Tabs:
 import MarketingListInfoTab from './Partials/MarketingListInfoTab';
 import MarketingListMembersTab from './Partials/MarketingListMembersTab';
@@ -32,6 +35,22 @@ export default function Index({ auth, session, title, subtitle, list, tab, membe
 
     const rawQueryParams = props.queryParams || {};
     const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
+
+    const [showAddUserModal, setShowAddUserModal] = useState(false);
+    const handleOpenAddUserModal = () => setShowAddUserModal(true);
+    const handleCloseAddUserModal = () => setShowAddUserModal(false);
+    const handleUserAdded = () => {
+        // Igual que en la paginación: refrescamos users + rows
+        router.reload({
+            data: {
+                ...(queryParams || {}),
+                page: 1,       // si quieres volver a la primera página
+            },
+            only: ['users', 'rows'],
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
 
     // Set formulario:
     const {data, setData, errors, processing} = useForm({
@@ -56,6 +75,16 @@ export default function Index({ auth, session, title, subtitle, list, tab, membe
             icon: 'la-plus',
             url: 'marketing-lists.create',
             modal: false
+        });
+    }
+
+    if (permissions?.['marketing-lists.edit']) {
+        actions.push({
+            text: __('usuario_agregar'),
+            icon: 'la-plus',
+            url: '',
+            modal: true,
+            onClick: handleOpenAddUserModal
         });
     }
 
@@ -132,6 +161,13 @@ export default function Index({ auth, session, title, subtitle, list, tab, membe
                     defaultActive={tab}
                 />
 
+                {/* Modals */}
+                <ModalMarketingListAddUser
+                    show={showAddUserModal}
+                    onClose={handleCloseAddUserModal}
+                    onAdded={handleUserAdded}
+                    marketingListId={list.id}
+                />
             </div>
         </AdminAuthenticatedLayout>
     );

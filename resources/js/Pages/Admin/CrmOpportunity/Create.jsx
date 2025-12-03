@@ -110,7 +110,7 @@ export default function Index({
                         </div>
 
                         {/* Estado (select con colores) */}
-                        <div className="col-md-4">
+                        <div className="col-md-6">
                             <div className="mb-3">
                                 <OpportunityStatusSelect
                                     id="opportunity_status"

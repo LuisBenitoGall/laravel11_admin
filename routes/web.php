@@ -45,6 +45,7 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CompanyAccountController;
 // use App\Http\Controllers\Admin\CompanyCalendarController;
 use App\Http\Controllers\Admin\CompanyController;
+use App\Http\Controllers\Admin\CompanyEmailController;
 // use App\Http\Controllers\Admin\CompanyGroupController;
 use App\Http\Controllers\Admin\CompanyModuleController;
 // use App\Http\Controllers\Admin\CompanyNotificationManagementController;
@@ -133,6 +134,7 @@ use App\Http\Controllers\Admin\StoreController;
 use App\Http\Controllers\Admin\TeamController;
 use App\Http\Controllers\Admin\TownController;
 use App\Http\Controllers\Admin\UnitController;
+use App\Http\Controllers\Admin\UserAddressController;
 use App\Http\Controllers\Admin\UserColumnPreferenceController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserNoteController;
@@ -397,6 +399,13 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/company-accounts/create', [CompanyAccountController::class, 'create'])->name('company-accounts.create')->middleware('permission:company-accounts.create');
     Route::delete('company-accounts/{account}', [CompanyAccountController::class, 'destroy'])->name('company-accounts.destroy')->middleware('permission:company-accounts.destroy');
 
+    //Company Emails:
+    Route::get('/company-emails/{company}', [CompanyEmailController::class, 'getByCompany'])->name('company-emails.get');
+    Route::post('/company-emails', [CompanyEmailController::class, 'store'])->name('company-emails.store');
+    Route::put('/company-emails/{companyEmail}', [CompanyEmailController::class, 'update'])->name('company-emails.update');
+    Route::delete('/company-emails/{companyEmail}', [CompanyEmailController::class, 'destroy'])->name('company-emails.destroy');
+    Route::post('/company-emails/featured', [CompanyEmailController::class, 'featured'])->name('company-emails.featured');
+
     //Company Modules:
     Route::get('/company-modules', [CompanyModuleController::class, 'index'])->name('company-modules.index')->middleware('permission:company-modules.index');
     Route::post('/company-modules/toggle/{module_id}', [CompanyModuleController::class, 'toggle'])->name('company-modules.toggle');
@@ -469,24 +478,24 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
         Route::post('crm-accounts/{account}/convert', [CrmAccountController::class, 'convertToCustomerProvider'])->name('crm-accounts.convert');
     });
 
-    //CRM Accounts:
+    //CRM Contacts:
     Route::middleware('module_setted:crm')->group(function (){
         Route::get('/crm-contacts', [CrmContactController::class, 'index'])->name('crm-contacts.index')->middleware('permission:crm-contacts.index');
         Route::get('/crm-contacts/filtered-data', [CrmContactController::class, 'filteredData'])->name('crm-contacts.filtered-data')->middleware('permission:crm-contacts.index');
-    });
-
-    //CRM Accounts:
-    Route::middleware('module_setted:crm')->group(function (){
-        Route::get('/crm-opportunities', [CrmOpportunityController::class, 'index'])->name('crm-opportunities.index')->middleware('permission:crm-opportunities.index');
-        Route::get('/crm-opportunities/filtered-data', [CrmOpportunityController::class, 'filteredData'])->name('crm-opportunities.filtered-data')->middleware('permission:crm-opportunities.index');
-        Route::get('/crm-opportunities/create', [CrmOpportunityController::class, 'create'])->name('crm-opportunities.create')->middleware('permission:crm-opportunities.create');
-        Route::post('/crm-opportunities', [CrmOpportunityController::class, 'store'])->name('crm-opportunities.store')->middleware('permission:crm-opportunities.create');
+        // Nuevos contactos para widgets/consumos AJAX
+        Route::get('/crm-contacts/new-contacts', [CrmContactController::class, 'newContacts'])->name('crm-contacts.new');
+        Route::delete('/crm-contacts/{contact}', [CrmContactController::class, 'destroy'])->name('crm-contacts.destroy')->middleware('permission:crm-contacts.destroy');
     });
 
     //CRM Opportunities:
     Route::middleware('module_setted:crm')->group(function (){
         Route::get('/crm-opportunities', [CrmOpportunityController::class, 'index'])->name('crm-opportunities.index');
         Route::get('/crm-opportunities/filtered-data', [CrmOpportunityController::class, 'filteredData'])->name('crm-opportunities.filtered-data');
+        Route::get('/crm-opportunities/create', [CrmOpportunityController::class, 'create'])->name('crm-opportunities.create')->middleware('permission:crm-opportunities.create');
+        Route::post('/crm-opportunities', [CrmOpportunityController::class, 'store'])->name('crm-opportunities.store')->middleware('permission:crm-opportunities.create');
+        Route::get('crm-opportunities/{opportunity}/show', [CrmOpportunityController::class, 'show'])->name('crm-opportunities.show');
+        Route::get('crm-opportunities/{opportunity}/edit/{tab?}', [CrmOpportunityController::class, 'edit'])->name('crm-opportunities.edit')->middleware('permission:crm-opportunities.edit');
+        Route::put('crm-opportunities/{opportunity}', [CrmOpportunityController::class, 'update'])->name('crm-opportunities.update')->middleware('permission:crm-opportunities.update');
     });
 
     //Currencies:
@@ -611,6 +620,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/marketing-campaigns/{campaign}/show', [MarketingCampaignController::class, 'show'])->name('marketing-campaigns.show');
     Route::get('/marketing-campaigns/{campaign}/edit/{tab?}', [MarketingCampaignController::class, 'edit'])->name('marketing-campaigns.edit')->middleware('permission:marketing-campaigns.edit');
     Route::delete('/marketing-campaigns/{campaign}', [MarketingCampaignController::class, 'destroy'])->name('marketing-campaigns.destroy')->middleware('permission:marketing-campaigns.destroy');
+     Route::post('marketing-campaigns/status', [MarketingCampaignController::class, 'status'])->name('marketing-campaigns.status')->middleware('permission:marketing-campaigns.edit');
 
     //Marketing Lists:
     Route::get('/marketing-lists', [MarketingListController::class, 'index'])->name('marketing-lists.index')->middleware('permission:marketing');
@@ -854,7 +864,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::post('units/status', [UnitController::class, 'status'])->name('units.status')->middleware('permission:units.edit');
 
     //User Addresses:
-    Route::post('/user-addresses', [UserAddressController::class, 'store'])->name('user-addresses.store');
+    Route::post('/user-addresses/', [UserAddressController::class, 'store'])->name('user-addresses.store');
     Route::put('/user-addresses/{address}', [UserAddressController::class, 'update'])->name('user-addresses.update');
     Route::delete('/user-addresses/{address}', [UserAddressController::class, 'destroy'])->name('user-addresses.destroy');
 

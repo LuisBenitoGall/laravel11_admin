@@ -31,6 +31,7 @@ use App\Events\CompanyChanged;
 use App\Models\Categorizable;
 use App\Models\Category;
 use App\Models\Company;
+use App\Models\CompanyEmail;
 use App\Models\CompanyModule;
 use App\Models\CompanySetting;
 use App\Models\CrmAccount;

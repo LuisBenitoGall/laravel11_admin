@@ -75,9 +75,35 @@ export default function TableUsers({
     : (Array.isArray(users?.data)
         ? users.data
         : (Array.isArray(users) ? users : [])
-      );
+    );
 
-    const meta = users && typeof users === 'object' && 'meta' in users ? users.meta : null;
+    const hasServerRows = Array.isArray(rowsProp);
+    const onlyProps = hasServerRows ? ['users', 'rows'] : ['users'];
+
+    // Meta de paginación:
+    // 1) Si viene en formato { data, meta } (Inertia transform por defecto)
+    // 2) O en formato paginator clásico (total, per_page, current_page, links...)
+    let meta = null;
+
+    if (users && typeof users === 'object' && !Array.isArray(users)) {
+        if ('meta' in users && users.meta) {
+            // Formato { data, meta: {...}, links: [...] }
+            meta = users.meta;
+
+            // Por si los links vienen fuera
+            if (!meta.links && Array.isArray(users.links)) {
+                meta.links = users.links;
+            }
+        } else if ('total' in users && 'per_page' in users && 'current_page' in users) {
+            // Formato paginator clásico de Laravel
+            meta = {
+                total: users.total,
+                per_page: users.per_page,
+                current_page: users.current_page,
+                links: Array.isArray(users.links) ? users.links : [],
+            };
+        }
+    }
 
     // Columnas por defecto. Añadimos render específico para "phones"
     const defaultColumns = [
@@ -178,6 +204,7 @@ export default function TableUsers({
         <div>
             <Head title={__('usuarios')} />
 
+            {/* Controles */}
             <div className="row">
                 <div className="controls d-flex align-items-center">
                     <ColumnFilter
@@ -190,6 +217,7 @@ export default function TableUsers({
                 </div>
             </div>
 
+            {/* Tabla */}
             <div className="table-responsive">
                 <Table className="table table-nowrap table-striped align-middle mb-0" id={tableId}>
                     <thead>
@@ -318,24 +346,24 @@ export default function TableUsers({
 
             {!disablePagination && meta && (
                 <Pagination
-                links={meta.links}
-                totalRecords={meta.total}
-                currentPage={meta.current_page}
-                perPage={meta.per_page}
-                onPageChange={page => {
-                    router.reload({
-                        data: {
-                            ...queryParams,
-                            page,
-                            per_page: perPage,
-                            sort_field: sortParams.sort_field,
-                            sort_direction: sortParams.sort_direction
-                        },
-                        only: ['users'],
-                        preserveState: true,
-                        preserveScroll: true
-                    });
-                }}
+                    links={meta.links}
+                    totalRecords={meta.total}
+                    currentPage={meta.current_page}
+                    perPage={meta.per_page}
+                    onPageChange={page => {
+                        router.reload({
+                            data: {
+                                ...queryParams,
+                                page,
+                                per_page: perPage,
+                                sort_field: sortParams.sort_field,
+                                sort_direction: sortParams.sort_direction
+                            },
+                            only: onlyProps,          // 👈 ahora pide users (+ rows si existen)
+                            preserveState: true,
+                            preserveScroll: true
+                        });
+                    }}
                 />
             )}
         </div>

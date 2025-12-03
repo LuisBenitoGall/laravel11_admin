@@ -29,6 +29,7 @@ use App\Models\Country;
 use App\Models\CrmAccount;
 use App\Models\Currency;
 use App\Models\MarketingList;
+use App\Models\MarketingListUser;
 use App\Models\User;
 use App\Models\UserColumnPreference;
 
@@ -62,6 +63,7 @@ class MarketingListController extends Controller
      * 7. Eliminar lista.
      * 8. Actualizar estado.
      * 9. Mapeo de miembros.
+     * 10. Agregar usuario.
      */
 
     use HasUserPermissionsTrait;
@@ -244,47 +246,95 @@ class MarketingListController extends Controller
      * 4. Mostrar lista.
      */
     public function show(Request $request, MarketingList $list){
+        $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
+        //Formato de fecha:
+        $dateFormat = $locale[4] ?? 'd/m/Y';
 
+        $list->formatted_created_at = Carbon::parse($list->created_at)->format($locale[4].' H:i:s');
+
+        $list->last_used = $list->last_used_at
+        ? $list->last_used_at->format($dateFormat)
+        : null;
+
+        $list->owner;
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'data' => $list,
+            ]);
+        }
+
+        // Si algún día quieres una vista "show" completa de página
+        return Inertia::render('Admin/MarketingList/Show', [
+            'list' => $list
+        ]);
     }
 
     /**
      * 5. Editar lista.
      */
-    public function edit(MarketingList $list, $tab = false){
+    public function edit(Request $request, MarketingList $list, $tab = false)
+    {
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 
-        //Formateo de datos:
-        $list->formatted_created_at = Carbon::parse($list->created_at)->format($locale[4].' H:i:s');
-        $list->formatted_updated_at = Carbon::parse($list->updated_at)->format($locale[4].' H:i:s');
+        // Formateo de datos:
+        $list->formatted_created_at = Carbon::parse($list->created_at)->format($locale[4] . ' H:i:s');
+        $list->formatted_updated_at = Carbon::parse($list->updated_at)->format($locale[4] . ' H:i:s');
 
         $list->created_by_name = optional($list->createdBy)->full_name ?? false;
         $list->updated_by_name = optional($list->updatedBy)->full_name ?? false;
 
-        //Miembros del listado:
-        $members = User::select('users.id', 'users.name', 'users.surname', 'users.email', 'marketing_list_users.id AS mlu_id', 'marketing_list_users.observations', 'marketing_list_users.status AS mlu_status', 'marketing_list_users.created_at', 'user_companies.company_id')
-        ->join('marketing_list_users', 'users.id', '=', 'marketing_list_users.user_id')
-        ->leftJoin('user_companies', 'users.id', '=', 'user_companies.user_id')
-        ->where('marketing_list_users.marketing_list_id', $list->id)
-        ->where('users.status', 1)
-        ->orderBy('users.name', 'ASC')
-        ->get();
+        // Paginación: tamaño de página desde request o valor por defecto
+        $perPage = (int) $request->input('per_page', 10);
 
-        //Mapeo de miembros:
-        $table = $this->mapUsersForTable($members, $locale);
+        // Miembros del listado (query base)
+        $membersQuery = User::select(
+                'users.id',
+                'users.name',
+                'users.surname',
+                'users.email',
+                'marketing_list_users.id AS mlu_id',
+                'marketing_list_users.observations',
+                'marketing_list_users.status AS mlu_status',
+                'marketing_list_users.created_at',
+                'user_companies.company_id'
+            )
+            ->join('marketing_list_users', 'users.id', '=', 'marketing_list_users.user_id')
+            ->leftJoin('user_companies', 'users.id', '=', 'user_companies.user_id')
+            ->where('marketing_list_users.marketing_list_id', $list->id)
+            ->where('users.status', 1)
+            ->orderBy('users.name', 'ASC');
+
+        // Paginator para Inertia (lleva data + meta + links)
+        $members = $membersQuery
+            ->paginate($perPage)
+            ->withQueryString();
+
+        // Mapeo de miembros SOLO sobre la colección interna
+        $table = $this->mapUsersForTable($members->getCollection(), $locale);
 
         return Inertia::render('Admin/MarketingList/Edit', [
-            "title" => __($this->option),
-            "subtitle" => __('lista_editar'),
-            "module" => $this->module,
-            "slug" => 'marketing-lists',
-            "availableLocales" => LocaleTrait::availableLocales(),
-            "list" => $list,
-            "tab" => $tab,
-            "members" => $members,
-            "rows" => $table,
-            "msg" => session('msg'),
-            "alert" => session('alert'),
-            "permissions" => $this->permissions
+            'title'            => __($this->option),
+            'subtitle'         => __('lista_editar'),
+            'module'           => $this->module,
+            'slug'             => 'marketing-lists',
+            'availableLocales' => LocaleTrait::availableLocales(),
+            'list'             => $list,
+            'tab'              => $tab,
+
+            // OJO: aquí va el paginator completo
+            'users'          => $members,
+
+            // Y aquí las filas ya transformadas para la tabla
+            'rows'             => $table,
+
+            // Para mensajes, permisos y compañía
+            'msg'              => session('msg'),
+            'alert'            => session('alert'),
+            'permissions'      => $this->permissions,
+
+            // Para que el frontend tenga el contexto de filtros / paginación
+            'queryParams'      => $request->all(),
         ]);
     }
 
@@ -369,5 +419,12 @@ class MarketingListController extends Controller
                 ])->values(),
             ];
         });
+    }
+
+    /**
+     * 10. Agregar usuario.
+     */
+    public function addUser(){
+        
     }
 }

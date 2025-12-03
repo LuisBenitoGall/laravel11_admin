@@ -14,9 +14,10 @@ class UserAddressController extends Controller
     /**
      * Store a newly created address for a user.
      */
-    public function store(Request $request, User $user)
+    public function store(Request $request)
     {
         $validated = $request->validate([
+            'user_id'        => ['required', 'integer'],
             'label'          => ['nullable', 'string', 'max:100'],
             'address'        => ['required', 'string', 'max:255'],
             'address_extra'  => ['nullable', 'string', 'max:255'],
@@ -26,12 +27,12 @@ class UserAddressController extends Controller
             'is_main'        => ['nullable', 'boolean'],
         ]);
 
-        $validated['user_id'] = $user->id;
+        $validated['user_id'] = $request->user_id;
         $validated['is_main'] = (bool) ($validated['is_main'] ?? false);
 
         // Si esta se marca como principal, desmarcamos el resto del usuario
         if ($validated['is_main']) {
-            UserAddress::where('user_id', $user->id)
+            UserAddress::where('user_id', $request->user_id)
                 ->update(['is_main' => false]);
         }
 

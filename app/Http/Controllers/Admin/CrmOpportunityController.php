@@ -274,6 +274,8 @@ class CrmOpportunityController extends Controller
      * 4. Editar oportunidad.
      */
     public function edit(CrmOpportunity $opportunity){
+        $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
+        
         $ctx = app(CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
         if($currentCompanyId <= 0){

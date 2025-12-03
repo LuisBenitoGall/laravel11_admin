@@ -117,6 +117,58 @@ class CrmContactController extends Controller{
     }
 
     /**
+     * Obtener nuevos contactos (validated IS NULL) para la empresa en sesión.
+     * Devuelve el usuario relacionado y el último mensaje (si lo hay).
+     */
+    public function newContacts(Request $request)
+    {
+        $company_id = session('currentCompany');
+
+        $contacts = CrmContact::query()
+            ->with(['user', 'messages' => function ($q) {
+                $q->orderByDesc('created_at');
+            }])
+            ->where('company_id', $company_id)
+            ->whereNull('validated')
+            ->whereIn('contact_type', ['clp', 'otrc', 'newl'])
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($c) {
+                return [
+                    'id' => $c->id,
+                    'created_at' => $c->created_at->toDateTimeString(),
+                    'contact_type' => $c->contact_type,
+                    'user' => $c->user ? [
+                        'id' => $c->user->id,
+                        'name' => trim(($c->user->name ?? '') . ' ' . ($c->user->surname ?? '')),
+                        'email' => $c->user->email,
+                    ] : null,
+                    'last_message' => $c->messages && $c->messages->count() ? $c->messages->first()->message ?? null : null,
+                ];
+            });
+
+        return response()->json(['contacts' => $contacts]);
+    }
+
+    /**
+     * Eliminar un contacto CRM
+     */
+    public function destroy($contact)
+    {
+        $c = CrmContact::find($contact);
+        if (!$c) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+
+        try {
+            $c->delete();
+            return response()->json(['message' => 'OK']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error deleting'], 500);
+        }
+    }
+
+    /**
      * 1.1. Contactos para exportación.
      */
     public function filteredData(UserFilterRequest $request)

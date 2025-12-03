@@ -61,6 +61,12 @@ class CrmContact extends Model
         return $this->belongsTo(User::class, 'owner_id');
     }
 
+    // Mensajes dejados por el contacto (tabla crm_contact_messages)
+    public function messages()
+    {
+        return $this->hasMany(\App\Models\CrmContactMessage::class, 'crm_contact_id');
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Scopes

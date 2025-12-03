@@ -33,10 +33,18 @@ import UserShowView from '@/Pages/Admin/User/Partials/UserShowView';
 //Utils:
 import renderCellContent from '@/Utils/renderCellContent.jsx';
 
-export default function Index({ auth, session, title, subtitle, users, queryParams: rawQueryParams = {}, availableLocales }){
-	const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
+export default function Index({ 
+    auth, 
+    session, 
+    title, 
+    subtitle, 
+    users, 
+    queryParams: rawQueryParams = {}, 
+    availableLocales 
+}){
     const __ = useTranslation();
-
+	const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
+    
     //Columna Show Register
     const [showId, setShowId] = useState(null);
     const [showPanelOpen, setShowPanelOpen] = useState(false);

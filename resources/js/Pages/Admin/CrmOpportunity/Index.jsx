@@ -47,7 +47,7 @@ export default function Index({ auth, session, title, subtitle, opportunities, q
     //Columnas:
     const columns = [
         { key: 'name', label: __('oportunidad'), sort: true, filter: 'text', type: 'link', link: 'crm-opportunities.edit', class_th: '', class_td: '', placeholder: __('oportunidad_filtrar') },
-        { key: 'code', label: __('codigo'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('codigo_filtrar') },
+        // { key: 'code', label: __('codigo'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('codigo_filtrar') },
         { key: 'type', label: __('tipo'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('tipo_filtrar') },
         { key: 'start_at', label: __('fecha_inicio'), sort: true, filter: 'date', class_th: 'text-center', class_td: 'text-end', placeholder: __('fecha_inicio'), dateKeys: ['date_from', 'date_to'] },
         { key: 'finish_at', label: __('fecha_fin'), sort: true, filter: 'date', class_th: 'text-center', class_td: 'text-end', placeholder: __('fecha_fin'), dateKeys: ['date_from', 'date_to'] },
@@ -158,23 +158,6 @@ export default function Index({ auth, session, title, subtitle, opportunities, q
 
                                     {/* Acciones */}
                                     <td className="text-end">
-                                        {/* Estado */}
-                                        {permissions?.['crm-opportunities.edit'] && (
-                                            <OverlayTrigger
-                                                key={"status-"+campaign.id}
-                                                placement="top"
-                                                overlay={<Tooltip className="ttp-top">{ campaign.status == 1 ? __('oportunidad_activa') : __('oportunidad_inactiva') }</Tooltip>}
-                                            >
-                                                <StatusButton 
-                                                    status={campaign.status} 
-                                                    id={campaign.id} 
-                                                    updateRoute='crm-opportunities.status'
-                                                    reloadUrl={route('crm-opportunities.index')}
-  													reloadResource="crm-opportunities"
-                                                />
-                                            </OverlayTrigger>
-                                        )}
-
                                         {/* Editar */}
                                         {permissions?.['crm-opportunities.edit'] && (
                                             <OverlayTrigger

@@ -29,11 +29,13 @@ use App\Concerns\HasSalutation;
 use App\Models\Categorizable;
 use App\Models\Category;
 use App\Models\Company;
+use App\Models\Country;
 use App\Models\CrmAccount;
 use App\Models\CrmContact;
 use App\Models\CustomerProvider;
 use App\Models\Phone;
 use App\Models\User;
+use App\Models\UserAddress;
 use App\Models\UserColumnPreference;
 use App\Models\UserCompany;
 use App\Models\UserImage;
@@ -348,6 +350,7 @@ class UserController extends Controller{
             $cc->position = $request->position;
             $cc->department = $request->department;
             $cc->owner_id = Auth::id();
+            $cc->validated = Carbon::now();
             $cc->save();
         }
 
@@ -645,6 +648,11 @@ class UserController extends Controller{
         // 5) Opcional: relatedCompanies para UI secundaria (no depende ya de la lógica principal)
         $relatedCompanies = []; // si aún lo necesitas, rellénalo aquí o elimina su uso en front
 
+        //Direcciones del usuario:
+        $addresses = UserAddress::where('user_id', $user->id)->get();
+
+        $countries = Country::where('status', 1)->orderBy('name', 'ASC')->get();
+
         return \Inertia\Inertia::render('Admin/User/Edit', [
             'title'            => __($this->option),
             'subtitle'         => __('usuario_editar'),
@@ -657,6 +665,8 @@ class UserController extends Controller{
             'salutations'      => $salutations,
             'contact_types'    => $contact_types,
             'crm_contact'      => $crm_contact,
+            'addresses'        => $addresses,
+            'countries'        => $countries,
             'profile'          => $profile,
             'availableLocales' => LocaleTrait::availableLocales(),
             'permissions'      => $this->permissions,
