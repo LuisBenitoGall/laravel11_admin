@@ -99,7 +99,7 @@ class CostCenterController extends Controller{
         $side = null;            // 'customers' | 'providers' | 'both' | null
         $returnRoutes = [];
 
-        if($company->id !== $currentId){
+        if($company->id !== $currentCompanyId){
             $side = CustomerProvider::sideForCompanyPair($currentCompanyId, $company->id);
 
             // Prepara rutas de retorno según el lado detectado
