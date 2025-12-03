@@ -27,6 +27,7 @@ use App\Concerns\HasContactTypes;
 use App\Concerns\HasSalutation;
 
 //Models:
+use App\Models\Category;
 use App\Models\Company;
 use App\Models\Country;
 use App\Models\CrmAccount;
@@ -288,6 +289,14 @@ class CrmAccountController extends Controller{
         //Tipos de contacto:
         $contact_types = HasContactTypes::comboOptions();
 
+        //Subtipos de contacto:
+        $contact_subtypes = Category::where('company_id', $account->company_id)
+        ->where('module', 'users')
+        ->where('status', 1)
+        ->where('depth', '0')
+        ->orderBy('name', 'ASC')
+        ->get();
+
         //Países:
         $countries = Country::where('status', 1)
         ->orderBy('name', 'ASC')
@@ -311,6 +320,7 @@ class CrmAccountController extends Controller{
             "rows" => $table,
             "salutations" => $salutations,
             "contact_types" => $contact_types,
+            "contact_subtypes" => $contact_subtypes,
             "countries" => $countries,
             "currencies" => $currencies,
             "tab" => $tab,

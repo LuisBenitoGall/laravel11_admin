@@ -40,7 +40,8 @@ export default function Index({
     users, 
     rows, 
     salutations, 
-    contact_types, 
+    contact_types,
+    contact_subtypes,
     countries, 
     currencies, tab 
 }){
@@ -356,6 +357,7 @@ export default function Index({
                         side={'crm-accounts'}
                         salutations={salutations}
                         contact_types={contact_types}
+                        contact_subtypes={contact_subtypes}
                         crm_account={crm_account}
                     />
                 )}

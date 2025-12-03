@@ -352,6 +352,16 @@ class UserController extends Controller{
             $cc->owner_id = Auth::id();
             $cc->validated = Carbon::now();
             $cc->save();
+
+            //Guardamos categoría (subtipo de contacto)
+            if($request->contact_subtype){
+                $ctz = new Categorizable();
+                $ctz->company_id = session('currentCompany');
+                $ctz->category_id = $request->contact_subtype;
+                $ctz->categorizable_type = 'App\Models\User';
+                $ctz->categorizable_id = $user->id;
+                $ctz->save();
+            }
         }
 
         if($request->side == 'customers'){
@@ -649,9 +659,13 @@ class UserController extends Controller{
         $relatedCompanies = []; // si aún lo necesitas, rellénalo aquí o elimina su uso en front
 
         //Direcciones del usuario:
-        $addresses = UserAddress::where('user_id', $user->id)->get();
+        //$addresses = UserAddress::where('user_id', $user->id)->get();
 
         $countries = Country::where('status', 1)->orderBy('name', 'ASC')->get();
+
+        $user->load([
+            'addresses.town.province.country',
+        ]);
 
         return \Inertia\Inertia::render('Admin/User/Edit', [
             'title'            => __($this->option),
@@ -665,7 +679,7 @@ class UserController extends Controller{
             'salutations'      => $salutations,
             'contact_types'    => $contact_types,
             'crm_contact'      => $crm_contact,
-            'addresses'        => $addresses,
+            'addresses'        => $user->addresses,
             'countries'        => $countries,
             'profile'          => $profile,
             'availableLocales' => LocaleTrait::availableLocales(),

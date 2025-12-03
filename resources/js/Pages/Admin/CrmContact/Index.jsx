@@ -44,6 +44,7 @@ export default function Index({
     contacts, 
     contact_types, 
     contact_types_combo,
+    contact_subtypes,
     salutations,
     leads,
     slug,
@@ -305,6 +306,7 @@ export default function Index({
                     side={'crm-accounts'}
                     salutations={salutations}
                     contact_types={contact_types_combo}
+                    contact_subtypes={contact_subtypes}
                     linkCompany={false}
                 />
             </div>

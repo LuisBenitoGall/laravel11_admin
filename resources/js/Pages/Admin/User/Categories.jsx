@@ -256,7 +256,7 @@ export default function Sectors({ auth, title, subtitle }) {
                                 <>
                                     {users.length > 0 && (
                                     <>
-                                        <div className="fw-semibold mb-2">{__('empresas')}</div>
+                                        <div className="fw-semibold mb-2">{__('usuarios')}</div>
                                         <div className="row row-cols-1 row-cols-md-2 row-cols-xl-3">
                                         {users.map(item => (
                                             <div className="col mb-3" key={`c-${item.id}`}>

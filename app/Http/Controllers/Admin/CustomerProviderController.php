@@ -24,6 +24,7 @@ use App\Concerns\HasSalutation;
 
 //Models:
 use App\Models\AccountingAccount;
+use App\Models\Category;
 use App\Models\Company;
 use App\Models\CompanyAccount;
 use App\Models\CustomerProvider;
@@ -499,6 +500,14 @@ class CustomerProviderController extends Controller{
         //Usuarios:
         $users = UserCompany::usersByCompany($customer->id);
 
+        //Subtipos de contacto:
+        $contact_subtypes = Category::where('company_id', $providerId)
+        ->where('module', 'users')
+        ->where('status', 1)
+        ->where('depth', '0')
+        ->orderBy('name', 'ASC')
+        ->get();
+
         $table = $users->map(function ($u) use($locale){
             $primary = $u->phones->firstWhere('is_primary', true) ?: $u->phones->first();
 
@@ -556,6 +565,7 @@ class CustomerProviderController extends Controller{
             "users" => $users,
             "rows" => $table,
             "salutations" => $salutations,
+            "contact_subtypes" => $contact_subtypes,
             "tab" => $tab,
             "msg" => session('msg'),
             "alert" => session('alert'),
@@ -593,6 +603,14 @@ class CustomerProviderController extends Controller{
 
         //Usuarios:
         $users = UserCompany::usersByCompany($provider->id);
+
+        //Subtipos de contacto:
+        $contact_subtypes = Category::where('company_id', $customerId)
+        ->where('module', 'users')
+        ->where('status', 1)
+        ->where('depth', '0')
+        ->orderBy('name', 'ASC')
+        ->get();
 
         $table = $users->map(function ($u) use($locale){
             $primary = $u->phones->firstWhere('is_primary', true) ?: $u->phones->first();
@@ -651,6 +669,7 @@ class CustomerProviderController extends Controller{
             "users" => $users,
             "rows" => $table,
             "salutations" => $salutations,
+            "contact_subtypes" => $contact_subtypes,
             "tab" => $tab,
             "msg" => session('msg'),
             "alert" => session('alert'),

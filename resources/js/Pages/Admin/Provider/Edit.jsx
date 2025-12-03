@@ -27,7 +27,20 @@ import CompanyUsersTab from '@/Pages/Admin/Company/Partials/CompanyUsersTab';
 //Utils:
 import { useHandleDelete } from '@/Utils/useHandleDelete.jsx';
 
-export default function Index({ auth, session, title, subtitle, provider, relation, users, rows, salutations, tab, availableLocales }){
+export default function Index({ 
+    auth, 
+    session, 
+    title, 
+    subtitle, 
+    provider, 
+    relation, 
+    users, 
+    rows, 
+    salutations, 
+    contact_subtypes,
+    tab, 
+    availableLocales 
+}){
     const __ = useTranslation();
     const props = usePage()?.props || {};
     const locale = props.locale || false;
@@ -208,6 +221,7 @@ export default function Index({ auth, session, title, subtitle, provider, relati
                     companyId={provider.id}
                     side={'providers'}
                     salutations={salutations}
+                    contact_subtypes={contact_subtypes}
                     contact_types={[]}
                 />
             </div>

@@ -24,7 +24,7 @@ export default function CompanyFormEdit({
 }){
     const __ = useTranslation();
     const { showConfirm } = useSweetAlert();
-console.log(crm_account);
+
     const params = updateParams ?? [company?.id];
 
     const { data, setData, post, reset, errors, processing } = useForm({

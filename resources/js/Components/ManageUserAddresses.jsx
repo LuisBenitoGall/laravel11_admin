@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { router } from '@inertiajs/react';
-import { Table, OverlayTrigger, Tooltip, Badge } from 'react-bootstrap';
+import { OverlayTrigger, Tooltip, Badge } from 'react-bootstrap';
 
 // Components
 import ReusableModal from '@/Components/modals/ModalTemplate';
@@ -17,9 +17,15 @@ import LocationSelects from '@/Components/LocationSelects';
 
 // Hooks
 import { useTranslation } from '@/Hooks/useTranslation';
+import { useSweetAlert } from '@/Hooks/useSweetAlert';
 
-export default function ManageUserAddresses({ userId, addresses = [], countries = [] }) {
+export default function ManageUserAddresses({ 
+    userId, 
+    addresses = [], 
+    countries = [] 
+}) {
     const __ = useTranslation();
+    const { showConfirm } = useSweetAlert();
 
     const [showModal, setShowModal] = useState(false);
     const [editingAddress, setEditingAddress] = useState(null);
@@ -135,12 +141,15 @@ export default function ManageUserAddresses({ userId, addresses = [], countries 
     };
 
     const handleDelete = (address) => {
-        if (!confirm(__('¿Seguro que quieres eliminar esta dirección?'))) {
-            return;
-        }
-
-        router.delete(route('user-addresses.destroy', address.id), {
-            preserveScroll: true,
+        showConfirm({
+            title: __('direccion_eliminar') || __('eliminar'),
+            text: __('direccion_eliminar_confirm') || __('¿Seguro que quieres eliminar esta dirección?'),
+            icon: 'warning',
+            onConfirm: () => {
+                router.delete(route('user-addresses.destroy', address.id), {
+                    preserveScroll: true,
+                });
+            },
         });
     };
 
@@ -149,28 +158,41 @@ export default function ManageUserAddresses({ userId, addresses = [], countries 
             return;
         }
 
-        router.put(
-            route('user-addresses.update', address.id),
-            { is_main: true, user_id: userId },
-            { preserveScroll: true }
+        router.post(
+            route('user-addresses.primary'),
+            {
+                address_id: address.id,
+                user_id: userId,
+            },
+            {
+                preserveScroll: true,
+            }
         );
     };
 
-    const renderTown = (address) => {
+    const getLocationInfo = (address) => {
+        const town = address.town || {};
+        const province = town.province || address.province || {};
+        const country = province.country || address.country || {};
+
         const townName =
             address.town_name ||
-            address.town?.name ||
-            address.town?.label ||
-            address.town?.town ||
+            town.name ||
+            town.label ||
+            town.town ||
             '';
 
-        if (!townName && !address.cp) {
-            return '';
-        }
+        const provinceName =
+            address.province_name ||
+            province.name ||
+            '';
 
-        if (address.cp && townName) return `${address.cp} - ${townName}`;
-        if (address.cp) return address.cp;
-        return townName;
+        const countryName =
+            address.country_name ||
+            country.name ||
+            '';
+
+        return { townName, provinceName, countryName };
     };
 
     const modalTitle = editingAddress
@@ -194,108 +216,154 @@ export default function ManageUserAddresses({ userId, addresses = [], countries 
                 </PrimaryButton>
             </div>
 
-            <div className="card-body p-0">
+            {/* LISTADO COMO CARDS */}
+            <div className="card-body">
                 {addresses.length === 0 ? (
-                    <p className="mb-0 p-3 text-muted small">
+                    <p className="mb-0 text-muted small">
                         {__('No hay direcciones definidas para este usuario.')}
                     </p>
                 ) : (
-                    <Table striped hover responsive size="sm" className="mb-0">
-                        <thead>
-                            <tr>
-                                <th>{__('Etiqueta')}</th>
-                                <th>{__('Dirección')}</th>
-                                <th>{__('CP / Población')}</th>
-                                <th>{__('Observaciones')}</th>
-                                <th className="text-center">{__('Principal')}</th>
-                                <th className="text-end">{__('Acciones')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {addresses.map((address) => (
-                                <tr key={address.id}>
-                                    <td>{address.label || '—'}</td>
-                                    <td>
-                                        {address.address}
-                                        {address.address_extra && (
-                                            <div className="text-muted small">
-                                                {address.address_extra}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td>{renderTown(address) || '—'}</td>
-                                    <td className="small text-muted">
-                                        {address.observations || '—'}
-                                    </td>
-                                    <td className="text-center">
-                                        {address.is_main ? (
-                                            <Badge bg="success">
-                                                <i className="la la-star me-1" />
-                                                {__('Principal')}
-                                            </Badge>
-                                        ) : (
-                                            <OverlayTrigger
-                                                placement="top"
-                                                overlay={
-                                                    <Tooltip id={`tt-main-${address.id}`}>
-                                                        {__('Marcar como principal')}
-                                                    </Tooltip>
-                                                }
-                                            >
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-link btn-sm text-muted p-0"
-                                                    onClick={() => handleSetMain(address)}
-                                                >
-                                                    <i className="la la-star-o" />
-                                                </button>
-                                            </OverlayTrigger>
-                                        )}
-                                    </td>
-                                    <td className="text-end">
-                                        <div className="btn-group btn-group-sm">
-                                            <OverlayTrigger
-                                                placement="top"
-                                                overlay={
-                                                    <Tooltip id={`tt-edit-${address.id}`}>
-                                                        {__('Editar')}
-                                                    </Tooltip>
-                                                }
-                                            >
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-outline-secondary"
-                                                    onClick={() => openEditModal(address)}
-                                                >
-                                                    <i className="la la-edit" />
-                                                </button>
-                                            </OverlayTrigger>
+                    <div className="row g-3">
+                        {addresses.map((address) => {
+                            const { townName, provinceName, countryName } = getLocationInfo(address);
 
-                                            <OverlayTrigger
-                                                placement="top"
-                                                overlay={
-                                                    <Tooltip id={`tt-delete-${address.id}`}>
-                                                        {__('Eliminar')}
-                                                    </Tooltip>
-                                                }
-                                            >
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-outline-danger"
-                                                    onClick={() => handleDelete(address)}
+                            return (
+                                <div
+                                    className="col-12 col-md-6 col-lg-4"
+                                    key={address.id}
+                                >
+                                    <div
+                                        className={
+                                            'card h-100 ' +
+                                            (address.is_main ? 'border-primary shadow-sm' : '')
+                                        }
+                                    >
+                                        <div className="card-body d-flex flex-column">
+                                            {/* Cabecera: etiqueta + badge principal */}
+                                            <div className="d-flex justify-content-between align-items-start mb-2">
+                                                <div>
+                                                    <div className="fw-semibold">
+                                                        {address.label || __('Dirección')}
+                                                    </div>
+
+                                                    {(address.cp || townName) && (
+                                                        <div className="text-muted small">
+                                                            {address.cp}
+                                                            {townName
+                                                                ? (address.cp ? ' · ' : '') + townName
+                                                                : ''}
+                                                        </div>
+                                                    )}
+
+                                                    {(provinceName || countryName) && (
+                                                        <div className="text-muted small">
+                                                            {provinceName}
+                                                            {provinceName && countryName ? ' · ' : ''}
+                                                            {countryName}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="ms-2">
+                                                    {address.is_main ? (
+                                                        <Badge bg="primary">
+                                                            <i className="la la-star me-1" />
+                                                            {__('Principal')}
+                                                        </Badge>
+                                                    ) : (
+                                                        <OverlayTrigger
+                                                            placement="top"
+                                                            overlay={
+                                                                <Tooltip id={`tt-main-${address.id}`}>
+                                                                    {__('Marcar como principal')}
+                                                                </Tooltip>
+                                                            }
+                                                        >
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-sm btn-light border rounded-circle"
+                                                                onClick={() => handleSetMain(address)}
+                                                            >
+                                                                <i className="la la-star-o" />
+                                                            </button>
+                                                        </OverlayTrigger>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Dirección */}
+                                            <div className="mb-2">
+                                                <div className="fw-bold">
+                                                    {address.address || '—'}
+                                                </div>
+                                                {address.address_extra && (
+                                                    <div className="text-muted small">
+                                                        {address.address_extra}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Observaciones */}
+                                            {address.observations && (
+                                                <div className="mt-1 small text-muted">
+                                                    {address.observations}
+                                                </div>
+                                            )}
+
+                                            {/* Acciones al pie, como en teléfonos */}
+                                            <div className="mt-auto pt-2 border-top d-flex justify-content-end gap-2">
+                                                <OverlayTrigger
+                                                    placement="top"
+                                                    overlay={
+                                                        <Tooltip
+                                                            id={`tt-edit-${address.id}`}
+                                                        >
+                                                            {__('Editar')}
+                                                        </Tooltip>
+                                                    }
                                                 >
-                                                    <i className="la la-trash" />
-                                                </button>
-                                            </OverlayTrigger>
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-sm btn-warning rounded-pill"
+                                                        onClick={() =>
+                                                            openEditModal(address)
+                                                        }
+                                                    >
+                                                        <i className="la la-edit" />
+                                                    </button>
+                                                </OverlayTrigger>
+
+                                                <OverlayTrigger
+                                                    placement="top"
+                                                    overlay={
+                                                        <Tooltip
+                                                            id={`tt-delete-${address.id}`}
+                                                        >
+                                                            {__('Eliminar')}
+                                                        </Tooltip>
+                                                    }
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-sm btn-danger rounded-pill"
+                                                        onClick={() =>
+                                                            handleDelete(address)
+                                                        }
+                                                    >
+                                                        <i className="la la-trash" />
+                                                    </button>
+                                                </OverlayTrigger>
+                                            </div>
                                         </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </Table>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 )}
             </div>
 
+            {/* MODAL */}
             <ReusableModal
                 show={showModal}
                 onClose={closeModal}
@@ -328,7 +396,9 @@ export default function ManageUserAddresses({ userId, addresses = [], countries 
                                         <TextInput
                                             name="cp"
                                             value={form.cp}
-                                            onChange={(e) => handleChange('cp', e.target.value)}
+                                            onChange={(e) =>
+                                                handleChange('cp', e.target.value)
+                                            }
                                             maxLength={10}
                                         />
                                         <InputError message={errors.cp} className="mt-1" />

@@ -867,6 +867,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::post('/user-addresses/', [UserAddressController::class, 'store'])->name('user-addresses.store');
     Route::put('/user-addresses/{address}', [UserAddressController::class, 'update'])->name('user-addresses.update');
     Route::delete('/user-addresses/{address}', [UserAddressController::class, 'destroy'])->name('user-addresses.destroy');
+    Route::post('/user-addresses/primary', [UserAddressController::class, 'primary'])->name('user-addresses.primary');
 
     //User Column Preferences:  No requiere permisos.
     Route::get('/column-preferences', [UserColumnPreferenceController::class, 'index'])->name('column-preferences.index');

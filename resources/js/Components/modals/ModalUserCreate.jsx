@@ -19,13 +19,13 @@ export default function ModalUserCreate({
     companyId = false, 
     side, 
     salutations, 
-    contact_types, 
+    contact_types,
+    contact_subtypes, 
     crm_account = false,
     linkCompany = true
 }){
     const __ = useTranslation();
     const pageProps = usePage()?.props || {};
-
     const roles = pageProps.roles || {};
     const arrRoles = Object.entries(roles).map(([key, label]) => ({ value: key, label }));
 
@@ -42,6 +42,7 @@ export default function ModalUserCreate({
         salutation: '',
         department: '',
         contact_type: '',
+        contact_subtype: '',
         phones: [''],
         company_id: companyId || null,
         side: side || '',
@@ -121,8 +122,8 @@ export default function ModalUserCreate({
                 {/* Email */}
                 <div className="mb-3">
                     <div className="position-relative">
-                        <label className="form-label">{__('email')}*</label>
-                        <TextInput type="email" value={data.email} onChange={(e) => setData('email', e.target.value)} required />
+                        <label className="form-label">{__('email')}</label>
+                        <TextInput type="email" value={data.email} onChange={(e) => setData('email', e.target.value)} />
                         <InputError message={errors.email} />
                     </div>
                 </div>
@@ -136,16 +137,18 @@ export default function ModalUserCreate({
                     </div>
                 </div>
 
+                {/* Departamento */}   
+                <div className="mb-3">
+                    <div className="position-relative">
+                        <label htmlFor="department" className="form-label">{ __('departamento') }</label>
+                        <TextInput type="text" value={data.department} onChange={(e) => setData('department', e.target.value)} />
+                        <InputError message={errors.department} />
+                    </div>
+                </div>
+
                 <div className="mb-3">
                     <div className="position-relative">
                         <div className="row">
-                            {/* Departamento */}   
-                            <div className="col-lg-6">
-                                <label htmlFor="department" className="form-label">{ __('departamento') }</label>
-                                <TextInput type="text" value={data.department} onChange={(e) => setData('department', e.target.value)} required />
-                                <InputError message={errors.department} />
-                            </div>
-
                             {/* Tipo de contacto */}    
                             <div className="col-lg-6">
                                 <label htmlFor="contact_type" className="form-label">{ __('contacto_tipo') }</label>
@@ -155,14 +158,41 @@ export default function ModalUserCreate({
                                     value={data.contact_type}
                                     onChange={(e) => setData('contact_type', e.target.value)}
                                 >
-                                    <option value="">{ __('opcion_selec') }</option>
-                                    {contact_types.map(option => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
+                                    <option key="empty-contact-type" value="">{ __('opcion_selec') }</option>
+                                    {contact_types.map((option, idx) => {
+                                        const value = option?.value ?? option?.id ?? option?.slug ?? `contact-type-${idx}`;
+                                        const label = option?.label ?? option?.name ?? option?.title ?? String(value);
+                                        return (
+                                            <option key={value} value={value}>
+                                                {label}
+                                            </option>
+                                        );
+                                    })}
                                 </SelectInput>
                                 <InputError message={errors.contact_type} />  
+                            </div>
+
+                            {/* Subtipo de contacto */}    
+                            <div className="col-lg-6">
+                                <label htmlFor="contact_subtype" className="form-label">{ __('contacto_subtipo') }</label>
+                                <SelectInput
+                                    className="form-select"
+                                    name="contact_subtype"
+                                    value={data.contact_subtype}
+                                    onChange={(e) => setData('contact_subtype', e.target.value)}
+                                >
+                                    <option key="empty-contact-subtype" value="">{ __('opcion_selec') }</option>
+                                    {contact_subtypes.map((option, idx) => {
+                                        const value = option?.value ?? option?.id ?? option?.slug ?? `contact-subtype-${idx}`;
+                                        const label = option?.label ?? option?.name ?? option?.title ?? String(value);
+                                        return (
+                                            <option key={value} value={value}>
+                                                {label}
+                                            </option>
+                                        );
+                                    })}
+                                </SelectInput>
+                                <InputError message={errors.contact_subtype} />  
                             </div>
                         </div>
                     </div>                        
@@ -193,12 +223,16 @@ export default function ModalUserCreate({
                                     value={data.salutation}
                                     onChange={(e) => setData('salutation', e.target.value)}
                                 >
-                                    <option value="">{ __('opcion_selec') }</option>
-                                    {salutations.map(option => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
+                                    <option key="empty-salutation" value="">{ __('opcion_selec') }</option>
+                                    {salutations.map((option, idx) => {
+                                        const value = option?.value ?? option?.id ?? option?.slug ?? `salutation-${idx}`;
+                                        const label = option?.label ?? option?.name ?? option?.title ?? String(value);
+                                        return (
+                                            <option key={value} value={value}>
+                                                {label}
+                                            </option>
+                                        );
+                                    })}
                                 </SelectInput>
                                 <InputError message={errors.salutation} />                                
                             </div>

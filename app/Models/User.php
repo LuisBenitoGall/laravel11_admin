@@ -35,6 +35,7 @@ class User extends Authenticatable implements MustVerifyEmail{
      * 7. Guardar firma de usuario.
      * 8. Normalización email.
      * 9. Normalización nif.
+     * 10. Direcciones de usuario.
      */
     
     use HasFactory, Notifiable, SoftDeletes, HasRoles, HasCompanyPermissions;
@@ -187,5 +188,13 @@ class User extends Authenticatable implements MustVerifyEmail{
         $this->attributes['nif'] = is_string($value)
             ? mb_strtoupper(trim($value))
             : $value;
+    }
+
+    /**
+     * 10. Direcciones de usuario.
+     */
+    public function addresses()
+    {
+        return $this->hasMany(UserAddress::class, 'user_id');
     }
 }

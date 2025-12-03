@@ -27,6 +27,7 @@ use App\Concerns\HasContactTypes;
 use App\Concerns\HasSalutation;
 
 //Models:
+use App\Models\Category;
 use App\Models\Company;
 use App\Models\Country;
 use App\Models\CrmAccount;
@@ -48,7 +49,11 @@ use App\Traits\ModulesTrait;
 
 class CrmContactController extends Controller{
     /**
-     * 
+     * 1. Listado de contactos.
+     * 1.1. Contactos para exportación.
+     * 1.2. Data Query contactos.
+     * 2. Nuevos contactos.
+     * 3. Eliminar un contacto CRM.
      */
     
     use HasUserPermissionsTrait;
@@ -77,6 +82,22 @@ class CrmContactController extends Controller{
      */
     public function index(Request $request)
     {
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
+
         // /admin/crm-leads → segment(2) = 'crm-leads'
         $leads = $request->segment(2) === 'crm-leads';
 
@@ -93,6 +114,14 @@ class CrmContactController extends Controller{
         $contact_types        = HasContactTypes::typesMap();
         $contact_types_combo  = HasContactTypes::comboOptions();
 
+        //Subtipos de contacto:
+        $contact_subtypes = Category::where('company_id', $currentCompanyId)
+        ->where('module', 'users')
+        ->where('status', 1)
+        ->where('depth', '0')
+        ->orderBy('name', 'ASC')
+        ->get();
+
         // importante para el front (rutas)
         $slug = $leads ? 'crm-leads' : 'crm-contacts';
 
@@ -105,6 +134,7 @@ class CrmContactController extends Controller{
             "salutations"         => $salutations,
             "contact_types"       => $contact_types,
             "contact_types_combo" => $contact_types_combo,
+            "contact_subtypes"    => $contact_subtypes,
             "leads"               => $leads,
             "queryParams"         => request()->query() ?: null,
             "availableLocales"    => LocaleTrait::availableLocales(),
@@ -114,58 +144,6 @@ class CrmContactController extends Controller{
                 ['tblContacts']
             ),
         ]);
-    }
-
-    /**
-     * Obtener nuevos contactos (validated IS NULL) para la empresa en sesión.
-     * Devuelve el usuario relacionado y el último mensaje (si lo hay).
-     */
-    public function newContacts(Request $request)
-    {
-        $company_id = session('currentCompany');
-
-        $contacts = CrmContact::query()
-            ->with(['user', 'messages' => function ($q) {
-                $q->orderByDesc('created_at');
-            }])
-            ->where('company_id', $company_id)
-            ->whereNull('validated')
-            ->whereIn('contact_type', ['clp', 'otrc', 'newl'])
-            ->orderByDesc('created_at')
-            ->get()
-            ->map(function ($c) {
-                return [
-                    'id' => $c->id,
-                    'created_at' => $c->created_at->toDateTimeString(),
-                    'contact_type' => $c->contact_type,
-                    'user' => $c->user ? [
-                        'id' => $c->user->id,
-                        'name' => trim(($c->user->name ?? '') . ' ' . ($c->user->surname ?? '')),
-                        'email' => $c->user->email,
-                    ] : null,
-                    'last_message' => $c->messages && $c->messages->count() ? $c->messages->first()->message ?? null : null,
-                ];
-            });
-
-        return response()->json(['contacts' => $contacts]);
-    }
-
-    /**
-     * Eliminar un contacto CRM
-     */
-    public function destroy($contact)
-    {
-        $c = CrmContact::find($contact);
-        if (!$c) {
-            return response()->json(['message' => 'Not found'], 404);
-        }
-
-        try {
-            $c->delete();
-            return response()->json(['message' => 'OK']);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Error deleting'], 500);
-        }
     }
 
     /**
@@ -318,16 +296,30 @@ class CrmContactController extends Controller{
 
         // 6) Filtros
         $filters = [
+            // 🔧 NUEVO FILTRO NAME:
+            // Se busca sobre CONCAT(nombre, ' ', apellido)
+            // y el string introducido debe ser substring de esa combinación.
             'name' => function ($q, $v) {
-                $q->where(function ($sub) use ($v) {
-                    $sub->where('users.name', 'like', "%$v%")
-                        ->orWhere('users.surname', 'like', "%$v%");
-                });
+                $v = trim($v);
+                if ($v === '') {
+                    return;
+                }
+
+                $q->whereRaw("
+                    CONCAT(
+                        TRIM(COALESCE(users.name, '')),
+                        ' ',
+                        TRIM(COALESCE(users.surname, ''))
+                    ) LIKE ?
+                ", ["%{$v}%"]);
             },
+
             'email' => fn ($q, $v) => $q->where('users.email', 'like', "%$v%"),
+
             'phones' => function ($q, $v) {
                 $q->whereHas('phones', fn ($sub) => $sub->where('phone_number', 'like', "%$v%"));
             },
+
             'categories' => function ($q, $v) use ($company_id) {
                 $q->whereHas('categories', function ($sub) use ($company_id, $v) {
                     if ($company_id !== 'all') {
@@ -337,6 +329,7 @@ class CrmContactController extends Controller{
                         ->where('categories.name', 'like', "%$v%");
                 });
             },
+
             // buscar posición tanto en user_companies como en crm_contacts
             'position' => function ($q, $v) {
                 $q->where(function ($sub) use ($v) {
@@ -344,6 +337,7 @@ class CrmContactController extends Controller{
                         ->orWhere('cc.position', 'like', "%{$v}%");
                 });
             },
+
             'contact_type' => fn ($q, $v) => $q->where('cc.contact_type', $v),
         ];
 
@@ -377,4 +371,57 @@ class CrmContactController extends Controller{
         return $query->orderBy("users.$sortField", $sortDirection);
     }
 
+    /**
+     * 2. Nuevos contactos.
+     * 
+     * Obtener nuevos contactos (validated IS NULL) para la empresa en sesión.
+     * Devuelve el usuario relacionado y el último mensaje (si lo hay).
+     */
+    public function newContacts(Request $request)
+    {
+        $company_id = session('currentCompany');
+
+        $contacts = CrmContact::query()
+            ->with(['user', 'messages' => function ($q) {
+                $q->orderByDesc('created_at');
+            }])
+            ->where('company_id', $company_id)
+            ->whereNull('validated')
+            ->whereIn('contact_type', ['clp', 'otrc', 'newl'])
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($c) {
+                return [
+                    'id' => $c->id,
+                    'created_at' => $c->created_at->toDateTimeString(),
+                    'contact_type' => $c->contact_type,
+                    'user' => $c->user ? [
+                        'id' => $c->user->id,
+                        'name' => trim(($c->user->name ?? '') . ' ' . ($c->user->surname ?? '')),
+                        'email' => $c->user->email,
+                    ] : null,
+                    'last_message' => $c->messages && $c->messages->count() ? $c->messages->first()->message ?? null : null,
+                ];
+            });
+
+        return response()->json(['contacts' => $contacts]);
+    }
+
+    /**
+     * 3. Eliminar un contacto CRM.
+     */
+    public function destroy($contact)
+    {
+        $c = CrmContact::find($contact);
+        if (!$c) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+
+        try {
+            $c->delete();
+            return response()->json(['message' => 'OK']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error deleting'], 500);
+        }
+    }
 }
