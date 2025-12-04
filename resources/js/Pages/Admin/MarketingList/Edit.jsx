@@ -19,6 +19,7 @@ import { useTranslation } from '@/Hooks/useTranslation';
 
 //Modals:
 import ModalMarketingListAddUser from '@/Components/modals/ModalMarketingListAddUser';
+import ModalMarketingListCloneMembers from '@/Components/modals/ModalMarketingListCloneMembers';
 
 //Tabs:
 import MarketingListInfoTab from './Partials/MarketingListInfoTab';
@@ -30,6 +31,7 @@ export default function Index({ auth, session, title, subtitle, list, tab, membe
     const locale = props.locale || false;
     const languages = props.languages || [];
     const permissions = props.permissions || {};
+    const cloneSourceLists = props.cloneSourceLists || [];
 
     const rawQueryParams = props.queryParams || {};
     const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
@@ -39,6 +41,22 @@ export default function Index({ auth, session, title, subtitle, list, tab, membe
     const handleCloseAddUserModal = () => setShowAddUserModal(false);
     const handleUserAdded = () => {
         // Igual que en la paginación: refrescamos users + rows
+        router.reload({
+            data: {
+                ...(queryParams || {}),
+                page: 1,
+            },
+            only: ['users', 'rows'],
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
+    const [showCloneModal, setShowCloneModal] = useState(false);
+    const handleOpenCloneModal = () => setShowCloneModal(true);
+    const handleCloseCloneModal = () => setShowCloneModal(false);
+
+    const handleMembersChanged = () => {
         router.reload({
             data: {
                 ...(queryParams || {}),
@@ -83,6 +101,16 @@ export default function Index({ auth, session, title, subtitle, list, tab, membe
             url: '',
             modal: true,
             onClick: handleOpenAddUserModal
+        });
+    }
+
+    if (permissions?.['marketing-lists.edit']) {
+        actions.push({
+            text: __('listas_copiar'),
+            icon: 'la-copy',
+            url: '',
+            modal: true,
+            onClick: handleOpenCloneModal
         });
     }
 
@@ -162,6 +190,14 @@ export default function Index({ auth, session, title, subtitle, list, tab, membe
                     onClose={handleCloseAddUserModal}
                     onAdded={handleUserAdded}
                     marketingListId={list.id}
+                />
+
+                <ModalMarketingListCloneMembers
+                    show={showCloneModal}
+                    onClose={handleCloseCloneModal}
+                    onCloned={handleMembersChanged}
+                    marketingListId={list.id}
+                    sourceLists={cloneSourceLists}
                 />
             </div>
         </AdminAuthenticatedLayout>

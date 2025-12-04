@@ -14,20 +14,46 @@ import SelectInput from '@/Components/SelectInput';
 // Hooks:
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function Create({ auth, session, title, subtitle, owners = [], currencies = [], costCenters = [] }) {
+export default function Create({ 
+    auth, 
+    session, 
+    title, 
+    subtitle, 
+    owners = [], 
+    currencies = [], 
+    costCenters = [],
+    campaignStatus = []
+}) {
     const __ = useTranslation();
     const props = usePage()?.props || {};
     const locale = props.locale || false;
     const languages = props.languages || [];
     const permissions = props.permissions || {};
 
-    const statusOptions = [
-        { value: 0, label: __('campanya_borrador') },   // draft
-        { value: 1, label: __('campanya_activa') },     // active
-        { value: 2, label: __('campanya_finalizada') }, // finished
-        { value: 3, label: __('campanya_cancelada') },  // cancelled
-    ];
+    // Normalize `campaignStatus` into an array of objects: { id, name }
+    // Accepts shapes:
+    // - Array of objects: [{id, name}, ...]
+    // - Associative object: {1: 'borrador', 2: 'activa', ...}
+    // - Array of strings: ['borrador', 'activa']
+    let campaignStatusArray = [];
 
+    if (Array.isArray(campaignStatus)) {
+        if (campaignStatus.length && typeof campaignStatus[0] === 'object') {
+            // Already array of objects
+            campaignStatusArray = campaignStatus;
+        } else {
+            // Array of primitive values (strings)
+            campaignStatusArray = campaignStatus.map((name, idx) => ({ id: idx + 1, name }));
+        }
+    } else if (campaignStatus && typeof campaignStatus === 'object') {
+        // Associative object: map entries to {id, name}
+        campaignStatusArray = Object.entries(campaignStatus).map(([key, value]) => {
+            if (value && typeof value === 'object') {
+                return { id: value.id ?? key, name: value.name ?? value.title ?? String(value) };
+            }
+            return { id: key, name: value };
+        });
+    }
     // Form state
     const { data, setData, post, reset, errors, processing } = useForm({
         owner_id: '',
@@ -89,12 +115,12 @@ export default function Create({ auth, session, title, subtitle, owners = [], cu
                         <div className="col-lg-6">
                             <div>
                                 <label htmlFor="name" className="form-label">
-                                    {__('campanya_nombre')}*
+                                    {__('nombre')}*
                                 </label>
                                 <TextInput
                                     id="name"
                                     type="text"
-                                    placeholder={__('campanya_nombre')}
+                                    placeholder={__('nombre')}
                                     value={data.name}
                                     onChange={(e) => setData('name', e.target.value)}
                                     maxLength={255}
@@ -107,12 +133,12 @@ export default function Create({ auth, session, title, subtitle, owners = [], cu
                         <div className="col-lg-3">
                             <div>
                                 <label htmlFor="campaign_code" className="form-label">
-                                    {__('campanya_codigo')}
+                                    {__('codigo')}
                                 </label>
                                 <TextInput
                                     id="campaign_code"
                                     type="text"
-                                    placeholder={__('campanya_codigo')}
+                                    placeholder={__('codigo')}
                                     value={data.campaign_code}
                                     onChange={(e) => setData('campaign_code', e.target.value)}
                                     maxLength={255}
@@ -125,12 +151,12 @@ export default function Create({ auth, session, title, subtitle, owners = [], cu
                         <div className="col-lg-3">
                             <div>
                                 <label htmlFor="campaign_type" className="form-label">
-                                    {__('campanya_tipo')}
+                                    {__('tipo')}
                                 </label>
                                 <TextInput
                                     id="campaign_type"
                                     type="text"
-                                    placeholder={__('campanya_tipo')}
+                                    placeholder={__('tipo')}
                                     value={data.campaign_type}
                                     onChange={(e) => setData('campaign_type', e.target.value)}
                                     maxLength={50}
@@ -143,14 +169,14 @@ export default function Create({ auth, session, title, subtitle, owners = [], cu
                         <div className="col-lg-4">
                             <div>
                                 <label htmlFor="owner_id" className="form-label">
-                                    {__('campanya_propietario')}
+                                    {__('propietario')}
                                 </label>
                                 <SelectInput
                                     id="owner_id"
                                     value={data.owner_id}
                                     onChange={(e) => setData('owner_id', e.target.value)}
                                 >
-                                    <option value="">{__('seleccionar_opcion')}</option>
+                                    <option value="">{__('opcion_selec')}</option>
                                     {owners.map((user) => (
                                         <option key={user.id} value={user.id}>
                                             {user.full_name || user.name}
@@ -172,7 +198,7 @@ export default function Create({ auth, session, title, subtitle, owners = [], cu
                                     value={data.cost_center_id}
                                     onChange={(e) => setData('cost_center_id', e.target.value)}
                                 >
-                                    <option value="">{__('seleccionar_opcion')}</option>
+                                    <option value="">{__('opcion_selec')}</option>
                                     {costCenters.map((cc) => (
                                         <option key={cc.id} value={cc.id}>
                                             {cc.name}
@@ -187,16 +213,16 @@ export default function Create({ auth, session, title, subtitle, owners = [], cu
                         <div className="col-lg-4">
                             <div className="position-relative">
                                 <label htmlFor="status" className="form-label">
-                                    {__('campanya_estado')}
+                                    {__('estado')}
                                 </label>
                                 <SelectInput
-                                    id="status"
                                     value={data.status}
                                     onChange={(e) => setData('status', Number(e.target.value))}
                                 >
-                                    {statusOptions.map((opt) => (
-                                        <option key={opt.value} value={opt.value}>
-                                            {opt.label}
+                                    <option value="">{__('opcion_selec')}</option>
+                                    {campaignStatusArray.map((cs) => (
+                                        <option key={cs.id} value={cs.id}>
+                                            {cs.name}
                                         </option>
                                     ))}
                                 </SelectInput>
@@ -209,13 +235,13 @@ export default function Create({ auth, session, title, subtitle, owners = [], cu
                         <div className="col-12">
                             <div>
                                 <label htmlFor="description" className="form-label">
-                                    {__('campanya_descripcion')}
+                                    {__('descripcion')}
                                 </label>
                                 <textarea
                                     id="description"
                                     className="form-control"
                                     rows="4"
-                                    placeholder={__('campanya_descripcion')}
+                                    placeholder={__('descripcion')}
                                     value={data.description || ''}
                                     onChange={(e) => setData('description', e.target.value)}
                                 />
@@ -268,7 +294,7 @@ export default function Create({ auth, session, title, subtitle, owners = [], cu
                                     value={data.currency_id}
                                     onChange={(e) => setData('currency_id', e.target.value)}
                                 >
-                                    <option value="">{__('seleccionar_opcion')}</option>
+                                    <option value="">{__('opcion_selec')}</option>
                                     {currencies.map((currency) => (
                                         <option key={currency.id} value={currency.id}>
                                             {currency.code} {currency.symbol ? `(${currency.symbol})` : ''}
@@ -300,7 +326,7 @@ export default function Create({ auth, session, title, subtitle, owners = [], cu
                         <div className="col-lg-3">
                             <div>
                                 <label htmlFor="start_at" className="form-label">
-                                    {__('campanya_inicio')}
+                                    {__('inicio')}
                                 </label>
                                 <TextInput
                                     id="start_at"
@@ -315,7 +341,7 @@ export default function Create({ auth, session, title, subtitle, owners = [], cu
                         <div className="col-lg-3">
                             <div>
                                 <label htmlFor="finish_at" className="form-label">
-                                    {__('campanya_fin')}
+                                    {__('fin')}
                                 </label>
                                 <TextInput
                                     id="finish_at"

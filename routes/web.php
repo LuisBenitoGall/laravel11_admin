@@ -97,6 +97,7 @@ use App\Http\Controllers\Admin\IvaTypeController;
 use App\Http\Controllers\Admin\MarketingCampaignController;
 use App\Http\Controllers\Admin\MarketingController;
 use App\Http\Controllers\Admin\MarketingListController;
+use App\Http\Controllers\Admin\MarketingListUserController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\OrderPatternController;
@@ -630,6 +631,12 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/marketing-lists/{list}/edit/{tab?}', [MarketingListController::class, 'edit'])->name('marketing-lists.edit')->middleware('permission:marketing-lists.edit');
     Route::delete('/marketing-lists/{list}', [MarketingListController::class, 'destroy'])->name('marketing-lists.destroy')->middleware('permission:marketing-lists.destroy');
     Route::post('marketing-lists/status', [MarketingListController::class, 'status'])->name('marketing-lists.status')->middleware('permission:marketing-lists.edit');
+
+    //Marketing Lists Users:
+    Route::get('/marketing-list-users/{list}/search', [MarketingListUserController::class, 'search'])->name('marketing-list-users.search');
+    Route::post('/marketing-lists-users', [MarketingListUserController::class, 'store'])->name('marketing-list-users.store');
+    Route::delete('/marketing-list-users/{marketing_list_user_id}', [MarketingListUserController::class, 'destroy'])->name('marketing-list-users.destroy');
+    Route::post('/marketing-list-users/{list}/clone', [MarketingListUserController::class, 'cloneFromLists'])->name('marketing-list-users.clone');
 
     //Modules:
     Route::middleware('module_setted:settings')->group(function (){

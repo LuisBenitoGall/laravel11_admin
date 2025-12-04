@@ -73,7 +73,7 @@ export default function ModalMarketingListAddUser({
         setProcessing(true);
 
         router.post(
-            route('marketing-list-users.store'), // ⚠️ ajusta al nombre real de tu ruta
+            route('marketing-list-users.store'), 
             {
                 marketing_list_id: marketingListId,
                 user_id: form.user_id,
@@ -130,9 +130,8 @@ export default function ModalMarketingListAddUser({
                         id="ml-user-search"
                         name="user_id"
                         placeholder={__('usuario_buscar')}
-                        // por ejemplo, si tienes una ruta específica por lista:
-                        // searchUrl={route('admin.marketing-lists.users.search', marketingListId)}
-                        onSelect={handleSelectUser}
+                        searchUrl={route('marketing-list-users.search', marketingListId)}
+                        onChange={handleSelectUser}
                     />
 
                     <InfoPopover code="marketing-list-user" />

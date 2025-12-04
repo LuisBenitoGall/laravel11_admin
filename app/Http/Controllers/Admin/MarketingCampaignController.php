@@ -21,6 +21,7 @@ use File;
 //Models:
 use App\Models\Company;
 use App\Models\Country;
+use App\Models\CostCenter;
 use App\Models\CrmAccount;
 use App\Models\Currency;
 use App\Models\MarketingCampaign;
@@ -60,6 +61,7 @@ class MarketingCampaignController extends Controller
     private $module = 'marketing';
     private $option = 'campanyas';
     protected array $permissions = [];
+    protected array $campaign_status = [];
 
     public function __construct(){
         if(session('currentCompany')){
@@ -73,6 +75,13 @@ class MarketingCampaignController extends Controller
                 'marketing-campaigns.update'
             ]);   
         } 
+
+        $this->campaign_status = [
+            1 => __('borrador'),
+            2 => __('activa'),
+            3 => __('finalizada'),
+            4 => __('cancelada')
+        ];
     }   
 
     /**
@@ -181,11 +190,49 @@ class MarketingCampaignController extends Controller
      * 2. Formulario nueva campaña.
      */
     public function create(){
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
+
+        $cost_centers = CostCenter::select('id', 'name')
+        ->where('company_id', $currentCompanyId)
+        ->where('status', 1)
+        ->orderBy('name', 'ASC')
+        ->get();
+
+        $owners = User::select('users.id', 'users.name', 'users.surname')
+        ->join('user_companies', 'users.id', '=', 'user_companies.user_id')
+        ->where('user_companies.company_id', $currentCompanyId)
+        ->where('users.status', 1)
+        ->orderBy('users.name', 'ASC')
+        ->get();
+
+        $currencies = Currency::select('id', 'name')
+        ->where('status', 1)
+        ->orderBy('name', 'ASC')
+        ->get();
+
         return Inertia::render('Admin/MarketingCampaign/Create', [
             "title" => __($this->option),
             "subtitle" => __('campanya_nueva'),
-            'module' => $this->module,
+            "module" => $this->module,
             "slug" => 'marketing-campaigns',
+            "costCenters" => $cost_centers,
+            "owners" => $owners,
+            "currencies" => $currencies,
+            "campaignStatus" => $this->campaign_status,
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions
         ]);    

@@ -37,7 +37,8 @@ export default function TableUsers({
     labelName = 'usuarios',
     availableLocales = [],
 	disablePagination = false,          // NUEVO: desactiva paginación para uso en tabs
-    userEditCompanyId = null
+    userEditCompanyId = null,
+    rowDeleteKey = 'id'
 }) {
     const __ = useTranslation();
     const queryParams = (typeof rawQueryParams === 'object' && rawQueryParams !== null) ? rawQueryParams : {};
@@ -312,13 +313,21 @@ export default function TableUsers({
                                     placement="top"
                                     overlay={<Tooltip className="ttp-top">{__('eliminar')}</Tooltip>}
                                 >
-                                    <a
+                                    {/* <a
                                     href={route(`${entityName}.destroy`, user.id)}
                                     className="btn btn-sm btn-danger ms-1"
                                     title={__('eliminar')}
                                     >
                                         <i className="la la-trash" />
-                                    </a>
+                                    </a> */}
+                                    <button
+                                        type="button"
+                                        className="btn btn-sm btn-danger ms-1"
+                                        title={__('eliminar')}
+                                        onClick={() => handleDelete(user[rowDeleteKey])}
+                                    >
+                                        <i className="la la-trash" />
+                                    </button>
                                 </OverlayTrigger>
                             </td>
                         </tr>

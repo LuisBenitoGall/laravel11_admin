@@ -63,7 +63,6 @@ class MarketingListController extends Controller
      * 7. Eliminar lista.
      * 8. Actualizar estado.
      * 9. Mapeo de miembros.
-     * 10. Agregar usuario.
      */
 
     use HasUserPermissionsTrait;
@@ -313,6 +312,14 @@ class MarketingListController extends Controller
         // Mapeo de miembros SOLO sobre la colección interna
         $table = $this->mapUsersForTable($members->getCollection(), $locale);
 
+        // Listas de la misma empresa, activas, excluyendo la actual
+        $cloneSourceLists = MarketingList::query()
+        ->where('company_id', $list->company_id)
+        ->where('status', 1)
+        ->where('id', '<>', $list->id)
+        ->orderBy('name')
+        ->get(['id', 'name']);
+
         return Inertia::render('Admin/MarketingList/Edit', [
             'title'            => __($this->option),
             'subtitle'         => __('lista_editar'),
@@ -327,6 +334,8 @@ class MarketingListController extends Controller
 
             // Y aquí las filas ya transformadas para la tabla
             'rows'             => $table,
+
+            'cloneSourceLists' => $cloneSourceLists,
 
             // Para mensajes, permisos y compañía
             'msg'              => session('msg'),
@@ -400,6 +409,7 @@ class MarketingListController extends Controller
 
             return [
                 'id'            => $u->id,
+                'mlu_id'        => $u->mlu_id,
                 'name'          => trim($salutation . ' ' . ucwords($u->name) . ' ' . ucwords($u->surname)),
                 'position'      => $u->position,
                 'created_at'    => Carbon::parse($u->created_at)->format($locale[4]),
@@ -419,12 +429,5 @@ class MarketingListController extends Controller
                 ])->values(),
             ];
         });
-    }
-
-    /**
-     * 10. Agregar usuario.
-     */
-    public function addUser(){
-        
     }
 }

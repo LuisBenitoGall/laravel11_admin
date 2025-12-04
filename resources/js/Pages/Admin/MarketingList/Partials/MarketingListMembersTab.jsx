@@ -73,8 +73,11 @@ export default function MarketingListMembersTab({
                 indexParams={indexParams}
                 filteredDataRoute={filteredDataRoute}
                 entityName={entityName}
+                destroyRoute="marketing-list-users.destroy"   
+                rowDeleteKey="mlu_id"    
                 disablePagination={false}
                 userEditCompanyId={editCtxId}
+                labelName={'miembros'}
                 i18n={{
                     name: __('nombre'),
                     position: __('puesto'),
