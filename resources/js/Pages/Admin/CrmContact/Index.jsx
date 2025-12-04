@@ -67,10 +67,13 @@ export default function Index({
         setShowId(null);
     };
 
-    const contactTypesArray = Object.entries(contact_types || {}).map(([key, value]) => ({
-		value: key,
-		label: value
-	}));
+    const contactTypesArray = Array.isArray(contact_types)
+            ? contact_types.map((opt) => ({ value: opt?.value ?? opt?.id ?? opt?.slug ?? opt, label: opt?.label ?? opt?.name ?? opt?.title ?? String(opt) }))
+            : Object.entries(contact_types || {}).map(([key, value]) => ({ value: key, label: value }));
+
+    const contactSubtypesArray = Array.isArray(contact_subtypes)
+            ? contact_subtypes.map((opt) => ({ value: opt?.value ?? opt?.id ?? opt?.slug ?? opt, label: opt?.label ?? opt?.name ?? opt?.title ?? String(opt) }))
+            : Object.entries(contact_subtypes || {}).map(([key, value]) => ({ value: key, label: value }));
 
     // Column config for contact_type: if we're in 'leads' context, remove filter and options
     const contactTypeColumn = {
@@ -84,6 +87,17 @@ export default function Index({
         ...(leads === true ? {} : { options: contactTypesArray })
     };
 
+    const contactSubTypeColumn = {
+        key: 'contact_subtype',
+        label: __('contacto_subtipo'),
+        sort: false,
+        filter: leads === true ? '' : 'select',
+        class_th: '',
+        class_td: '',
+        placeholder: leads === true ? '' : __('contacto_subtipo_filtrar'),
+        ...(leads === true ? {} : { options: contactSubtypesArray })
+    };
+
     //Modals:
     const [showModalUserCreate, setShowModalUserCreate] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
@@ -94,11 +108,12 @@ export default function Index({
     //Columnas:
     const columns = [
         { key: 'name',       label: __('nombre'),      sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_filtrar') },
-        { key: 'created_at', label: __('fecha_alta'),  sort: true,  filter: 'date', class_th: 'text-center', class_td: 'text-end', placeholder: __('fecha_alta'), dateKeys: ['date_from', 'date_to'] },
+        // { key: 'created_at', label: __('fecha_alta'),  sort: true,  filter: 'date', class_th: 'text-center', class_td: 'text-end', placeholder: __('fecha_alta'), dateKeys: ['date_from', 'date_to'] },
         { key: 'email',      label: __('email'),       sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('email_filtrar') },
         { key: 'phones',     label: __('telefonos'),   sort: false, filter: '', class_th: '', class_td: '', placeholder: __('telefonos_filtrar') },
         { key: 'position',   label: __('cargo'),       sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('cargo_filtrar') },
         contactTypeColumn,
+        contactSubTypeColumn,
         { key: 'companies',  label: __('empresa'),     sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('empresa_filtrar') },
         { key: 'avatar',     label: __('imagen'),      sort: false, filter: '',     type: 'image', icon: 'user-tie', class_th: 'text-center', class_td: 'text-center', placeholder: '' }
     ];

@@ -211,6 +211,7 @@
     "contacto_eliminar_confirm": "Confirma que deseas eliminar este contacto",
     "contacto_nuevo": "Nuevo contacto",
     "contacto_subtipo": "Subtipo de contacto",
+    "contacto_subtipo_filtrar": "Filtrar por subtipo de contacto",
     "contacto_tipo": "Tipo contacto",
     "contacto_tipo_filtrar": "Filtrar por tipo contacto",
     "contacto_editar": "Editar contacto",

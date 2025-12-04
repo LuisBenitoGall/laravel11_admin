@@ -89,6 +89,18 @@ export default function UserShowView({ record }) {
                                 <strong>{ __('sexo') }:</strong> {sexLabel}
                             </p>
                         )}
+
+                        {user.contact_type_label && (
+                            <p className="mb-1">
+                                <strong>{ __('contacto_tipo') }:</strong> {user.contact_type_label}
+                            </p>
+                        )}
+
+                        {user.contact_subtype_name && (
+                            <p className="mb-1">
+                                <strong>{ __('contacto_subtipo') }:</strong> {user.contact_subtype_name}
+                            </p>
+                        )}
                     </div>
 
                     {/* Avatar */}

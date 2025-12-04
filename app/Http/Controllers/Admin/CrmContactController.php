@@ -121,6 +121,8 @@ class CrmContactController extends Controller{
         ->where('depth', '0')
         ->orderBy('name', 'ASC')
         ->get();
+        // ->pluck('name', 'id')
+        // ->toArray();
 
         // importante para el front (rutas)
         $slug = $leads ? 'crm-leads' : 'crm-contacts';
@@ -263,7 +265,7 @@ class CrmContactController extends Controller{
                     $j->where('cc.contact_type', '=', 'clp');
                 }
             })
-            ->with(['avatar', 'phones'])
+            ->with(['avatar', 'phones', 'categories'])
             ->whereIn('users.id', $userIds)
             ->select([
                 // SOLO las columnas de users que necesitas en el listado
@@ -296,9 +298,7 @@ class CrmContactController extends Controller{
 
         // 6) Filtros
         $filters = [
-            // 🔧 NUEVO FILTRO NAME:
-            // Se busca sobre CONCAT(nombre, ' ', apellido)
-            // y el string introducido debe ser substring de esa combinación.
+            // Nombre + apellido en el mismo campo
             'name' => function ($q, $v) {
                 $v = trim($v);
                 if ($v === '') {
@@ -339,6 +339,18 @@ class CrmContactController extends Controller{
             },
 
             'contact_type' => fn ($q, $v) => $q->where('cc.contact_type', $v),
+
+            // 🔸 NUEVO: filtro por contact_subtype (categoría concreta del usuario)
+            'contact_subtype' => function ($q, $v) use ($company_id) {
+                $q->whereHas('categories', function ($sub) use ($v, $company_id) {
+                    // si usas categorías multiempresa, mantén el company_id;
+                    // si no, puedes quitar esta línea sin dramas.
+                    $sub->when($company_id !== 'all', function ($qq) use ($company_id) {
+                            $qq->where('categories.company_id', $company_id);
+                        })
+                        ->where('categories.id', $v);
+                });
+            },
         ];
 
         foreach ($filters as $key => $callback) {

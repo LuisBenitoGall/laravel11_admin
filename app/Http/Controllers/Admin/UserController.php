@@ -388,18 +388,83 @@ class UserController extends Controller{
     /**
      * 4. Mostrar usuario.
      */
-    public function show(Request $request, User $user){
-        $user->load(['companiesRelation', 'phones', 'avatar']);
+    // public function show(Request $request, User $user){
+    //     $user->load(['companiesRelation', 'phones', 'avatar']);
+    //     $user->setRelation('companies', $user->companiesRelation);
+    //     $user->unsetRelation('companiesRelation');
+
+    //     $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
+    //     //Formato de fecha:
+    //     $dateFormat = $locale[4] ?? 'd/m/Y';
+
+    //     $user->birthday_formatted = $user->birthday
+    //     ? $user->birthday->format($dateFormat)
+    //     : null;
+
+    //     if ($request->expectsJson()) {
+    //         return response()->json([
+    //             'data' => $user,
+    //         ]);
+    //     }
+
+    //     // Si algún día quieres una vista "show" completa de página
+    //     return Inertia::render('Admin/User/Show', [
+    //         'user' => $user,
+    //     ]);
+    // }
+    
+
+    public function show(Request $request, User $user)
+    {
+        $companyId = (int) $request->input('company_id', session('currentCompany'));
+
+        // Cargamos relaciones básicas + categorías para el subtipo
+        $user->load(['companiesRelation', 'phones', 'avatar', 'categories']);
         $user->setRelation('companies', $user->companiesRelation);
         $user->unsetRelation('companiesRelation');
 
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
-        //Formato de fecha:
         $dateFormat = $locale[4] ?? 'd/m/Y';
 
         $user->birthday_formatted = $user->birthday
-        ? $user->birthday->format($dateFormat)
-        : null;
+            ? $user->birthday->format($dateFormat)
+            : null;
+
+        /*
+         * 1) Tipo de contacto (crm_contacts.contact_type)
+         *    Usamos la fila "principal" si existe (is_main = 1), y si no, la primera.
+         */
+        $crmContact = CrmContact::query()
+            ->where('company_id', $companyId)
+            ->where('user_id', $user->id)
+            ->orderByDesc('is_main')   // primero el principal
+            ->orderByDesc('id')        // fallback: el más reciente
+            ->first();
+
+        $contactTypeCode  = $crmContact?->contact_type;
+        $contactTypeLabel = $contactTypeCode
+            ? HasContactTypes::typesOf($contactTypeCode)
+            : null;
+
+        // Lo añadimos como atributos "virtuales"
+        $user->contact_type_code  = $contactTypeCode;
+        $user->contact_type_label = $contactTypeLabel;
+
+        /*
+         * 2) Subtipo de contacto (categoría del usuario)
+         *    Usamos la primera categoría que aplique en esta empresa.
+         *    Ajusta el where('categories.module', 'users') si tus subtipos viven en otro módulo.
+         */
+        $contactSubtypeCategory = $user->categories()
+            ->when($companyId > 0, function ($q) use ($companyId) {
+                $q->where('categories.company_id', $companyId);
+            })
+            ->where('categories.module', 'users')
+            ->orderBy('categories.name')
+            ->first();
+
+        $user->contact_subtype_id    = $contactSubtypeCategory?->id;
+        $user->contact_subtype_name  = $contactSubtypeCategory?->name;
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -412,6 +477,20 @@ class UserController extends Controller{
             'user' => $user,
         ]);
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     /**
      * 5. Editar usuario. 
