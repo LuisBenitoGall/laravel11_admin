@@ -15,7 +15,6 @@ import Tabs from '@/Components/Tabs';
 import TextInput from '@/Components/TextInput';
 
 //Hooks:
-import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTranslation } from '@/Hooks/useTranslation';
 
 //Modals:
@@ -30,7 +29,6 @@ export default function Index({ auth, session, title, subtitle, list, tab, membe
     const props = usePage()?.props || {};
     const locale = props.locale || false;
     const languages = props.languages || [];
-    const { showConfirm } = useSweetAlert();
     const permissions = props.permissions || {};
 
     const rawQueryParams = props.queryParams || {};
@@ -44,7 +42,7 @@ export default function Index({ auth, session, title, subtitle, list, tab, membe
         router.reload({
             data: {
                 ...(queryParams || {}),
-                page: 1,       // si quieres volver a la primera página
+                page: 1,
             },
             only: ['users', 'rows'],
             preserveState: true,
@@ -146,17 +144,14 @@ export default function Index({ auth, session, title, subtitle, list, tab, membe
                                 <MarketingListMembersTab
                                     users={members ?? null}
                                     rows={rows ?? []}
-                                    // Para recargar el tab con filtros/orden en contexto CRM:
                                     indexRoute={'marketing-lists.edit'}
                                     indexParams={[list.id, 'members']}
                                     tableId={'tblMarketingListMembers'}
-                                    // Para exportar / filteredData como un Index:
                                     filteredDataRoute={'marketing-lists.members.filtered-data'}
                                     queryParams={queryParams}
                                 />
                             )
                         },
-
                     ]}
                     defaultActive={tab}
                 />

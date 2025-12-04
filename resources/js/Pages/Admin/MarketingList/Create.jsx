@@ -14,7 +14,6 @@ import InfoPopover from '@/Components/InfoPopover';
 // Hooks:
 import { useTranslation } from '@/Hooks/useTranslation';
 import { useCompanySession } from '@/Hooks/useCompanySession';
-import { useSweetAlert } from '@/Hooks/useSweetAlert';
 
 export default function Create({
     auth,
@@ -31,9 +30,7 @@ export default function Create({
     const languages = props.languages || [];
     const permissions = props.permissions || {};
 
-
     const { currentCompany } = useCompanySession();
-    const { showAlert } = useSweetAlert();
 
     const { data, setData, post, processing, errors, reset } = useForm({
         owner_id: '',
@@ -62,11 +59,9 @@ export default function Create({
         post(route('marketing-lists.store'), {
             preserveScroll: true,
             onSuccess: () => {
-                showAlert(__('Éxito'), __('La lista de marketing se ha creado correctamente.'), 'success');
                 reset('observations');
             },
             onError: () => {
-                showAlert(__('Error'), __('Se ha producido un error al crear la lista de marketing.'), 'error');
             },
         });
     };

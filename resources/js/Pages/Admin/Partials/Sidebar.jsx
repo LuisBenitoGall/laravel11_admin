@@ -53,6 +53,12 @@ export default function Sidebar(auth) {
     //Módulos por defecto para RFT:
     const default_modules = ['crm', 'marketing'];
 
+    //Mostrar módulos principales:
+    const module_my_account = false;
+    const module_settings = false;
+    const module_users = true;
+    const module_companies = false;
+
     useEffect(() => {
         document.querySelectorAll('.menu-link[data-bs-toggle="collapse"]').forEach((el) => {
             new bootstrap.Collapse(el, { toggle: false });
@@ -146,7 +152,7 @@ export default function Sidebar(auth) {
                         })()}
 
                         {/* Mi cuenta */}
-                        {(() => {
+                        {module_my_account && (() => {
                             const isActive = currentModule === 'company-accounts';
                             return (
                                 <li className={`nav-item ${isActive ? 'active text-white' : ''}`}>
@@ -173,7 +179,7 @@ export default function Sidebar(auth) {
                         })()}
 
                         {/* Configuración */}
-                        {(() => {
+                        {module_settings && (() => {
                             const isActive = currentModule === 'settings';
                             return (
                                 <li className={`nav-item ${isActive ? 'active text-white' : ''}`}>
@@ -250,7 +256,7 @@ export default function Sidebar(auth) {
                         })()}
 
                         {/* Usuarios */}
-                        {(() => {
+                        {module_users && (() => {
                             const isActive = currentModule === 'users';
                             return (
                                 <li className={`nav-item ${isActive ? 'active text-white' : ''}`}>
@@ -284,7 +290,7 @@ export default function Sidebar(auth) {
                         })()}
 
                         {/* Empresas */}
-                        {(() => {
+                        {module_companies && (() => {
                             const isActive = currentModule === 'companies';
                             return (
                                 <li className={`nav-item ${isActive ? 'active text-white' : ''}`}>
