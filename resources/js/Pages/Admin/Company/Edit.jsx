@@ -42,6 +42,8 @@ export default function Index({
     salutations, 
     contact_types,
     contact_subtypes,
+    business_types = [],
+    cost_centers = [],
     countries, 
     currencies, tab 
 }){
@@ -295,6 +297,8 @@ export default function Index({
                                     updateRoute={'companies.update'}
                                     updateParams={[company.id]}
                                     crm_account={crm_account}
+                                    business_types={business_types ?? []}
+                                    cost_centers={cost_centers ?? []}
                                 />
                             )
                         },

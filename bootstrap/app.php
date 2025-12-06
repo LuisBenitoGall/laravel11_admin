@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use App\Http\Middleware\ModuleSetted;
+use App\Http\Middleware\NoIndexMiddleware;
 use App\Http\Middleware\SetCompanyContext;
 use Inertia\Inertia;
 
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
+            \App\Http\Middleware\NoIndexMiddleware::class,
             \App\Http\Middleware\SetLanguage::class,
             \App\Http\Middleware\ShareSessionData::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,

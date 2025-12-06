@@ -23,12 +23,14 @@ use Carbon\Carbon;
 use File;
 
 //Concerns:
+use App\Concerns\HasBusinessTypes;
 use App\Concerns\HasContactTypes;
 use App\Concerns\HasSalutation;
 
 //Models:
 use App\Models\Category;
 use App\Models\Company;
+use App\Models\CostCenter;
 use App\Models\Country;
 use App\Models\CrmAccount;
 use App\Models\Currency;
@@ -297,6 +299,15 @@ class CrmAccountController extends Controller{
         ->orderBy('name', 'ASC')
         ->get();
 
+        //Tipos de negocio:
+        $business_types = HasBusinessTypes::comboOptions();
+
+        //Centros de coste:
+        $cost_centers = CostCenter::where('company_id', $account->company_id)
+        ->where('status', 1)
+        ->orderBy('name', 'ASC')
+        ->get();
+
         //Países:
         $countries = Country::where('status', 1)
         ->orderBy('name', 'ASC')
@@ -321,6 +332,8 @@ class CrmAccountController extends Controller{
             "salutations" => $salutations,
             "contact_types" => $contact_types,
             "contact_subtypes" => $contact_subtypes,
+            "business_types" => $business_types,
+            "cost_centers" => $cost_centers,
             "countries" => $countries,
             "currencies" => $currencies,
             "tab" => $tab,

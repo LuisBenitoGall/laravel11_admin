@@ -144,6 +144,8 @@ use App\Http\Controllers\Admin\VehicleController;
 use App\Http\Controllers\Admin\WorkOrderController;
 use App\Http\Controllers\Admin\WorkOrderPatternController;
 use App\Http\Controllers\Admin\WorkplaceController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\LoginVerificationController;
 
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\File;
@@ -189,12 +191,19 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
     // ]);
 //});
 
-Route::get('/login', function () {
-    return Inertia::render('login');
-})->middleware(['auth'])->name('login');
+// Route::get('/login', function () {
+//     return Inertia::render('login');
+// })->middleware(['auth'])->name('login');
 
 //'verified'  incluir este parámetro en el middleware anterior si exigimos verificar email.
 
+//GUEST:
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
+    Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+    Route::get('/login/verify', [LoginVerificationController::class, 'create'])->name('login.verify.show');
+    Route::post('/login/verify', [LoginVerificationController::class, 'store'])->name('login.verify.store');
+});
 
 //ADMIN:
 Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function(){

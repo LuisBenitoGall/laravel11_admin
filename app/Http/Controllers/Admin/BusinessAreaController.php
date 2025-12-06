@@ -184,7 +184,7 @@ class BusinessAreaController extends Controller{
             'status' => $validated['status'] ?? 1,
         ]);
 
-        return redirect()->route('business-areas.edit', $area->id)->with('msg', __('area_negocio_creadaº'));
+        return redirect()->route('business-areas.edit', $area->id)->with('msg', __('area_negocio_creada'));
     }
 
     /**

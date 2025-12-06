@@ -6,7 +6,9 @@ export default function CompanyInfoTab({
 	side = false, 
 	updateRoute = 'companies.update', 
 	updateParams = null, 
-	crm_account = false 
+	crm_account = false,
+    business_types = [],
+    cost_centers = []
 }){
 	// This partial is only a wrapper to render the edit form component.
 	return (
@@ -16,6 +18,8 @@ export default function CompanyInfoTab({
 			updateRoute={updateRoute}
 			updateParams={updateParams}
 			crm_account={crm_account}
+            business_types={business_types ?? []}
+            cost_centers={cost_centers ?? []}
 		/>
 	);
 }

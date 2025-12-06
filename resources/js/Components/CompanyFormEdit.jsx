@@ -10,6 +10,7 @@ import ManageEmails from '@/Components/ManageEmails';
 import ManagePhones from '@/Components/ManagePhones';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
+import SelectInput from '@/Components/SelectInput';
 
 //Hooks:
 import { useTranslation } from '@/Hooks/useTranslation';
@@ -20,7 +21,9 @@ export default function CompanyFormEdit({
     side = false, 
     updateRoute = 'companies.update', 
     updateParams = null,
-    crm_account = false
+    crm_account = false,
+    business_types = [],
+    cost_centers = []
 }){
     const __ = useTranslation();
     const { showConfirm } = useSweetAlert();
@@ -36,6 +39,9 @@ export default function CompanyFormEdit({
         logo: null,
         crm_account_id: crm_account.id || false,
         crm_account_linked_company_id: crm_account.linked_company_id || false
+        ,
+        cost_center_id: String(crm_account?.cost_center_id ?? company.cost_center_id ?? ''),
+        business_type: crm_account?.business_type ?? ''
     });
 
     // Ensure form is populated if company prop changes
@@ -43,6 +49,8 @@ export default function CompanyFormEdit({
         setData('name', company.name ?? '');
         setData('tradename', company.tradename ?? '');
         setData('nif', company.nif ?? '');
+        setData('cost_center_id', String(company.cost_center_id ?? crm_account?.cost_center_id ?? ''));
+        setData('business_type', company.business_type ?? crm_account?.business_type ?? '');
     }, [company]);
 
     const [showFileInput, setShowFileInput] = useState(!company.logo && !company.logo_url);
@@ -131,14 +139,13 @@ export default function CompanyFormEdit({
 
                     {/* Nombre comercial */}
                     <div className="col-lg-6">
-                        <label className="form-label">{ __('nombre_comercial') }*</label>
+                        <label className="form-label">{ __('nombre_comercial') }</label>
                         <TextInput
                             type="text"
                             placeholder={__('nombre_comercial')}
                             value={data.tradename}
                             onChange={(e) => setData('tradename', e.target.value)}
                             maxLength={100}
-                            required
                         />
                         <InputError message={errors.tradename} />
                     </div>
@@ -192,6 +199,54 @@ export default function CompanyFormEdit({
                                 </p>
                             </div>
                         </>
+                    )}
+
+                    {/* Centro de coste */}
+                    {crm_account != false && (
+                        <div className="col-lg-6">
+                            <div>
+                                <label htmlFor="cost_center_id" className="form-label">{ __('centro_coste') }</label>
+                                <SelectInput
+                                    id="cost_center_id"
+                                    value={data.cost_center_id}
+                                    onChange={(e) => setData('cost_center_id', e.target.value)}
+                                >
+                                    <option value="">{ __('opcion_selec') }</option>
+                                    {cost_centers.map((cc, idx) => {
+                                        const v = String(cc?.id ?? cc?.value ?? cc?.slug ?? idx);
+                                        const label = cc?.name ?? cc?.title ?? cc?.label ?? String(cc);
+                                        return (
+                                            <option key={v} value={v}>
+                                                {label}
+                                            </option>
+                                        );
+                                    })}
+                                </SelectInput>
+                                <InputError message={errors.cost_center_id} />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Tipo de negocio */}
+                    {crm_account != false && (
+                        <div className="col-lg-6">
+                            <div>
+                                <label htmlFor="business_type" className="form-label">{ __('negocio_tipo') }</label>
+                                <SelectInput
+                                    id="business_type"
+                                    value={data.business_type}
+                                    onChange={(e) => setData('business_type', e.target.value)}
+                                >
+                                    <option value="">{ __('opcion_selec') }</option>
+                                    {business_types.map((bt, idx) => (
+                                        <option key={bt?.id ?? bt?.value ?? bt?.slug ?? idx} value={bt?.id ?? bt?.value ?? bt?.slug ?? idx}>
+                                            {bt?.name ?? bt?.title ?? bt?.label ?? String(bt)}
+                                        </option>
+                                    ))}
+                                </SelectInput>
+                                <InputError message={errors.business_type} />
+                            </div>
+                        </div>
                     )}
 
                     {/* Email */}

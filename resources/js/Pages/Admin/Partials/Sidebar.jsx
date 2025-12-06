@@ -57,7 +57,7 @@ export default function Sidebar(auth) {
     const module_my_account = false;
     const module_settings = false;
     const module_users = true;
-    const module_companies = false;
+    const module_companies = true;
 
     useEffect(() => {
         document.querySelectorAll('.menu-link[data-bs-toggle="collapse"]').forEach((el) => {

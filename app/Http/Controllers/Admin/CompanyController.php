@@ -308,10 +308,12 @@ class CompanyController extends Controller{
             $company->save();
 
             if($request->crm_account_id){
+                $crm_account = CrmAccount::select('id', 'tradename', 'main_email', 'cost_center_id', 'business_type')->find($request->crm_account_id);
 
-                $crm_account = CrmAccount::select('id', 'main_email')->find($request->crm_account_id);
-
+                $crm_account->tradename = $request->tradename;
                 $crm_account->main_email = $request->email;
+                $crm_account->cost_center_id = $request->cost_center_id;
+                $crm_account->business_type = $request->business_type;
                 $crm_account->save();
             }
 
