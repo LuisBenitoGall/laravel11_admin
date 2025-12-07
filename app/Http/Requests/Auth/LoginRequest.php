@@ -18,6 +18,9 @@ use App\Models\CompanySetting;
 use App\Models\Module;
 use App\Models\UserCompany;
 
+//Services:
+use App\Services\RecaptchaService;
+
 class LoginRequest extends FormRequest{
     /**
      * Determine if the user is authorized to make this request.
@@ -34,8 +37,10 @@ class LoginRequest extends FormRequest{
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
+            'email'             => ['required', 'string', 'email'],
+            'password'          => ['required', 'string'],
+            'remember'          => ['sometimes', 'boolean'],
+            'recaptcha_token'   => ['required', 'string']
         ];
     }
 
@@ -97,4 +102,22 @@ class LoginRequest extends FormRequest{
  
         return redirect('/'); // Redirige a la página de inicio o a donde desees
     }
+
+    public function passedValidation(): void
+    {
+        /** @var RecaptchaService $recaptcha */
+        $recaptcha = app(RecaptchaService::class);
+
+        $token = $this->input('recaptcha_token');
+        $score = $recaptcha->verify($token, 'login');
+
+        $minScore = (float) config('services.recaptcha.min_score', 0.5);
+
+        if (is_null($score) || $score < $minScore) {
+            throw ValidationException::withMessages([
+                'email' => [__('No se ha podido validar la solicitud. Inténtalo de nuevo.')],
+            ]);
+        }
+    }
+
 }

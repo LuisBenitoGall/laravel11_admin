@@ -36,7 +36,8 @@ class AuthenticatedSessionController extends Controller{
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
             'APP_FULL_NAME' => env('APP_FULL_NAME'),
-            'APP_NAME' => env('APP_NAME')
+            'APP_NAME' => env('APP_NAME'),
+            'recaptchaSiteKey'   => config('services.recaptcha.site_key')
         ]);
     }
 
