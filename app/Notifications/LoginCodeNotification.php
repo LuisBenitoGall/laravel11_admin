@@ -37,11 +37,11 @@ class LoginCodeNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject(__('Código de verificación de acceso'))
-            ->line(__('Has solicitado acceder a tu cuenta.'))
-            ->line(__('Tu código de verificación es: :code', ['code' => $this->code]))
-            ->line(__('Este código caduca en 10 minutos.'))
-            ->line(__('Si no has solicitado este acceso, puedes ignorar este correo.'));
+            ->subject(__('verificacion_codigo_acceso'))
+            ->line(__('verificacion_codigo_acceso_text1'))
+            ->line(__('verificacion_codigo_acceso_text2', ['code' => $this->code]))
+            ->line(__('verificacion_codigo_acceso_text3'))
+            ->line(__('verificacion_codigo_acceso_text4'));
     }
 
     /**

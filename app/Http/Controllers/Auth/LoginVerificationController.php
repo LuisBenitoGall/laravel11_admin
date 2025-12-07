@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
 
@@ -81,11 +82,24 @@ class LoginVerificationController extends Controller
         // Regenerar sesión para evitar fixation
         $request->session()->regenerate();
 
+        $user = Auth::user();
+
+        // ID de la sesión actual
+        $currentSessionId = $request->session()->getId();
+
+        if ($user) {
+            // Borrar TODAS las demás sesiones de ese usuario
+            DB::table('sessions')
+                ->where('user_id', $user->id)
+                ->where('id', '!=', $currentSessionId)
+                ->delete();
+        }
+
         // Limpiar estado pendiente
         $request->session()->forget('pending_login');
 
         // Inicializar contexto de empresa
-        $this->initCompanyContextFor(Auth::user(), $request);
+        $this->initCompanyContextFor($user, $request);
 
         // Redirigir a donde quisiera ir originalmente
         return redirect()->intended(route('dashboard.index', absolute: false));
