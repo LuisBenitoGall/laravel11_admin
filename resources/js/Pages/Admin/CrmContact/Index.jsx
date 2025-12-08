@@ -2,25 +2,18 @@ import AdminAuthenticatedLayout from '@/Layouts/Admin/AdminAuthenticatedLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { OverlayTrigger, Table, Tooltip } from 'react-bootstrap';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
-import * as locales from "date-fns/locale";
-import { format, parseISO, subYears, addYears } from 'date-fns';
 import axios from 'axios';
 
 //Components:
 import ColumnFilter from '@/Components/ColumnFilter';
-import DataFilter from '@/Components/DataFilter';
 import FilterRow from '@/Components/FilterRow';
 import { Pagination } from '@/Components/Pagination';
 import RecordsPerPage from '@/Components/RecordsPerPage';
 import { SortControl } from '@/Components/SortControl';
-import SelectInput from '@/Components/SelectInput';
 import ShowRegister from '@/Components/ShowRegister/ShowRegister';
 import ShowRegisterButton from '@/Components/ShowRegister/ShowRegisterButton';
 import StatusButton from '@/Components/StatusButton';
 import TableExporter from '@/Components/TableExporter';
-import TextInput from '@/Components/TextInput'; 
 
 //Hooks:
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
@@ -107,7 +100,7 @@ export default function Index({
 
     //Columnas:
     const columns = [
-        { key: 'name',       label: __('nombre'),      sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_filtrar') },
+        { key: 'full_name',       label: __('nombre'),      sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_filtrar') },
         // { key: 'created_at', label: __('fecha_alta'),  sort: true,  filter: 'date', class_th: 'text-center', class_td: 'text-end', placeholder: __('fecha_alta'), dateKeys: ['date_from', 'date_to'] },
         { key: 'email',      label: __('email'),       sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('email_filtrar') },
         { key: 'phones',     label: __('telefonos'),   sort: false, filter: '', class_th: '', class_td: '', placeholder: __('telefonos_filtrar') },
@@ -170,7 +163,7 @@ export default function Index({
 
                         <RecordsPerPage perPage={perPage} setPerPage={setPerPage} />
 
-                        <TableExporter filename={ __('contactos') } columns={columns} fetchData={filteredData}/>
+                        {/* <TableExporter filename={ __('contactos') } columns={columns} fetchData={filteredData}/> */}
                     </div>
                 </div>
 
@@ -323,7 +316,7 @@ export default function Index({
                     contact_types={contact_types_combo}
                     contact_subtypes={contact_subtypes}
                     linkCompany={false}
-                />
+                />    
             </div>
         </AdminAuthenticatedLayout>
     );

@@ -850,6 +850,7 @@ class PromoteCrmMarketingListMembers extends Command
         ->first();
 
         foreach($data as $r){
+            //Propietario:
             if($r->owner){
                 $owner = User::whereRaw("CONCAT(name, ' ', surname) = ?", [trim($r->owner)])->first();
 
@@ -864,7 +865,6 @@ class PromoteCrmMarketingListMembers extends Command
 
                 $ownerId = $owner->id;
             }
-
 
             $user = false;
             $crm_account = false;

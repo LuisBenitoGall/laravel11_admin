@@ -1,19 +1,13 @@
 import React from 'react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
-import ExcelJS from 'exceljs';
-import { saveAs } from 'file-saver';
 
-//Hooks:    
+// Hooks:
 import { useTranslation } from '@/Hooks/useTranslation.js';
 
 const TableExporter = ({ fetchData, columns, filename = 'export' }) => {
     const __ = useTranslation();
-    //Traducciones:
-    const txt_datos = __('datos');
+    const txt_datos       = __('datos');
     const txt_error_excel = __('error_export_excel');
-    const txt_error_pdf = __('error_export_pdf');
+    const txt_error_pdf   = __('error_export_pdf');
 
     // Limpiar HTML si se detecta contenido con etiquetas:
     const cleanHtml = (html) => {
@@ -23,28 +17,37 @@ const TableExporter = ({ fetchData, columns, filename = 'export' }) => {
         return tmp.textContent || tmp.innerText || '';
     };
 
-    //Exportar a Excel:
-    const exportToExcel = async () => { 
+    // Helper para normalizar el array de datos
+    const normalizeDataArray = (data) => {
+        if (Array.isArray(data)) return data;
+
+        if (data && Array.isArray(data.data)) {
+            return data.data;
+        }
+
+        if (data && typeof data === 'object') {
+            const arrKey = Object.keys(data).find(k => Array.isArray(data[k]));
+            if (arrKey) return data[arrKey];
+        }
+
+        throw new Error('Los datos exportados no son un array.');
+    };
+
+    // Exportar a Excel (carga diferida de ExcelJS y file-saver)
+    const exportToExcel = async () => {
         try {
-            let data = await fetchData(); // Obtener todos los registros antes de exportar
-            if (!Array.isArray(data)) {
-                if (data && Array.isArray(data.data)) {
-                    data = data.data;
-                } else if (data && typeof data === 'object') {
-                    // Buscar la primera propiedad array
-                    const arrKey = Object.keys(data).find(k => Array.isArray(data[k]));
-                    if (arrKey) {
-                        data = data[arrKey];
-                    } else {
-                        throw new Error('Los datos exportados no son un array.');
-                    }
-                } else {
-                    throw new Error('Los datos exportados no son un array.');
-                }
-            }
-            const workbook = new ExcelJS.Workbook();
+            let data = await fetchData();
+            data = normalizeDataArray(data);
+
+            // 👉 carga dinámica: no forma parte del bundle principal
+            const [{ default: ExcelJS }, { saveAs }] = await Promise.all([
+                import('exceljs'),
+                import('file-saver'),
+            ]);
+
+            const workbook  = new ExcelJS.Workbook();
             const worksheet = workbook.addWorksheet(txt_datos);
-            
+
             const headers = columns.map(col => col.label);
             worksheet.addRow(headers);
 
@@ -62,39 +65,34 @@ const TableExporter = ({ fetchData, columns, filename = 'export' }) => {
             });
 
             const buffer = await workbook.xlsx.writeBuffer();
-            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const blob   = new Blob(
+                [buffer],
+                { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
+            );
+
             saveAs(blob, `${filename}.xlsx`);
-            
         } catch (error) {
             alert(txt_error_excel + ' ' + (error?.message || ''));
             console.error(txt_error_excel, error);
         }
     };
 
-    //Exportar a PDF:
+    // Exportar a PDF (carga diferida de jsPDF y autotable)
     const exportToPDF = async () => {
         try {
-            let data = await fetchData(); // Obtener todos los registros antes de exportar
-            console.log('TableExporter fetchData result:', data);
-            if (!Array.isArray(data)) {
-                if (data && Array.isArray(data.data)) {
-                    data = data.data;
-                } else if (data && typeof data === 'object') {
-                    // Buscar la primera propiedad array
-                    const arrKey = Object.keys(data).find(k => Array.isArray(data[k]));
-                    if (arrKey) {
-                        data = data[arrKey];
-                    } else {
-                        throw new Error('Los datos exportados no son un array.');
-                    }
-                } else {
-                    throw new Error('Los datos exportados no son un array.');
-                }
-            }
-            const doc = new jsPDF();
-            
+            let data = await fetchData();
+            data = normalizeDataArray(data);
+
+            const [{ default: jsPDF }, autoTableModule] = await Promise.all([
+                import('jspdf'),
+                import('jspdf-autotable'),
+            ]);
+
+            const autoTable = autoTableModule.default || autoTableModule; // por si cambia el export
+            const doc       = new jsPDF();
+
             const headers = columns.map(col => col.label);
-            const rows = data.map(row => 
+            const rows    = data.map(row =>
                 columns.map(col => {
                     const value = row[col.key];
 
@@ -109,12 +107,8 @@ const TableExporter = ({ fetchData, columns, filename = 'export' }) => {
             autoTable(doc, {
                 head: [headers],
                 body: rows,
-                styles: {
-                    fontSize: 8
-                },
-                headStyles: {
-                    fillColor: [91, 201, 214]
-                }
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [91, 201, 214] },
             });
 
             doc.save(`${filename}.pdf`);

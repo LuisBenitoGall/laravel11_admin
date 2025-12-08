@@ -121,8 +121,6 @@ class CrmContactController extends Controller{
         ->where('depth', '0')
         ->orderBy('name', 'ASC')
         ->get();
-        // ->pluck('name', 'id')
-        // ->toArray();
 
         // importante para el front (rutas)
         $slug = $leads ? 'crm-leads' : 'crm-contacts';
@@ -180,17 +178,33 @@ class CrmContactController extends Controller{
      */
     private function dataQuery(Request $request): Builder
     {
-        $company_id = (int) $request->input('company_id', session('currentCompany'));
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
 
-        $contact_types = HasContactTypes::typesMap();
+        if ($currentCompanyId <= 0) {
+            $url = route('companies.refresh-session');
 
-        // Flag leads: viene desde index/filteredData o, por si acaso, lo deducimos de la URL
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if ($request->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
+
+        $company_id = (int) $request->input('company_id', $currentCompanyId);
+
+        // leads: /admin/crm-leads o parámetro "leads"
         $leads = filter_var($request->input('leads', false), FILTER_VALIDATE_BOOLEAN);
         if (!$request->has('leads') && $request->segment(2) === 'crm-leads') {
             $leads = true;
         }
 
-        // 1) Empresas relacionadas vía customer_providers (clientes/proveedores)
+        /**
+         * 1) Empresas relacionadas vía customer_providers (clientes/proveedores)
+         */
         $relatedCompanyIds = CustomerProvider::query()
             ->where(function ($q) use ($company_id) {
                 $q->where('customer_id', $company_id)
@@ -203,46 +217,9 @@ class CrmContactController extends Controller{
             ->values()
             ->all();
 
-        // 2) Users vinculados a empresas distintas de la de sesión (clientes/proveedores)
-        $userIdsFromCompanies = DB::table('user_companies')
-            ->where('company_id', '!=', $company_id)
-            ->when(!empty($relatedCompanyIds), function ($q) use ($relatedCompanyIds) {
-                $q->orWhereIn('company_id', $relatedCompanyIds);
-            })
-            ->pluck('user_id');
-
-        // 3) Users vinculados por crm_contacts a la empresa en sesión
-        $crmContactsQuery = DB::table('crm_contacts')
-            ->where('company_id', $company_id);
-
-        if ($leads) {
-            // Solo leads: contactos tipo "cliente potencial"
-            $crmContactsQuery->where('contact_type', 'clp');
-        }
-
-        $userIdsFromCrm = $crmContactsQuery->pluck('user_id');
-
-        // 4) Unión
-        if ($leads) {
-            // En modo leads solo nos interesan los usuarios que vienen del CRM
-            $userIds = $userIdsFromCrm
-                ->unique()
-                ->filter()
-                ->values();
-        } else {
-            // Modo normal: empresas relacionadas + contactos CRM
-            $userIds = $userIdsFromCompanies
-                ->merge($userIdsFromCrm)
-                ->unique()
-                ->filter()
-                ->values();
-        }
-
-        if ($userIds->isEmpty()) {
-            return User::query()->whereRaw('1 = 0');
-        }
-
-        // 5) Query base con joins y campos extra
+        /**
+         * 2) Query base
+         */
         $query = User::query()
             ->from('users')
             // empresa distinta de la de sesión (para position/department de empresa)
@@ -260,45 +237,75 @@ class CrmContactController extends Controller{
                 $j->on('cc.user_id', '=', 'users.id')
                   ->where('cc.company_id', '=', $company_id);
 
-                // En leads, también restringimos aquí a 'clp'
                 if ($leads) {
                     $j->where('cc.contact_type', '=', 'clp');
                 }
             })
             ->with(['avatar', 'phones', 'categories'])
-            ->whereIn('users.id', $userIds)
-            ->select([
-                // SOLO las columnas de users que necesitas en el listado
-                'users.id',
-                'users.name',
-                'users.surname',
-                'users.email',
-                'users.status',
+            ->whereNull('users.deleted_at');
 
-                // Empresa editable y cuenta CRM editable
-                DB::raw('MIN(uc.company_id)   as edit_company_id'),
-                DB::raw('MIN(ca.id)           as edit_crm_account_id'),
+        /**
+         * 2.1) QUIÉN ENTRA EN EL LISTADO
+         *     Se hace con EXISTS, nada de whereIn ni userIds.
+         */
+        $query->where(function ($outer) use ($company_id, $relatedCompanyIds, $leads) {
+            if ($leads) {
+                // LEADS: sólo contactos CRM clp en esta empresa
+                $outer->whereExists(function ($sub) use ($company_id) {
+                    $sub->from('crm_contacts as c2')
+                        ->whereColumn('c2.user_id', 'users.id')
+                        ->where('c2.company_id', $company_id)
+                        ->where('c2.contact_type', 'clp');
+                });
+            } else {
+                // CONTACTOS:
+                // a) usuarios con contacto CRM en esta empresa
+                $outer->whereExists(function ($sub) use ($company_id) {
+                    $sub->from('crm_contacts as c2')
+                        ->whereColumn('c2.user_id', 'users.id')
+                        ->where('c2.company_id', $company_id);
+                });
 
-                // posición y departamento con prioridad:
-                // 1) user_companies.position/department
-                // 2) crm_contacts.position/department
-                DB::raw('COALESCE(MIN(uc.position),    MIN(cc.position))    as position'),
-                DB::raw('COALESCE(MIN(uc.department),  MIN(cc.department))  as department'),
+                // b) o usuarios vinculados a empresas relacionadas
+                if (!empty($relatedCompanyIds)) {
+                    $outer->orWhereExists(function ($sub) use ($company_id, $relatedCompanyIds) {
+                        $sub->from('user_companies as uc2')
+                            ->whereColumn('uc2.user_id', 'users.id')
+                            ->where('uc2.company_id', '!=', $company_id)
+                            ->whereIn('uc2.company_id', $relatedCompanyIds);
+                    });
+                }
+            }
+        });
 
-                // Tipo de contacto desde CRM
-                DB::raw('MAX(cc.contact_type) as contact_type'),
-            ])
-            ->groupBy(
-                'users.id',
-                'users.name',
-                'users.surname',
-                'users.email',
-                'users.status',
-            );
+        /**
+         * 3) SELECT + agregados
+         */
+        $query->select([
+            'users.id',
+            'users.name',
+            'users.surname',
+            'users.email',
+            'users.status',
 
-        // 6) Filtros
+            DB::raw('MIN(uc.company_id)   as edit_company_id'),
+            DB::raw('MIN(ca.id)           as edit_crm_account_id'),
+            DB::raw('COALESCE(MIN(uc.position),   MIN(cc.position))   as position'),
+            DB::raw('COALESCE(MIN(uc.department), MIN(cc.department)) as department'),
+            DB::raw('MAX(cc.contact_type) as contact_type'),
+        ])
+        ->groupBy(
+            'users.id',
+            'users.name',
+            'users.surname',
+            'users.email',
+            'users.status',
+        );
+
+        /**
+         * 4) Filtros
+         */
         $filters = [
-            // Nombre + apellido en el mismo campo
             'name' => function ($q, $v) {
                 $v = trim($v);
                 if ($v === '') {
@@ -330,7 +337,6 @@ class CrmContactController extends Controller{
                 });
             },
 
-            // buscar posición tanto en user_companies como en crm_contacts
             'position' => function ($q, $v) {
                 $q->where(function ($sub) use ($v) {
                     $sub->where('uc.position', 'like', "%{$v}%")
@@ -340,11 +346,8 @@ class CrmContactController extends Controller{
 
             'contact_type' => fn ($q, $v) => $q->where('cc.contact_type', $v),
 
-            // 🔸 NUEVO: filtro por contact_subtype (categoría concreta del usuario)
             'contact_subtype' => function ($q, $v) use ($company_id) {
                 $q->whereHas('categories', function ($sub) use ($v, $company_id) {
-                    // si usas categorías multiempresa, mantén el company_id;
-                    // si no, puedes quitar esta línea sin dramas.
                     $sub->when($company_id !== 'all', function ($qq) use ($company_id) {
                             $qq->where('categories.company_id', $company_id);
                         })
@@ -359,7 +362,9 @@ class CrmContactController extends Controller{
             }
         }
 
-        // 7) Rango de fechas (igual que ya tenías)
+        /**
+         * 5) Rango de fechas
+         */
         $from = $request->input('date_from');
         $to   = $request->input('date_to');
 
@@ -371,7 +376,9 @@ class CrmContactController extends Controller{
             $query->where('users.created_at', '<=', "$to 23:59:59");
         }
 
-        // 8) Orden (tu bloque original)
+        /**
+         * 6) Orden
+         */
         $sortField     = $request->input('sort_field', 'name');
         $sortDirection = $request->input('sort_direction', 'ASC');
         $allowedSortFields = ['name', 'surname', 'email'];
