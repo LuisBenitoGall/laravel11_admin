@@ -36,11 +36,15 @@ class LoginRequest extends FormRequest{
      */
     public function rules(): array
     {
+        $recaptchaRules = config('security.strict_auth')
+        ? ['required', 'string']
+        : ['nullable', 'string'];
+
         return [
             'email'             => ['required', 'string', 'email'],
             'password'          => ['required', 'string'],
             'remember'          => ['sometimes', 'boolean'],
-            'recaptcha_token'   => ['required', 'string']
+            'recaptcha_token'   => $recaptchaRules
         ];
     }
 
@@ -105,6 +109,11 @@ class LoginRequest extends FormRequest{
 
     public function passedValidation(): void
     {
+        if (! config('security.strict_auth')) {
+            // En local / modo no estricto, saltamos reCAPTCHA
+            return;
+        }
+
         /** @var RecaptchaService $recaptcha */
         $recaptcha = app(RecaptchaService::class);
 

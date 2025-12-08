@@ -22,7 +22,8 @@ export default function Create({
     owners = [], 
     currencies = [], 
     costCenters = [],
-    campaignStatus = []
+    campaignStatus = [],
+    priorities = []
 }) {
     const __ = useTranslation();
     const props = usePage()?.props || {};
@@ -48,6 +49,27 @@ export default function Create({
     } else if (campaignStatus && typeof campaignStatus === 'object') {
         // Associative object: map entries to {id, name}
         campaignStatusArray = Object.entries(campaignStatus).map(([key, value]) => {
+            if (value && typeof value === 'object') {
+                return { id: value.id ?? key, name: value.name ?? value.title ?? String(value) };
+            }
+            return { id: key, name: value };
+        });
+    }
+    // Normalize `priorities` into an array of objects: { id, name }
+    // Accepts shapes:
+    // - Array of objects: [{id, name}, ...]
+    // - Associative object: {1: 'alta', 2: 'media', ...}
+    // - Array of strings: ['alta', 'media']
+    let prioritiesArray = [];
+
+    if (Array.isArray(priorities)) {
+        if (priorities.length && typeof priorities[0] === 'object') {
+            prioritiesArray = priorities;
+        } else {
+            prioritiesArray = priorities.map((name, idx) => ({ id: idx + 1, name }));
+        }
+    } else if (priorities && typeof priorities === 'object') {
+        prioritiesArray = Object.entries(priorities).map(([key, value]) => {
             if (value && typeof value === 'object') {
                 return { id: value.id ?? key, name: value.name ?? value.title ?? String(value) };
             }
@@ -253,7 +275,7 @@ export default function Create({
                         <div className="col-lg-3">
                             <div>
                                 <label htmlFor="total_cost" className="form-label">
-                                    {__('campanya_coste_total')}
+                                    {__('coste_total')}
                                 </label>
                                 <TextInput
                                     id="total_cost"
@@ -270,7 +292,7 @@ export default function Create({
                         <div className="col-lg-3">
                             <div>
                                 <label htmlFor="expected_cost" className="form-label">
-                                    {__('campanya_coste_esperado')}
+                                    {__('coste_previsto')}
                                 </label>
                                 <TextInput
                                     id="expected_cost"
@@ -297,7 +319,7 @@ export default function Create({
                                     <option value="">{__('opcion_selec')}</option>
                                     {currencies.map((currency) => (
                                         <option key={currency.id} value={currency.id}>
-                                            {currency.code} {currency.symbol ? `(${currency.symbol})` : ''}
+                                            {currency.name} {currency.symbol ? `(${currency.symbol})` : ''}
                                         </option>
                                     ))}
                                 </SelectInput>
@@ -309,7 +331,7 @@ export default function Create({
                         <div className="col-lg-3">
                             <div>
                                 <label htmlFor="promote_code" className="form-label">
-                                    {__('campanya_codigo_promocion')}
+                                    {__('codigo_promocion')}
                                 </label>
                                 <TextInput
                                     id="promote_code"
@@ -330,7 +352,7 @@ export default function Create({
                                 </label>
                                 <TextInput
                                     id="start_at"
-                                    type="datetime-local"
+                                    type="date"
                                     value={data.start_at || ''}
                                     onChange={(e) => setData('start_at', e.target.value)}
                                 />
@@ -345,7 +367,7 @@ export default function Create({
                                 </label>
                                 <TextInput
                                     id="finish_at"
-                                    type="datetime-local"
+                                    type="date"
                                     value={data.finish_at || ''}
                                     onChange={(e) => setData('finish_at', e.target.value)}
                                 />
@@ -357,7 +379,7 @@ export default function Create({
                         <div className="col-lg-3">
                             <div>
                                 <label htmlFor="action" className="form-label">
-                                    {__('campanya_accion')}
+                                    {__('accion')}
                                 </label>
                                 <TextInput
                                     id="action"
@@ -373,15 +395,19 @@ export default function Create({
                         <div className="col-lg-3">
                             <div>
                                 <label htmlFor="priority" className="form-label">
-                                    {__('campanya_prioridad')}
+                                    {__('prioridad')}
                                 </label>
-                                <TextInput
-                                    id="priority"
-                                    type="text"
-                                    value={data.priority || ''}
-                                    onChange={(e) => setData('priority', e.target.value)}
-                                    maxLength={255}
-                                />
+                                <SelectInput
+                                    value={data.priority}
+                                    onChange={(e) => setData('priority', Number(e.target.value))}
+                                >
+                                    <option value="">{__('opcion_selec')}</option>
+                                    {prioritiesArray.map((p) => (
+                                        <option key={p.id} value={p.id}>
+                                            {p.name}
+                                        </option>
+                                    ))}
+                                </SelectInput>
                                 <InputError message={errors.priority} />
                             </div>
                         </div>
@@ -389,7 +415,7 @@ export default function Create({
                         <div className="col-lg-3">
                             <div>
                                 <label htmlFor="members_type" className="form-label">
-                                    {__('campanya_tipo_miembros')}
+                                    {__('miembros_tipo')}
                                 </label>
                                 <TextInput
                                     id="members_type"
@@ -419,7 +445,7 @@ export default function Create({
                         </div>
 
                         {/* Datos de origen / integracion */}
-                        <div className="col-12">
+                        {/* <div className="col-12">
                             <hr />
                             <h6 className="mb-3">{__('campanya_origen_datos')}</h6>
                         </div>
@@ -470,18 +496,18 @@ export default function Create({
                                 />
                                 <InputError message={errors.source_type} />
                             </div>
-                        </div>
+                        </div> */}
 
                         {/* Botones */}
                         <div className="col-12 mt-4 text-end">
-                            {permissions?.['marketing-campaigns.index'] && (
+                            {/* {permissions?.['marketing-campaigns.index'] && (
                                 <Link
                                     href={route('marketing-campaigns.index')}
                                     className="btn btn-outline-secondary me-2"
                                 >
                                     {__('cancelar')}
                                 </Link>
-                            )}
+                            )} */}
 
                             <PrimaryButton disabled={processing} className="btn btn-rdn">
                                 {processing ? `${__('procesando')}...` : __('guardar')}

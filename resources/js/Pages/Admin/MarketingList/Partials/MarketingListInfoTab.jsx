@@ -11,7 +11,11 @@ import TextInput from '@/Components/TextInput';
 import { useTranslation } from '@/Hooks/useTranslation';
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
 
-export default function MarketingListInfoTab({ list, updateRoute = 'marketing-lists.update', updateParams = null }) {
+export default function MarketingListInfoTab({ 
+    list, 
+    updateRoute = 'marketing-lists.update', 
+    updateParams = null 
+}) {
     const __ = useTranslation();
     const { showAlert } = useSweetAlert();
 

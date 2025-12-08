@@ -32,12 +32,16 @@ class AuthenticatedSessionController extends Controller{
      * Display the login view.
      */
     public function create(): Response{
+        $siteKey    = config('services.recaptcha.site_key');
+        $strictAuth = config('security.strict_auth');
+
         return Inertia::render('Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
             'APP_FULL_NAME' => env('APP_FULL_NAME'),
             'APP_NAME' => env('APP_NAME'),
-            'recaptchaSiteKey'   => config('services.recaptcha.site_key')
+            'recaptchaSiteKey' => $siteKey,
+            'recaptchaEnabled' => $strictAuth && !empty($siteKey)
         ]);
     }
 

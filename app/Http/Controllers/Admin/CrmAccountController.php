@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use App\Support\CompanyContext;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -112,7 +113,7 @@ class CrmAccountController extends Controller{
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions,
             "columnPreferences" => UserColumnPreference::forUserAndTables(
-                auth()->user()->id,
+                Auth::id(),
                 ['tblCrmAccounts'] 
             )
         ]);
@@ -455,6 +456,11 @@ class CrmAccountController extends Controller{
             return redirect()->route('crm-accounts.edit', $account->id)
             ->with('msg', __('cuenta_actualizada_msg'));
 
+        } catch (ValidationException $e) {
+            // The model may throw a ValidationException when fiscal fields are locked because
+            // the CRM account is linked to a master. Return validation errors back to the form.
+            Log::warning('Validation error in CrmAccountController@update: ' . $e->getMessage());
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Throwable $e) {
             Log::error('Error en update(): ' . $e->getMessage());
             abort(500, 'Error interno del servidor');

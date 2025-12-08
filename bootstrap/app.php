@@ -98,7 +98,8 @@ return Application::configure(basePath: dirname(__DIR__))
          * 2) Log detallado para 422 de VALIDACIÓN (ValidationException).
          *    Aquí caerán los forms que no pasan reglas.
          */
-        $exceptions->report(function (ValidationException $e, Request $request) {
+        $exceptions->report(function (ValidationException $e) {
+            $request = request();
             Log::warning('Validation 422', [
                 'url'     => $request->fullUrl(),
                 'method'  => $request->method(),
@@ -114,10 +115,12 @@ return Application::configure(basePath: dirname(__DIR__))
          * 3) Log para HttpException 422 “a pelo” (abort(422), paquetes, etc.).
          *    Esto es el caso típico de la pantalla “Oops! 422 Unprocessable Content”.
          */
-        $exceptions->report(function (HttpException $e, Request $request) {
+        $exceptions->report(function (HttpException $e) {
             if ($e->getStatusCode() !== 422) {
                 return;
             }
+
+            $request = request();
 
             Log::warning('HttpException 422', [
                 'url'     => $request->fullUrl(),

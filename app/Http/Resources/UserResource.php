@@ -59,7 +59,7 @@ class UserResource extends JsonResource{
 
         return [
             'id'        => $this->id,
-            'name'      => $salutation.' '.ucwords($this->name).' '.ucwords($this->surname),
+            'name'      => $salutation.' '.ucwords($this->name),
             'surname'   => $this->surname,
             'nickname'  => $this->nickname,
             'email'     => $this->email,

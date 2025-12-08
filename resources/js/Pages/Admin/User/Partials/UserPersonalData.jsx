@@ -25,11 +25,14 @@ export default function UserPersonalData({
     user_roles = {}, 
     salutations = [], 
     contact_types = [], 
+    contact_subtypes = [],
+    contact_subtype_id = null,
     crm_contact, 
     user_company_id, 
     pivot ,
     company_context = null
 }){
+    
     const __ = useTranslation();
     const props = usePage()?.props || {};
     const locale = props.locale || false;
@@ -37,7 +40,38 @@ export default function UserPersonalData({
     const { showConfirm } = useSweetAlert();
     const permissions = props.permissions || {};
     const datepickerFormat = props.languages?.[locale]?.[6] || 'dd/MM/yyyy';
-    const contactTypeOptions = Array.isArray(contact_types) ? contact_types : [];
+    const normalizeOptions = (input) => {
+        const out = [];
+        if (!input) return out;
+
+        if (Array.isArray(input)) {
+            if (input.length && typeof input[0] === 'object') {
+                return input.map((item, idx) => {
+                    const value = item.value ?? item.id ?? item.key ?? item.name ?? item.label ?? idx;
+                    const label = item.label ?? item.name ?? item.title ?? String(item);
+                    return { value: String(value), label };
+                });
+            }
+
+            return input.map((item) => ({ value: String(item), label: String(item) }));
+        }
+
+        if (typeof input === 'object') {
+            return Object.entries(input).map(([key, value]) => {
+                if (value && typeof value === 'object') {
+                    const v = value.id ?? value.value ?? key;
+                    const l = value.name ?? value.label ?? value.title ?? String(value);
+                    return { value: String(v), label: l };
+                }
+                return { value: String(key), label: String(value) };
+            });
+        }
+
+        return out;
+    };
+
+    const contactTypeOptions = normalizeOptions(contact_types);
+    const contactSubtypeOptions = normalizeOptions(contact_subtypes);
 
     //Roles:
     const arrRoles = Object.entries(roles).map(([key, label]) => ({
@@ -81,9 +115,19 @@ export default function UserPersonalData({
         contact_type: Array.isArray(contactTypeOptions) && contactTypeOptions.length
         ? (crm_contact?.contact_type ?? '')
         : '',
+        contact_subtype: Array.isArray(contactSubtypeOptions) && contactSubtypeOptions.length
+        ? (
+            // Prefer explicit prop `contact_subtype_id` (may be an object like { category_id: X } or a scalar)
+            (contact_subtype_id && (typeof contact_subtype_id === 'object') && contact_subtype_id.category_id)
+                ? String(contact_subtype_id.category_id)
+                : (contact_subtype_id ? String(contact_subtype_id) : (crm_contact?.contact_subtype_id ? String(crm_contact.contact_subtype_id) : (crm_contact?.contact_subtype ? String(crm_contact.contact_subtype) : '')))
+        )
+        : '',
         position:     pivot?.position ?? '',
         department:   pivot?.department ?? '',
     });
+
+    const [submitting, setSubmitting] = useState(false);
 
     const handleChange = (e) => {
         const { name, type, checked, value, files } = e.target;
@@ -99,6 +143,8 @@ export default function UserPersonalData({
     // Envío formulario:
     function handleSubmit(e){
         e.preventDefault();
+
+        if (submitting) return; // prevent double-submit
 
         const formData = new FormData();
         formData.append('_method', 'PUT');
@@ -120,9 +166,12 @@ export default function UserPersonalData({
             }
         });
 
+        setSubmitting(true);
+
         router.post(route('users.update', user.id), formData, {
             forceFormData: true,
             preserveScroll: true,
+            onFinish: () => setSubmitting(false),
         });
     }
 
@@ -231,7 +280,7 @@ export default function UserPersonalData({
                     {/* Email */}   
                     <div className="col-md-6">
                         <div>
-                            <label htmlFor="email" className="form-label">{ __('email') }*</label>
+                            <label htmlFor="email" className="form-label">{ __('email') }</label>
                             <TextInput 
                                 className="" 
                                 name="email"
@@ -240,7 +289,6 @@ export default function UserPersonalData({
                                 value={data.email} 
                                 onChange={(e) => setData('email', e.target.value)}
                                 maxLength={100}
-                                required
                             />
 
                             <InputError message={errors.email} />
@@ -282,6 +330,13 @@ export default function UserPersonalData({
                     </div>
                     <div className="w-100 m-0"></div>
 
+                    {/* Sexo */}
+                    <SetSex
+                        value={data.sex}
+                        onChange={(e) => setData('sex', e.target.value)}
+                        error={errors.sex}
+                    />
+
                     {crm_contact && (
                         <>
                             {/* Tipo de contacto */}
@@ -302,6 +357,27 @@ export default function UserPersonalData({
                                         ))}
                                     </SelectInput>
                                     <InputError message={errors.contact_type} />
+                                </div>
+                            </div>
+
+                            {/* Subtipo de contacto */}
+                            <div className="col-md-4">
+                                <div>
+                                    <label htmlFor="contact_subtype" className="form-label">{ __('contacto_subtipo') }</label>
+                                    <SelectInput
+                                        className="form-select"
+                                        name="contact_subtype"
+                                        value={data.contact_subtype}
+                                        onChange={(e) => setData('contact_subtype', e.target.value)}
+                                    >
+                                        <option value="">{ __('opcion_selec') }</option>
+                                        {contactSubtypeOptions.map(option => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </SelectInput>
+                                    <InputError message={errors.contact_subtype} />
                                 </div>
                             </div>
 
@@ -342,13 +418,6 @@ export default function UserPersonalData({
                             </div>
                         </>
                     )}
-
-                    {/* Sexo */}
-                    <SetSex
-                        value={data.sex}
-                        onChange={(e) => setData('sex', e.target.value)}
-                        error={errors.sex}
-                    />
 
                     {/* Firma: sólo para usuarios con acceso */}
                     {user?.isAdmin == 1 && (
@@ -392,9 +461,9 @@ export default function UserPersonalData({
                 </div>
 
                 <div className='mt-4 text-end'>
-                    <PrimaryButton disabled={processing} className='btn btn-rdn'>
-                        {processing ? __('procesando')+'...':__('guardar')}
-                    </PrimaryButton>	
+                    <PrimaryButton loading={submitting} loadingText={__('guardando')} className='btn btn-rdn'>
+                        {__('guardar')}
+                    </PrimaryButton>
                 </div>
             </form>
 

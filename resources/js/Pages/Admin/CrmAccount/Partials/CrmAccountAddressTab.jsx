@@ -1,5 +1,5 @@
 // resources/js/Pages/Admin/CrmAccount/Partials/CrmAccountAddressTab.jsx
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { useForm, usePage } from '@inertiajs/react';
 
 // Hooks
@@ -53,6 +53,27 @@ export default function CrmAccountAddressTab({
         copy_billing_to_shipping: false,
     });
 
+    // When copy_billing_to_shipping is toggled, copy or clear shipping fields immediately.
+    useEffect(() => {
+        if (data.copy_billing_to_shipping) {
+            setData('shipping_street', data.billing_street || '');
+            setData('shipping_city', data.billing_city || '');
+            setData('shipping_state', data.billing_state || '');
+            setData('shipping_postal_code', data.billing_postal_code || '');
+            setData('shipping_country_code', data.billing_country_code || '');
+        } else {
+            // Clear shipping fields when unchecked
+            setData('shipping_street', '');
+            setData('shipping_city', '');
+            setData('shipping_state', '');
+            setData('shipping_postal_code', '');
+            setData('shipping_country_code', '');
+        }
+        // We only want this effect to run when the checkbox changes or when billing data changes
+        // so include billing fields in the deps below.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [data.copy_billing_to_shipping, data.billing_street, data.billing_city, data.billing_state, data.billing_postal_code, data.billing_country_code]);
+
     const onSubmit = e => {
         e.preventDefault();
         // Si está activado copiar, replica billing sobre shipping antes de enviar
@@ -71,6 +92,7 @@ export default function CrmAccountAddressTab({
         data: payload,
         });
     };
+
 
     return (
         <form onSubmit={onSubmit} className="mt-3">
@@ -113,6 +135,7 @@ export default function CrmAccountAddressTab({
                             <TextInput
                                 value={data.billing_street}
                                 onChange={e => setData('billing_street', e.target.value)}
+                                maxLength={150}
                             />
                             <InputError message={errors.billing_street} className="mt-1" />
                         </div>
@@ -122,6 +145,7 @@ export default function CrmAccountAddressTab({
                             <TextInput
                                 value={data.billing_city}
                                 onChange={e => setData('billing_city', e.target.value)}
+                                maxLength={100}
                             />
                             <InputError message={errors.billing_city} className="mt-1" />
                         </div>
@@ -131,6 +155,7 @@ export default function CrmAccountAddressTab({
                             <TextInput
                                 value={data.billing_state}
                                 onChange={e => setData('billing_state', e.target.value)}
+                                maxLength={100}
                             />
                             <InputError message={errors.billing_state} className="mt-1" />
                         </div>
@@ -140,6 +165,7 @@ export default function CrmAccountAddressTab({
                             <TextInput
                                 value={data.billing_postal_code}
                                 onChange={e => setData('billing_postal_code', e.target.value)}
+                                maxLength={5}
                             />
                             <InputError message={errors.billing_postal_code} className="mt-1" />
                         </div>
@@ -184,25 +210,29 @@ export default function CrmAccountAddressTab({
                             <TextInput
                                 value={data.shipping_street}
                                 onChange={e => setData('shipping_street', e.target.value)}
+                                maxLength={255}
                             />
                             <InputError message={errors.shipping_street} className="mt-1" />
                         </div>
 
                         <div className="col-md-6">
                             <label className="form-label">{__('poblacion') || 'Ciudad'}</label>
-                    <TextInput
-                        value={data.shipping_city}
-                        onChange={e => setData('shipping_city', e.target.value)}
-                    />
-                    <InputError message={errors.shipping_city} className="mt-1" />
-                    </div>
-                    <div className="col-md-3">
-                    <label className="form-label">{__('provincia') || 'Provincia/Estado'}</label>
-                    <TextInput
-                        value={data.shipping_state}
-                        onChange={e => setData('shipping_state', e.target.value)}
-                    />
-                    <InputError message={errors.shipping_state} className="mt-1" />
+                             <TextInput
+                                value={data.shipping_city}
+                                onChange={e => setData('shipping_city', e.target.value)}
+                                maxLength={100} 
+                            />
+                            <InputError message={errors.shipping_city} className="mt-1" />
+                        </div>
+
+                        <div className="col-md-3">
+                            <label className="form-label">{__('provincia') || 'Provincia/Estado'}</label>
+                            <TextInput
+                                value={data.shipping_state}
+                                onChange={e => setData('shipping_state', e.target.value)}
+                                maxLength={100}
+                            />
+                            <InputError message={errors.shipping_state} className="mt-1" />
                         </div>
 
                         <div className="col-md-3">
@@ -210,6 +240,7 @@ export default function CrmAccountAddressTab({
                             <TextInput
                                 value={data.shipping_postal_code}
                                 onChange={e => setData('shipping_postal_code', e.target.value)}
+                                maxLength={5}
                             />
                             <InputError message={errors.shipping_postal_code} className="mt-1" />
                         </div>

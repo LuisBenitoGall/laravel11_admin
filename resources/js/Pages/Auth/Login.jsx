@@ -13,7 +13,12 @@ import TextInput from '@/Components/TextInput';
 //Hooks:
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function Login({ status, canResetPassword, recaptchaSiteKey }) {
+export default function Login({ 
+    status, 
+    canResetPassword, 
+    recaptchaSiteKey, 
+    recaptchaEnabled 
+}) {
     const { APP_NAME, APP_FULL_NAME } = usePage().props;
     const __ = useTranslation();
     
@@ -26,6 +31,14 @@ export default function Login({ status, canResetPassword, recaptchaSiteKey }) {
 
     const submit = (e) => {
         e.preventDefault();
+
+        // Si no está activado reCAPTCHA (local, por ejemplo), hacemos el flujo clásico
+        if (!recaptchaEnabled) {
+            post(route('login'), {
+                onFinish: () => reset('password'),
+            });
+            return;
+        }
 
         // Si no hay reCAPTCHA cargado o no tenemos site key, no enviamos el formulario
         if (!window.grecaptcha || !recaptchaSiteKey) {

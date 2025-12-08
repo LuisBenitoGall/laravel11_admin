@@ -25,7 +25,17 @@ import ModalMarketingListCloneMembers from '@/Components/modals/ModalMarketingLi
 import MarketingListInfoTab from './Partials/MarketingListInfoTab';
 import MarketingListMembersTab from './Partials/MarketingListMembersTab';
 
-export default function Index({ auth, session, title, subtitle, list, tab, members, rows, availableLocales }){
+export default function Index({ 
+    auth, 
+    session, 
+    title, 
+    subtitle, 
+    list, 
+    tab, 
+    members, 
+    rows, 
+    availableLocales 
+}){
     const __ = useTranslation();
     const props = usePage()?.props || {};
     const locale = props.locale || false;
@@ -179,7 +189,7 @@ export default function Index({ auth, session, title, subtitle, list, tab, membe
                                     queryParams={queryParams}
                                 />
                             )
-                        },
+                        }
                     ]}
                     defaultActive={tab}
                 />

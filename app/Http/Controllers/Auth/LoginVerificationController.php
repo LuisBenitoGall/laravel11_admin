@@ -87,7 +87,7 @@ class LoginVerificationController extends Controller
         // ID de la sesión actual
         $currentSessionId = $request->session()->getId();
 
-        if ($user) {
+        if ($user && config('security.strict_auth')) {
             // Borrar TODAS las demás sesiones de ese usuario
             DB::table('sessions')
                 ->where('user_id', $user->id)

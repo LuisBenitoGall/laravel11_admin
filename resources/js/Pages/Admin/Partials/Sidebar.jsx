@@ -55,7 +55,7 @@ export default function Sidebar(auth) {
 
     //Mostrar módulos principales:
     const module_my_account = false;
-    const module_settings = false;
+    const module_settings = true;
     const module_users = true;
     const module_companies = true;
 

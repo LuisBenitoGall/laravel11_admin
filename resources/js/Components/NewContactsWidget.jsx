@@ -42,8 +42,8 @@ export default function NewContactsWidget() {
         if (!contactId) return;
 
         showConfirm({
-            title: __('confirmar_eliminar') || '¿Eliminar?',
-            text: __('confirmar_eliminar_contacto') || 'Se eliminará el contacto CRM.',
+            title: __('contacto_eliminar') || '¿Eliminar?',
+            text: __('contacto_eliminar_confirm') || 'Se eliminará el contacto CRM.',
             icon: 'warning',
             onConfirm: async () => {
                 setDeletingId(contactId);
@@ -67,7 +67,7 @@ export default function NewContactsWidget() {
                 <div className="d-flex align-items-center">
                     <i className="la la-address-book me-2" aria-hidden="true" />
                     <span className="fw-semibold">
-                        {__('contactos_ultimos') || 'Últimos contactos'}
+                        {__('contactos_ultimos') || 'Últimos contactos'} Web
                     </span>
                 </div>
 
@@ -76,7 +76,7 @@ export default function NewContactsWidget() {
                 )}
             </div>
 
-            <div className="card-body p-2" style={{ maxHeight: '320px', overflowY: 'auto' }}>
+            <div className="card-body p-2" style={{ maxHeight: '320px', overflowY: 'auto', overflowX: 'hidden' }}>
                 {loading && (
                     <div className="d-flex justify-content-center py-3">
                         <div className="spinner-border spinner-border-sm text-secondary" role="status">
@@ -90,15 +90,15 @@ export default function NewContactsWidget() {
                 )}
 
                 {!loading && !error && !hasItems && (
-                    <p className="text-muted small mb-0">{__('no_hay_contactos_nuevos') || 'No hay nuevos contactos.'}</p>
+                    <p className="text-muted small mb-0">{__('contactos_nuevos_no_hallados') || 'No hay nuevos contactos.'}</p>
                 )}
 
                 {!loading && !error && hasItems && (
                     <ul className="list-unstyled mb-0">
                         {items.map((c) => (
                             <li key={c.id} className="border-bottom py-2">
-                                <div className="d-flex align-items-start">
-                                    <div className="flex-grow-1 ms-2">
+                                    <div className="d-flex align-items-start">
+                                        <div className="flex-grow-1 ms-2" style={{ minWidth: 0 }}>
                                         <div className="d-flex justify-content-between">
                                             <div>
                                                 <strong className="d-block">{(c.user && c.user.name) || ('#' + c.id)}</strong>
@@ -112,7 +112,7 @@ export default function NewContactsWidget() {
                                         </div>
 
                                         {c.last_message && (
-                                            <div className="mt-1 small text-truncate" style={{ maxWidth: '100%' }}>
+                                            <div className="mt-1 small" style={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>
                                                 <em>{c.last_message}</em>
                                             </div>
                                         )}

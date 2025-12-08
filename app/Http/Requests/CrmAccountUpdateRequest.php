@@ -28,8 +28,8 @@ class CrmAccountUpdateRequest extends FormRequest{
 
     public function messages(): array{
         return [
-            'name.required' => __('empresa_nombre_oblig'),
-            'tradename.required' => __('empresa_nombre_comercial_oblig')
+            // 'name.required' => __('empresa_nombre_oblig'),
+            // 'tradename.required' => __('empresa_nombre_comercial_oblig')
         ];
     }
 

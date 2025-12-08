@@ -29,7 +29,8 @@ import UserPassword from './Partials/UserPassword.jsx';
 export default function Index({
     auth, session, title, subtitle,
     user, roles, user_roles, images,
-    salutations, contact_types, crm_contact, addresses, countries, profile, company,
+    salutations, contact_types, contact_subtypes, contact_subtype_id, 
+    crm_contact, addresses, countries, profile, company,
     company_context, pivot, user_company_id          
 }) {
     const __ = useTranslation();
@@ -148,7 +149,7 @@ export default function Index({
         { key: 'user-personal-data', label: __('datos_personales') },
         ...(profile === true ? [{ key: 'user-password', label: __('contrasena') }] : []),
         { key: 'user-addresses', label: __('direcciones') },
-        { key: 'user-categories', label: __('categorias') },
+        // { key: 'user-categories', label: __('categorias') },
         { key: 'user-images', label: __('imagenes') },
         { key: 'user-notes', label: __('notas') },
     ];
@@ -179,6 +180,8 @@ export default function Index({
                                         user_roles={user_roles}
                                         salutations={salutations}
                                         contact_types={contact_types}
+                                        contact_subtypes={contact_subtypes}
+                                        contact_subtype_id={contact_subtype_id}
                                         crm_contact={crm_contact}
                                         user_company_id={user_company_id}
                                         pivot={pivot}

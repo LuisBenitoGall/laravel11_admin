@@ -37,6 +37,7 @@ use App\Http\Requests\MarketingCampaignUpdateRequest;
 use App\Http\Resources\MarketingCampaignResource;
 
 //Traits:
+use App\Traits\ConvertDateTrait;
 use App\Traits\HasUserPermissionsTrait;
 use App\Traits\LocaleTrait;
 use App\Traits\ModulesTrait;
@@ -52,9 +53,10 @@ class MarketingCampaignController extends Controller
      * 4. Editar campaña.
      * 5. Actualizar campaña.
      * 6. Actualizar estado.
+     * 7. Eliminar campaña.
      */
     
-
+    use ConvertDateTrait;
     use HasUserPermissionsTrait;
     use LocaleTrait;
 
@@ -62,6 +64,7 @@ class MarketingCampaignController extends Controller
     private $option = 'campanyas';
     protected array $permissions = [];
     protected array $campaign_status = [];
+    protected array $priorities = [];
 
     public function __construct(){
         if(session('currentCompany')){
@@ -81,6 +84,12 @@ class MarketingCampaignController extends Controller
             2 => __('activa'),
             3 => __('finalizada'),
             4 => __('cancelada')
+        ];
+
+        $this->priorities = [
+            1 => __('alta'),
+            2 => __('media'),
+            3 => __('baja')
         ];
     }   
 
@@ -219,7 +228,7 @@ class MarketingCampaignController extends Controller
         ->orderBy('users.name', 'ASC')
         ->get();
 
-        $currencies = Currency::select('id', 'name')
+        $currencies = Currency::select('id', 'name', 'symbol')
         ->where('status', 1)
         ->orderBy('name', 'ASC')
         ->get();
@@ -233,6 +242,7 @@ class MarketingCampaignController extends Controller
             "owners" => $owners,
             "currencies" => $currencies,
             "campaignStatus" => $this->campaign_status,
+            "priorities" => $this->priorities,
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions
         ]);    
@@ -242,13 +252,70 @@ class MarketingCampaignController extends Controller
      * 3. Guarda nueva campaña.
      */
     public function store(MarketingCampaignStoreRequest $request){
-        
+        $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
+
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
+
+        //Tratamiento de fechas:
+        $rawStart = $request->input('start_at');
+        $startAt = $rawStart !== ''
+            ? ($locale[0] !== 'en'
+                ? $this->convertDate($rawStart, false)
+                : $rawStart
+            )
+            : null;
+
+        $rawFinish = $request->input('finish_at');
+        $finishAt = $rawFinish !== ''
+            ? ($locale[0] !== 'en'
+                ? $this->convertDate($rawFinish, false)
+                : $rawFinish
+            )
+            : null;
+
+        $mc = new MarketingCampaign();
+        $mc->owner_id = $request->owner_id;
+        $mc->company_id = $currentCompanyId;
+        $mc->name = $request->name;
+        $mc->campaign_code = $request->campaign_code;
+        $mc->campaign_type = '';
+        $mc->description = $request->description;
+        $mc->total_cost = $request->total_cost > 0? $request->total_cost:'0';
+        $mc->expected_cost = $request->expected_cost > 0? $request->expected_cost:'0';
+        $mc->currency_id = $request->currency_id;
+        $mc->promote_code = $request->promote_code;
+        $mc->start_at = $startAt;
+        $mc->finish_at = $finishAt;
+        $mc->cost_center_id = $request->cost_center_id;
+        $mc->created_by = Auth::id();
+        $mc->updated_by = Auth::id();
+        $mc->status = $request->status;
+        $mc->priority = $request->priority;
+        $mc->members_type = $request->members_type;
+        $mc->save();
+
+        return redirect()->route('marketing-campaigns.edit', $mc->id)
+            ->with('msg', __('campanya_creada_msg'));
     }
 
     /**
      * 4. Editar campaña.
      */
-    public function edit(MarketingCampaign $campaign){
+    public function edit(MarketingCampaign $campaign, $tab = false){
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 
         // Formateo de datos:
@@ -258,8 +325,23 @@ class MarketingCampaignController extends Controller
         $campaign->created_by_name = optional($campaign->createdBy)->full_name ?? false;
         $campaign->updated_by_name = optional($campaign->updatedBy)->full_name ?? false;
 
+        $cost_centers = CostCenter::select('id', 'name')
+        ->where('company_id', $campaign->company_id)
+        ->where('status', 1)
+        ->orderBy('name', 'ASC')
+        ->get();
 
+        $owners = User::select('users.id', 'users.name', 'users.surname')
+        ->join('user_companies', 'users.id', '=', 'user_companies.user_id')
+        ->where('user_companies.company_id', $campaign->company_id)
+        ->where('users.status', 1)
+        ->orderBy('users.name', 'ASC')
+        ->get();
 
+        $currencies = Currency::select('id', 'name', 'symbol')
+        ->where('status', 1)
+        ->orderBy('name', 'ASC')
+        ->get();
 
         return Inertia::render('Admin/MarketingCampaign/Edit', [
             'title'            => __($this->option),
@@ -269,14 +351,19 @@ class MarketingCampaignController extends Controller
             'availableLocales' => LocaleTrait::availableLocales(),
             'campaign'         => $campaign,
 
-
             // Para mensajes, permisos y compañía
             'msg'              => session('msg'),
             'alert'            => session('alert'),
             'permissions'      => $this->permissions,
+            "tab"              => $tab,
 
             // Para que el frontend tenga el contexto de filtros / paginación
-            'queryParams'      => $request->all(),
+            //'queryParams'      => $request->all(),
+            "costCenters"      => $cost_centers,
+            "owners"           => $owners,
+            "currencies"       => $currencies,
+            "campaignStatus"   => $this->campaign_status,
+            "priorities"       => $this->priorities,
         ]);
     }
 
@@ -284,7 +371,37 @@ class MarketingCampaignController extends Controller
      * 5. Actualizar campaña.
      */
     public function update(MarketingCampaignUpdateRequest $request, MarketingCampaign $campaign){
+        try {
+            $validated = $request->validated();
 
+            $campaign->owner_id = $request->owner_id;
+            $campaign->company_id = $currentCompanyId;
+            $campaign->name = $request->name;
+            $campaign->campaign_code = $request->campaign_code;
+
+            $campaign->description = $request->description;
+            $campaign->total_cost = $request->total_cost;
+            $campaign->expected_cost = $request->expected_cost;
+            $campaign->currency_id = $request->currency_id;
+            $campaign->promote_code = $request->promote_code;
+            $campaign->start_at = $starAt;
+            $campaign->finish_at = $finishAt;
+            $campaign->cost_center_id = $request->cost_center_id;
+
+            $campaign->created_by = Auth::id();
+            $campaign->updated_by = Auth::id();
+            $campaign->status = $request->status;
+            $campaign->priority = $request->priority;
+            $campaign->members_type = $request->members_type;
+            $campaign->save();
+
+            return redirect()->route('marketing-campaigns.edit', $campaign->id)
+            ->with('msg', __('campanya_actualizada_msg'));
+
+        } catch (\Throwable $e) {
+            Log::error('Error en update(): ' . $e->getMessage());
+            abort(500, 'Error interno del servidor');
+        }
     }
 
     /**
@@ -305,5 +422,16 @@ class MarketingCampaignController extends Controller
             'message' => __('estado_actualizado_ok'),
             'new_status' => $campaign->status
         ]);
+    }
+
+    /**
+     * 7. Eliminar campaña.
+     */
+    public function destroy(MarketingCampaign $campaign){
+        $campaign_id = $campaign->id;
+    
+        $campaign->delete();
+
+        return redirect()->route('marketing-campaigns.index')->with('msg', __('campanya_eliminada'));
     }
 }

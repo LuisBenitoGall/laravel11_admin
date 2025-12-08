@@ -28,7 +28,7 @@ class UserUpdateRequest extends FormRequest{
             'name' => 'required|string|max:255',
             'surname' => 'required|string|max:255',
             'email' => [
-                'required',
+                'nullable',
                 'email',
                 'string',
                 'max:255',
@@ -47,7 +47,7 @@ class UserUpdateRequest extends FormRequest{
             'name.required' => __('nombre_oblig'),
             'surname.required' => __('apellido_oblig'),
             'email.email' => __('email_formato_error'),
-            'email.required' => __('email_oblig'),
+            //'email.required' => __('email_oblig'),
             'email.unique' => __('email_unico_error')
         ];
     }

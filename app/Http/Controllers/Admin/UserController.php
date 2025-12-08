@@ -478,20 +478,6 @@ class UserController extends Controller{
         ]);
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     /**
      * 5. Editar usuario. 
      */
@@ -726,6 +712,21 @@ class UserController extends Controller{
         $salutations = HasSalutation::comboOptions();
         $contact_types = $slug === 'contacts' ? HasContactTypes::comboOptions() : [];
 
+        //Subtipos de contacto:
+        $contact_subtypes = Category::where('company_id', $currentCompanyId)
+        ->where('module', 'users')
+        ->where('status', 1)
+        ->where('depth', '0')
+        ->orderBy('name', 'ASC')
+        ->get();
+
+        //Subtipo al que pertenece el usuario:
+        $contact_subtype_id = Categorizable::select('category_id')
+        ->where('company_id', $currentCompanyId)
+        ->where('categorizable_type', 'App\Models\User')
+        ->where('categorizable_id', $user->id)
+        ->first();
+
         // CrmContact solo si el contexto es CRM y la cuenta pertenece a la empresa en sesión
         $crm_contact = false;
         if ($companyContext->type === 'crm_account') {
@@ -757,6 +758,8 @@ class UserController extends Controller{
             'images'           => $images,
             'salutations'      => $salutations,
             'contact_types'    => $contact_types,
+            'contact_subtypes' => $contact_subtypes,
+            'contact_subtype_id' => $contact_subtype_id,
             'crm_contact'      => $crm_contact,
             'addresses'        => $user->addresses,
             'countries'        => $countries,
@@ -783,11 +786,26 @@ class UserController extends Controller{
      * 6. Actualizar usuario.
      */
     public function update(UserUpdateRequest $request, User $user){
-        //dd($request->all());
-        try{
+        //try{
             $validated = $request->validated();
 
             $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
+
+            $ctx = app(CompanyContext::class);
+            $currentCompanyId = (int) $ctx->id();
+            if($currentCompanyId <= 0){
+                $url = route('companies.refresh-session');
+
+                // si quieres ser fino, guarda a dónde quería ir originalmente
+                session(['intended_after_company' => request()->fullUrl()]);
+                session()->flash('alert', __('empresa_no_activa'));
+
+                if (request()->header('X-Inertia')) {
+                    return \Inertia\Inertia::location($url);
+                }
+
+                return redirect($url);
+            }
 
             //Tratamiento de fechas:
             //$rawStart = $request->birthday;
@@ -826,7 +844,6 @@ class UserController extends Controller{
                     $relation->department = $request->department;
                     $relation->save();
                 }
-                //dd($relation, $request->user_company_id, 'x');
             }
 
             //Tipo de contacto:
@@ -846,7 +863,28 @@ class UserController extends Controller{
                 }
             }
 
-            $return_company_id = $request->user_company_id? $request->user_company_id:session('currentCompany');
+            //Subtipo de contacto (categories): ensure a single row exists for this target
+            if ($request->contact_subtype) {
+                // Use a transaction to avoid unique-index race conditions and
+                // ensure we don't end up with duplicate unique-tuple entries.
+                DB::transaction(function () use ($currentCompanyId, $user, $request) {
+                    // Remove any existing rows for this company/type/id
+                    Categorizable::where('company_id', $currentCompanyId)
+                        ->where('categorizable_type', 'App\\Models\\User')
+                        ->where('categorizable_id', $user->id)
+                        ->delete();
+
+                    // Insert the desired row
+                    Categorizable::create([
+                        'company_id' => $currentCompanyId,
+                        'category_id' => $request->contact_subtype,
+                        'categorizable_type' => 'App\\Models\\User',
+                        'categorizable_id' => $user->id,
+                    ]);
+                });
+            }
+
+            $return_company_id = $request->user_company_id? $request->user_company_id:$currentCompanyId;
 
             if($request->user_company_id){
                 return redirect()->route('users.edit', [$user, $request->user_company_id])
@@ -856,10 +894,10 @@ class UserController extends Controller{
                 ->with('msg', __('usuario_actualizado_msg'));    
             }
 
-        }catch(\Throwable $e){
-            Log::error('Error en update(): ' . $e->getMessage());
-            abort(500, 'Error interno del servidor');
-        }       
+        // }catch(\Throwable $e){
+        //     Log::error('Error en update(): ' . $e->getMessage());
+        //     abort(500, 'Error interno del servidor');
+        // }       
     }
 
     /**
@@ -1091,7 +1129,7 @@ class UserController extends Controller{
             DB::raw('MIN(ca.id)           as edit_crm_account_id'),
             DB::raw('MIN(uc.position)     as position'),
             DB::raw('MAX(cc.contact_type) as contact_type'),
-            DB::raw('MIN(c.name)          as company_name'),   // 👈 nombre de empresa
+            DB::raw('MIN(c.name)          as company_name'),   
         ])
         ->groupBy(
             'users.id',
