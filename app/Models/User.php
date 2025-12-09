@@ -92,7 +92,7 @@ class User extends Authenticatable implements MustVerifyEmail{
     /**
      * 2. Empresas del usuario.
      */
-    public function companies(){
+    public function userCompanies(){
         $data = Company::select('companies.id', 'companies.name', 'companies.tradename', 'companies.logo', 'companies.nif', 'companies.status', 'user_companies.position')
             ->join('user_companies', 'companies.id', '=', 'user_companies.company_id')
             ->where('user_companies.user_id', $this->id)
@@ -105,7 +105,7 @@ class User extends Authenticatable implements MustVerifyEmail{
     /**
      * 2.1. Relación eloquent de empresas del usuario.
      */
-    public function companiesRelation(){
+    public function companies(){
         return $this->belongsToMany(Company::class, 'user_companies')
             ->withPivot('position')
             ->where('companies.status', 1);

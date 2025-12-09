@@ -28,11 +28,11 @@ class UserCompany extends Model{
      * Sugerencia: esto acabaría mejor en un servicio, pero no te lo voy a secuestrar ahora.
      */
     public static function userCompanies(){
-        $companies = auth()->user()->companies();
+        $companies = auth()->user()->companies;
 
         \Session::forget('companies');
         foreach ($companies as $row) {
-            if ($row->status) {
+            if($row->status == 1){
                 \Session::push('companies', $row);
             }
         }

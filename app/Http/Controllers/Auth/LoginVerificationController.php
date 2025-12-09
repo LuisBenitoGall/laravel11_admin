@@ -110,7 +110,6 @@ class LoginVerificationController extends Controller
      */
     protected function initCompanyContextFor(User $user, Request $request): void
     {
-        // Asumo que UserCompany::userCompanies() ya tiene en cuenta el usuario autenticado
         $companies = UserCompany::userCompanies();
 
         if ($companies->count() > 0) {
@@ -118,11 +117,9 @@ class LoginVerificationController extends Controller
 
             session(['currentCompany' => $currentCompanyId]);
 
-            // Módulos de la empresa:
             $companyModules = CompanyModule::getCompanyModules($currentCompanyId);
             session(['companyModules' => $companyModules]);
 
-            // Configuración de la empresa:
             $settings = CompanySetting::companySettings($currentCompanyId);
             session(['companySettings' => $settings]);
         }
