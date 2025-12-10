@@ -8,16 +8,21 @@ import { useTranslation } from '@/Hooks/useTranslation';
 
 // Helpers
 const formatPretty = (e164) => {
-  if (!e164 || typeof e164 !== 'string') return '—';
-  const clean = e164.replace(/\s+/g, '');
-  const m = clean.match(/^\+(\d{1,3})(\d+)$/);
-  if (!m) return e164;
+    if (!e164 || typeof e164 !== 'string') return '—';
 
-  const cc = `+${m[1]}`;
-  const rest = m[2];
+    // Remove any non-digit except leading +, then capture country code (1-3 digits) and the rest
+    const cleaned = e164.replace(/[^\d+]/g, '').trim();
+    const m = cleaned.match(/^\+?(\d{1,3})(\d+)$/);
+    if (!m) return e164;
 
-  const groups = rest.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
-  return `${cc} ${groups}`.trim();
+    const cc = `+${m[1]}`;
+    const rest = m[2];
+
+    // Split rest into chunks of 3 digits from left to right
+    const chunks = rest.match(/\d{1,3}/g) || [];
+    const groups = chunks.join(' ').trim();
+
+    return `${cc} ${groups}`.trim();
 };
 
 const telHref = (e164, ext) => {
