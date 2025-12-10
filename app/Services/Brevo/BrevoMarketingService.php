@@ -1,14 +1,15 @@
 <?php
 
 namespace App\Services\Brevo;
-
-use App\Models\MarketingList;
-use App\Models\MarketingListUser;
-use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
+
+//Models:
+use App\Models\MarketingList;
+use App\Models\MarketingListUser;
+use App\Models\User;
 
 class BrevoMarketingService
 {
@@ -363,14 +364,18 @@ class BrevoMarketingService
             return;
         }
 
+        // Nombre base de la carpeta
+        $rawName = sprintf(
+            'ERP %s - %s',
+            $list->company_id ?: '-',
+            $list->name ?: ('Lista '.$list->id)
+        );
+
+        // Brevo exige <= 50 caracteres
+        $folderName = Str::limit($rawName, 50, ''); // sin puntos suspensivos para no regalar caracteres
+
         $payload = [
-            // Nombre que verá la clienta en Brevo
-            'name' => sprintf(
-                'ERP %s - Lista %s (#%d)',
-                $list->company_id,
-                $list->name,
-                $list->id
-            ),
+            'name' => $folderName,
         ];
 
         try {
