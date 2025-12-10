@@ -640,6 +640,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/marketing-lists/{list}/edit/{tab?}', [MarketingListController::class, 'edit'])->name('marketing-lists.edit')->middleware('permission:marketing-lists.edit');
     Route::delete('/marketing-lists/{list}', [MarketingListController::class, 'destroy'])->name('marketing-lists.destroy')->middleware('permission:marketing-lists.destroy');
     Route::post('marketing-lists/status', [MarketingListController::class, 'status'])->name('marketing-lists.status')->middleware('permission:marketing-lists.edit');
+    Route::post('/marketing-lists/{list}/export-brevo', [MarketingListController::class, 'exportToBrevo'])->name('marketing-lists.export-brevo');
 
     //Marketing Lists Users:
     Route::get('/marketing-list-users/{list}/search', [MarketingListUserController::class, 'search'])->name('marketing-list-users.search');

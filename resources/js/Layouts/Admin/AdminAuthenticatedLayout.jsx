@@ -20,7 +20,14 @@ import TextInput from '@/Components/TextInput';
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function AdminAuthenticated({ user, title, subtitle, actions, header, children }) {
+export default function AdminAuthenticated({ 
+    user, 
+    title, 
+    subtitle, 
+    actions, 
+    header, 
+    children 
+}) {
     const __ = useTranslation();
     const props = usePage()?.props || {};
     const sessionData = props.sessionData || {};
@@ -88,7 +95,14 @@ export default function AdminAuthenticated({ user, title, subtitle, actions, hea
             // <StrictMode>
                 <div id="layout-wrapper">
                     {/* Header */}
-                    <Header title={title} subtitle={subtitle} user={user} actions={actions} companies={companies} current_company={currentCompany} />
+                    <Header 
+                        title={title} 
+                        subtitle={subtitle} 
+                        user={user} 
+                        actions={actions} 
+                        companies={companies} 
+                        current_company={currentCompany} 
+                    />
 
                     {/* Sidebar */}
                     <Sidebar/>

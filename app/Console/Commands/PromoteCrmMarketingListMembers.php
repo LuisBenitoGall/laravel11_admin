@@ -7,12 +7,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
+// Concerns:
+use App\Concerns\HasSalutation;
+
 // Models:
 use App\Models\Account;
+use App\Models\Category;
 use App\Models\Company;
 use App\Models\CompanyAccount;
 use App\Models\CrmAccount;
 use App\Models\CrmContact;
+use App\Models\CrmContactMessage;
 use App\Models\CrmMarketingListMemberTmp;
 use App\Models\MarketingListUser;
 use App\Models\Phone;
@@ -73,9 +78,9 @@ class PromoteCrmMarketingListMembers extends Command
 
         // Cachés en memoria:
         $userCache     = [];   // email => User
-        $companyCache  = [];   // slug/nif => Company
+        $companyCache  = [];   // slug => Company
         $contactCache  = [];   // user_id => CrmContact
-        $listCache     = [];   // marketing_list_id => bool (existe)
+        $listCache     = [];   // marketing_list_id => exists / missing
 
         // Contadores:
         $processed         = 0;
@@ -216,9 +221,8 @@ class PromoteCrmMarketingListMembers extends Command
             $updatedUsers++;
         }
 
-        // Sin usuario no hacemos milagros
         if (! $user || ! $user->id) {
-            // Podríamos marcar is_done igualmente, pero mejor que sepas que se queda colgado.
+            // Sin usuario no seguimos, pero tampoco reventamos.
             return [
                 'created_users'      => $createdUsers,
                 'updated_users'      => $updatedUsers,
@@ -263,13 +267,19 @@ class PromoteCrmMarketingListMembers extends Command
             $updatedContacts++;
         }
 
-        // 4) Teléfonos
-        $phonesCreated += $this->syncPhonesForMember($tmp, $dryRun, $user, $company);
+        // 4) Mensajes del contacto (description)
+        $this->syncContactMessagesForMember($tmp, $dryRun, $contact);
 
-        // 5) Vincular a lista de marketing
+        // 5) Subtipo de contacto → Category + pivot categorizables
+        $this->attachContactSubtypeCategory($tmp, $tenantCompanyId, $dryRun, $user);
+
+        // 6) Teléfonos
+        $phonesCreated += $this->syncPhonesForMember($tmp, $dryRun, $user);
+
+        // 7) Vincular a lista de marketing
         $membersLinked += $this->attachUserToMarketingList($tmp, $dryRun, $listCache, $user);
 
-        // 6) Marcar como procesado
+        // 8) Marcar como procesado
         if (! $dryRun) {
             $this->markTmpRowDone($tmp);
         }
@@ -324,7 +334,7 @@ class PromoteCrmMarketingListMembers extends Command
         $email = trim((string) $tmp->email);
 
         if ($email === '') {
-            // Sin email es complicado no liarla. Lo dejamos sin usuario.
+            // Sin email es un drama controlable: no creamos usuario.
             return [null, false, false];
         }
 
@@ -338,14 +348,24 @@ class PromoteCrmMarketingListMembers extends Command
 
         $user = User::where('email', $email)->first();
 
-        // Derivamos nombre si falta
+        // Nombre & apellidos
         $firstName = $tmp->name ? trim($tmp->name) : $this->deriveNameFromEmail($email);
         $surname   = $tmp->surname ? trim($tmp->surname) : null;
 
+        // Sex / salutation
+        $sex = null;
+        if ($tmp->sex === 'Hombre') {
+            $sex = 'h';
+        } elseif ($tmp->sex === 'Mujer') {
+            $sex = 'm';
+        }
+
+        $salutationKey = $this->mapSalutationFromTmp($tmp->salutation);
+
         if ($user) {
-            // Actualización suave: rellenar huecos
-            $origName    = $user->name;
-            $origSurname = $user->surname;
+            $origName       = $user->name;
+            $origSurname    = $user->surname;
+            $origSalutation = $user->salutation;
 
             if (! $user->name && $firstName) {
                 $user->name = ucwords(mb_strtolower($firstName, 'UTF-8'));
@@ -353,8 +373,21 @@ class PromoteCrmMarketingListMembers extends Command
             if (! $user->surname && $surname) {
                 $user->surname = ucwords(mb_strtolower($surname, 'UTF-8'));
             }
+            if (! $user->sex && $sex) {
+                $user->sex = $sex;
+            }
+            if (! $user->salutation && $salutationKey) {
+                $user->salutation = $salutationKey;
+            }
+            if (! $user->nif && $tmp->nif) {
+                $user->nif = $tmp->nif;
+            }
 
-            if ($user->name !== $origName || $user->surname !== $origSurname) {
+            if (
+                $user->name       !== $origName ||
+                $user->surname    !== $origSurname ||
+                $user->salutation !== $origSalutation
+            ) {
                 $updated = true;
                 if (! $dryRun) {
                     $user->save();
@@ -364,29 +397,22 @@ class PromoteCrmMarketingListMembers extends Command
             // Crear
             $randomPassword = Str::random(8);
 
-            $sex = null;
-            if ($tmp->sex === 'Hombre') {
-                $sex = 'h';
-            } elseif ($tmp->sex === 'Mujer') {
-                $sex = 'm';
-            }
-
             $user = new User();
-            $user->name     = ucwords(mb_strtolower($firstName, 'UTF-8'));
-            $user->surname  = $surname ? ucwords(mb_strtolower($surname, 'UTF-8')) : null;
-            $user->email    = $email;
-            $user->sex      = $sex;
-            $user->nif      = $tmp->nif ?: null;
-            $user->password = bcrypt($randomPassword);
-            $user->isAdmin  = false;
-            $user->status   = 1;
+            $user->name       = ucwords(mb_strtolower($firstName, 'UTF-8'));
+            $user->surname    = $surname ? ucwords(mb_strtolower($surname, 'UTF-8')) : null;
+            $user->email      = $email;
+            $user->sex        = $sex;
+            $user->salutation = $salutationKey;
+            $user->nif        = $tmp->nif ?: null;
+            $user->password   = bcrypt($randomPassword);
+            $user->isAdmin    = false;
+            $user->status     = 1;
 
             $createdAt = $this->parseDateTimeFromTmp($tmp->created_date) ?: Carbon::now();
             $user->created_at = $createdAt;
 
             if (! $dryRun) {
                 $user->save();
-                // Rol invitado, como en el resto de imports
                 $user->assignRole(config('constants.ROLE_INVITADO_NAME_'));
             }
 
@@ -492,7 +518,7 @@ class PromoteCrmMarketingListMembers extends Command
                     ->where('e164', $companyPhone)
                     ->exists();
 
-                if (! $existsCompanyPhone && ! $dryRun) {
+                if (! $existsCompanyPhone) {
                     $phc = new Phone();
                     $phc->phoneable_type = Company::class;
                     $phc->phoneable_id   = $company->id;
@@ -574,10 +600,13 @@ class PromoteCrmMarketingListMembers extends Command
         $created = false;
         $updated = false;
 
+        $mappedContactType = $this->mapContactTypeFromTmp($tmp->contact_type);
+
         if ($contact) {
-            $origPosition   = $contact->position;
-            $origDepartment = $contact->department;
-            $origCostCenter = $contact->cost_center;
+            $origPosition    = $contact->position;
+            $origDepartment  = $contact->department;
+            $origCostCenter  = $contact->cost_center;
+            $origContactType = $contact->contact_type;
 
             if ($tmp->position) {
                 $contact->position = $tmp->position;
@@ -588,11 +617,15 @@ class PromoteCrmMarketingListMembers extends Command
             if ($tmp->cost_center) {
                 $contact->cost_center = $tmp->cost_center;
             }
+            if (! $contact->contact_type && $mappedContactType) {
+                $contact->contact_type = $mappedContactType;
+            }
 
             if (
-                $contact->position   !== $origPosition ||
-                $contact->department !== $origDepartment ||
-                $contact->cost_center !== $origCostCenter
+                $contact->position     !== $origPosition ||
+                $contact->department   !== $origDepartment ||
+                $contact->cost_center  !== $origCostCenter ||
+                $contact->contact_type !== $origContactType
             ) {
                 $updated = true;
                 if (! $dryRun) {
@@ -601,17 +634,16 @@ class PromoteCrmMarketingListMembers extends Command
             }
         } else {
             $contact = new CrmContact();
-            $contact->company_id    = $tenantCompanyId;
-            $contact->user_id       = $user->id;
+            $contact->company_id     = $tenantCompanyId;
+            $contact->user_id        = $user->id;
             $contact->crm_account_id = $crmAccount?->id; // puede ser null
-            $contact->contact_type  = 'cl';
-            $contact->position      = $tmp->position ?: null;
-            $contact->department    = $tmp->department ?: null;
-            $contact->cost_center   = $tmp->cost_center ?: null;
-            $contact->owner_id      = $ownerId ?: 1;
-            $contact->status        = 1;
-
-            $contact->created_at = $user->created_at ?: Carbon::now();
+            $contact->contact_type   = $mappedContactType ?: 'clp';
+            $contact->position       = $tmp->position ?: null;
+            $contact->department     = $tmp->department ?: null;
+            $contact->cost_center    = $tmp->cost_center ?: null;
+            $contact->owner_id       = $ownerId ?: 1;
+            $contact->status         = 1;
+            $contact->created_at     = $user->created_at ?: Carbon::now();
 
             if (! $dryRun) {
                 $contact->save();
@@ -626,15 +658,111 @@ class PromoteCrmMarketingListMembers extends Command
     }
 
     /**
-     * Crea teléfonos a partir de mobile / private_phone1 y también company_phone (ya gestionado en empresa).
+     * Mensajes (description) → CrmContactMessage.
+     */
+    protected function syncContactMessagesForMember(
+        CrmMarketingListMemberTmp $tmp,
+        bool $dryRun,
+        ?CrmContact $contact = null
+    ): void {
+        $description = trim((string) $tmp->description);
+
+        if (! $contact || ! $contact->id) {
+            return;
+        }
+
+        if ($description === '') {
+            return;
+        }
+
+        // Si quisieras evitar duplicados exactos, aquí podrías comprobar.
+        if (! $dryRun) {
+            $msg = new CrmContactMessage();
+            $msg->crm_contact_id = $contact->id;
+            $msg->title          = null;
+            $msg->message        = $description;
+            $msg->origin         = 'otrc';
+            $msg->status         = 1;
+            $msg->save();
+        }
+    }
+
+    /**
+     * Subtipo de contacto → Category + pivot categorizables.
+     */
+    protected function attachContactSubtypeCategory(
+        CrmMarketingListMemberTmp $tmp,
+        int $tenantCompanyId,
+        bool $dryRun,
+        ?User $user = null
+    ): void {
+        if (! $user || ! $user->id) {
+            return;
+        }
+
+        $rawSubtype = trim((string) $tmp->contact_subtype);
+        if ($rawSubtype === '') {
+            return;
+        }
+
+        if ($dryRun) {
+            // No creamos categorías ni pivot en dry-run.
+            return;
+        }
+
+        $slug = Str::slug(mb_strtolower($rawSubtype, 'UTF-8'));
+
+        static $subtypeCache = []; // [company_id.slug => Category]
+        $cacheKey = $tenantCompanyId . '.' . $slug;
+
+        if (isset($subtypeCache[$cacheKey])) {
+            $category = $subtypeCache[$cacheKey];
+        } else {
+            $category = Category::where('company_id', $tenantCompanyId)
+                ->where('slug', $slug)
+                ->where('module', 'users')
+                ->where('depth', 0)
+                ->first();
+
+            if (! $category) {
+                $category = new Category();
+                $category->company_id = $tenantCompanyId;
+                $category->module     = 'users';
+                $category->depth      = 0;
+                $category->name       = $rawSubtype;
+                $category->slug       = $slug;
+
+                // *** IMPORTANTE: path no puede ser null ***
+                // Para categorías de raíz, que path sea el propio slug está bien.
+                $category->path       = $slug;
+
+                $category->status     = 1;
+                $category->save();
+            }
+
+            $subtypeCache[$cacheKey] = $category;
+        }
+
+        DB::table('categorizables')->updateOrInsert(
+            [
+                'company_id'         => $tenantCompanyId,
+                'category_id'        => $category->id,
+                'categorizable_type' => User::class,
+                'categorizable_id'   => $user->id,
+            ],
+            []
+        );
+    }
+
+    /**
+     * Crea teléfonos a partir de mobile / private_phone1.
      *
      * @return int número de teléfonos creados
      */
     protected function syncPhonesForMember(
         CrmMarketingListMemberTmp $tmp,
         bool $dryRun,
-        ?User $user = null,
-        ?Company $company = null
+        ?User $user = null
     ): int {
         $created = 0;
 
@@ -648,7 +776,6 @@ class PromoteCrmMarketingListMembers extends Command
                 continue;
             }
 
-            // Evitar duplicados por la unique (phoneable_type, phoneable_id, e164)
             $alreadyExists = Phone::where('phoneable_type', User::class)
                 ->where('phoneable_id', $user->id)
                 ->where('e164', $normalized)
@@ -693,7 +820,6 @@ class PromoteCrmMarketingListMembers extends Command
             return 0;
         }
 
-        // Cache tonta para evitar comprobar listas inexistentes muchas veces
         if (isset($listCache['missing:' . $listId])) {
             return 0;
         }
@@ -707,7 +833,6 @@ class PromoteCrmMarketingListMembers extends Command
             $listCache['exists:' . $listId] = true;
         }
 
-        // Evitar duplicados
         $existsPivot = MarketingListUser::where('marketing_list_id', $listId)
             ->where('user_id', $user->id)
             ->exists();
@@ -734,13 +859,12 @@ class PromoteCrmMarketingListMembers extends Command
     protected function markTmpRowDone(
         CrmMarketingListMemberTmp $tmp
     ): void {
-        $tmp->is_done = true;
+        $tmp->is_done = 1;
         $tmp->save();
     }
 
     /**
-     * Normaliza un teléfono: deja sólo dígitos (y opcionalmente + al principio),
-     * limita longitud para no romper e164.
+     * Normaliza un teléfono.
      */
     protected function normalizePhone(?string $raw): ?string
     {
@@ -749,7 +873,6 @@ class PromoteCrmMarketingListMembers extends Command
             return null;
         }
 
-        // Conservamos un posible + inicial y limpiamos el resto
         $hasPlus = str_starts_with($raw, '+');
         $digits  = preg_replace('/\D+/', '', $raw);
 
@@ -759,7 +882,6 @@ class PromoteCrmMarketingListMembers extends Command
 
         $phone = ($hasPlus ? '+' : '') . $digits;
 
-        // Si esto parece un NIF o una dirección, tendrá longitud absurda
         if (strlen($phone) < 6 || strlen($phone) > 30) {
             return null;
         }
@@ -768,7 +890,7 @@ class PromoteCrmMarketingListMembers extends Command
     }
 
     /**
-     * Parse genérico de fecha/hora desde la columna tmp (puede ser string o DateTime).
+     * Parse genérico de fecha/hora desde la columna tmp.
      */
     protected function parseDateTimeFromTmp($value): ?Carbon
     {
@@ -832,6 +954,64 @@ class PromoteCrmMarketingListMembers extends Command
     }
 
     /**
+     * Map de salutación desde texto libre al key de HasSalutation.
+     */
+    protected function mapSalutationFromTmp(?string $raw): ?string
+    {
+        $raw = trim((string) $raw);
+        if ($raw === '') {
+            return null;
+        }
+
+        $salutations = HasSalutation::salutationMap();
+        $needle      = Str::slug(mb_strtolower($raw, 'UTF-8'));
+
+        foreach ($salutations as $key => $meta) {
+            $labelSlug = isset($meta['label']) ? Str::slug(mb_strtolower($meta['label'], 'UTF-8')) : null;
+            $abbrSlug  = isset($meta['abbr'])  ? Str::slug(mb_strtolower($meta['abbr'],  'UTF-8')) : null;
+
+            if ($needle === $labelSlug || $needle === $abbrSlug) {
+                return $key;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Map de contact_type desde texto Dynamics → código interno.
+     */
+    protected function mapContactTypeFromTmp(?string $raw): string
+    {
+        $map = [
+            'ayuntamiento'                  => 'ayu',
+            'banco'                         => 'bco',
+            'cliente potencial'             => 'clp',
+            'clientes'                      => 'cl',
+            'cofradía'                      => 'cof',
+            'colaboradores'                 => 'colb',
+            'comunidad autónoma'            => 'ca',
+            'conferencias'                  => 'conf',
+            'educación'                     => 'edu',
+            'empresa'                       => 'emp',
+            'fuerzas armadas'               => 'ffaa',
+            'fundación'                     => 'fund',
+            'gabinete de comunicación'      => 'gbco',
+            'iglesia'                       => 'igl',
+            'institucionales'               => 'inst',
+            'medios de comunicación'        => 'mdco',
+            'newsletter'                    => 'newl',
+            'otros contactos'               => 'otrc',
+            'patronato'                     => 'patr',
+            'proveedores'                   => 'pr'
+        ];
+
+        $key = mb_strtolower(trim((string) $raw), 'UTF-8');
+
+        return $map[$key] ?? 'clp';
+    }
+
+    /**
      * Punto para lógica “en bruto” si quieres probar cosas sin chunks ni opciones.
      * NO LO TOCO, lo rellenas tú si te apetece.
      */
@@ -848,6 +1028,24 @@ class PromoteCrmMarketingListMembers extends Command
         ->where('slug', 'free')
         ->where('status', 1)
         ->first();
+
+        //Tratamiento:
+        $salutations = HasSalutation::salutationMap();
+
+        //Tipos de contacto:
+        $contact_types = [
+            'banco'             => 'bco',
+            'cliente potencial' => 'clp',
+            'clientes'          => 'cl',
+            'fuerzas armadas'   => 'ffaa'
+        ];
+
+        //Subtipos de contacto:
+        $contact_subtypes = Category::where('company_id', $currentCompanyId)
+            ->where('module', 'users')
+            ->where('depth', '0')
+            ->orderBy('name', 'ASC')
+            ->get();
 
         foreach($data as $r){
             //Propietario:
@@ -880,11 +1078,31 @@ class PromoteCrmMarketingListMembers extends Command
 
                 $sex = $r->sex == 'Hombre'? 'h':($r->sex == 'Mujer'? 'm':null);
 
+                $salutation = null;
+                if($r->salutation){
+                    $rawSal     = trim((string) $r->salutation);
+
+                    if ($rawSal !== '') {
+                        $needle = Str::slug(mb_strtolower($rawSal, 'UTF-8')); // "Señora" => "senora", "Sr." => "sr"
+
+                        foreach ($salutations as $key => $meta) {
+                            $labelSlug = isset($meta['label']) ? Str::slug(mb_strtolower($meta['label'], 'UTF-8')) : null;
+                            $abbrSlug  = isset($meta['abbr'])  ? Str::slug(mb_strtolower($meta['abbr'],  'UTF-8')) : null;
+
+                            if ($needle === $labelSlug || $needle === $abbrSlug) {
+                                $salutation = $key;      // esta es la que guardas en users.salutation
+                                break;
+                            }
+                        }
+                    }    
+                }
+
                 $user = new User();
                 $user->name = $r->user_name;
                 $user->surname = $r->surname;
                 $user->email = $r->email;
                 $user->sex = $sex;
+                $user->salutation = $salutation;
                 $user->nif = $r->nif;
                 $user->password = bcrypt($random_password);
                 $user->isAdmin = false;
@@ -1042,19 +1260,40 @@ class PromoteCrmMarketingListMembers extends Command
                 $crm_contact->save();   
 
             }else{
-                $cc = new CrmContact();
-                $cc->company_id =  $currentCompanyId;
-                $cc->user_id = $user->id;
-                $cc->crm_account_id = $crm_account? $crm_account->id:null;      //Se importan muchos contactos sin vinculación con cuenta ni empresa.
-                $cc->contact_type = 'cl';
-                $cc->position = $r->position;
-                $cc->department = $r->department;
-                $cc->cost_center = $r->cost_center;
-                $cc->owner_id = $ownerId;
-                //$cc->is_main = null;
-                $cc->status = 1;
-                $cc->created_at = $user->created_at;
-                $cc->save();
+                //Tipo de contacto:
+                $contact_type = 'clp';
+                if($r->contact_type){
+                    $key = mb_strtolower(trim($r->contact_type), 'UTF-8'); // "Cliente Potencial" -> "cliente potencial"
+
+                    if (isset($contact_types[$key])) {
+                        $contact_type = $contact_types[$key];
+                    }
+                }
+
+                $crm_contact = new CrmContact();
+                $crm_contact->company_id =  $currentCompanyId;
+                $crm_contact->user_id = $user->id;
+                $crm_contact->crm_account_id = $crm_account? $crm_account->id:null;      //Se importan muchos contactos sin vinculación con cuenta ni empresa.
+                $crm_contact->contact_type = $contact_type;
+                $crm_contact->position = $r->position;
+                $crm_contact->department = $r->department;
+                $crm_contact->cost_center = $r->cost_center;
+                $crm_contact->owner_id = $ownerId;
+                //$crm_contact->is_main = null;
+                $crm_contact->status = 1;
+                $crm_contact->created_at = $user->created_at;
+                $crm_contact->save();
+            }
+
+            //Mensajes del contacto:
+            if($r->description && $r->description != ''){
+                $msg = new CrmContactMessage();
+                $msg->crm_contact_id = $crm_contact->id;
+                $msg->title = null;
+                $msg->message = $r->description;
+                $msg->origin = 'otrc';
+                $msg->status = 1;
+                $msg->save();
             }
 
             //Vinculación a listado:
@@ -1066,9 +1305,55 @@ class PromoteCrmMarketingListMembers extends Command
                 $mlu->save();
             }
 
+            //Categoría (subtipo de contacto) del usuario:
+            if($r->contact_subtype && $user){
+                // Normalizamos el texto
+                $rawSubtype = trim($r->contact_subtype);
+                $slug = Str::slug(mb_strtolower($rawSubtype, 'UTF-8'));
+
+                // Cache opcional en memoria para no machacar la BD
+                static $subtypeCache = []; // [company_id.slug => Category]
+
+                $cacheKey = $currentCompanyId . '.' . $slug;
+
+                if (isset($subtypeCache[$cacheKey])) {
+                    $category = $subtypeCache[$cacheKey];
+                } else {           
+                    $category = Category::where('company_id', $currentCompanyId)
+                        ->where('slug', $slug)
+                        ->where('module', 'users')
+                        ->where('depth', 0)
+                        ->first();
+
+                    if (! $category) {
+                        $category = new Category();
+                        $category->company_id = $currentCompanyId;
+                        $category->module     = 'users';
+                        $category->depth      = 0;
+                        $category->name       = $rawSubtype;      // nombre tal cual viene
+                        $category->slug       = $slug;
+                        $category->status     = 1;                // o lo que uses por defecto
+                        $category->save();
+                    }
+
+                    $subtypeCache[$cacheKey] = $category;
+                }
+
+                // Pivot en categorizables, evitando duplicados
+                DB::table('categorizables')->updateOrInsert(
+                    [
+                        'company_id'         => $currentCompanyId,
+                        'category_id'        => $category->id,
+                        'categorizable_type' => \App\Models\User::class,
+                        'categorizable_id'   => $user->id,
+                    ],
+                    [] // sin campos extra
+                );
+            }
+
             //Damos por pasado el registro:
             $r->is_done = 1;
             $r->save();
         }
-    }
+    }    
 }

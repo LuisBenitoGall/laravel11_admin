@@ -42,6 +42,7 @@ use App\Http\Requests\MarketingListUpdateRequest;
 use App\Http\Resources\MarketingListResource;
 
 //Services:
+use App\Services\Brevo\BrevoMarketingService;
 use App\Services\SlugService;
 
 //Traits:
@@ -63,6 +64,7 @@ class MarketingListController extends Controller
      * 7. Eliminar lista.
      * 8. Actualizar estado.
      * 9. Mapeo de miembros.
+     * 10. Exportar lista a Brevo.
      */
 
     use HasUserPermissionsTrait;
@@ -430,4 +432,36 @@ class MarketingListController extends Controller
             ];
         });
     }
+
+    /**
+     * 10. Exportar lista a Brevo.
+     */
+    public function exportToBrevo(MarketingList $list, BrevoMarketingService $brevo)
+    {
+        // Seguridad mínima: misma empresa que la de sesión, etc.
+        $ctx = app(\App\Support\CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+
+        if ($currentCompanyId <= 0 || $list->company_id !== $currentCompanyId) {
+            abort(403, 'Empresa no válida para esta lista.');
+        }
+
+        try {
+            // 1) Asegurar que la lista existe en Brevo
+            $brevo->ensureRemoteList($list);
+
+            // 2) Sincronizar miembros
+            $brevo->syncListMembers($list);
+
+            return back()->with('msg', __('lista_exportada_a_brevo_ok'));
+        } catch (\Throwable $e) {
+            \Log::error('Error exporting list to Brevo', [
+                'list_id' => $list->id,
+                'error'   => $e->getMessage(),
+            ]);
+
+            return back()->with('alert', __('error_exportando_lista_brevo').': '.$e->getMessage());
+        }
+    }
+
 }

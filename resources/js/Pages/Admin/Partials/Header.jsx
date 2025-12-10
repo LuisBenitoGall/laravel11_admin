@@ -7,7 +7,14 @@ import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function Header({ user, title, subtitle, actions, companies, current_company }) {
+export default function Header({ 
+    user, 
+    title, 
+    subtitle, 
+    actions, 
+    companies, 
+    current_company 
+}) {
     const __ = useTranslation();
     const props = usePage()?.props || {};
     const locale = props.locale || false;

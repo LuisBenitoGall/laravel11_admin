@@ -27,6 +27,11 @@ class MarketingList extends Model
         'is_dynamic',
         'members_count',
         'last_used_at',
+        'brevo_list_id',
+        'brevo_folder_id',
+        'brevo_synced_at',
+        'brevo_sync_status',
+        'brevo_sync_error'
     ];
 
     protected $casts = [
@@ -34,6 +39,9 @@ class MarketingList extends Model
         'members_count' => 'integer',
         'status'        => 'integer',
         'last_used_at'  => 'datetime',
+        'brevo_list_id'      => 'integer',
+        'brevo_folder_id'    => 'integer',
+        'brevo_synced_at'    => 'datetime'
     ];
 
     /*

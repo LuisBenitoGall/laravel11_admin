@@ -26,9 +26,18 @@ import MarketingListShowView from '@/Pages/Admin/MarketingList/Partials/Marketin
 //Utils:
 import renderCellContent from '@/Utils/renderCellContent.jsx';
 
-export default function Index({ auth, session, title, subtitle, lists, queryParams: rawQueryParams = {}, availableLocales }) {
+export default function Index({ 
+    auth, 
+    session, 
+    title, 
+    subtitle, 
+    lists, 
+    queryParams: rawQueryParams = {}, 
+    availableLocales 
+}) {
     const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
     const __ = useTranslation();
+    const { showConfirm } = useSweetAlert();
 
     //Columna Show Register
     const [showId, setShowId] = useState(null);
@@ -42,6 +51,23 @@ export default function Index({ auth, session, title, subtitle, lists, queryPara
     const handleCloseShowPanel = () => {
         setShowPanelOpen(false);
         setShowId(null);
+    };
+
+    const handleExportToBrevo = (list) => {
+        showConfirm({
+            title: __('exportacion_listado'),
+            text: __('exportacion_listado_confirm'),
+            icon: 'warning',
+            onConfirm: () => {
+                router.post(
+                    route('marketing-lists.export-brevo', [list.id]),
+                    {},
+                    {
+                        preserveScroll: true,
+                    }
+                );
+            },
+        });
     };
 
     //Columnas:
@@ -141,16 +167,16 @@ export default function Index({ auth, session, title, subtitle, lists, queryPara
                         />
 
                         <tbody>
-                            {lists.data.map((campaign) => (
-                                <tr key={"campaign-"+campaign.id}>
+                            {lists.data.map((list) => (
+                                <tr key={"list-"+list.id}>
                                     {/* Columna "show" fija */}
                                     <td className="text-center">
-                                        <ShowRegisterButton onClick={() => handleShowRegister(campaign)} />
+                                        <ShowRegisterButton onClick={() => handleShowRegister(list)} />
                                     </td>
 
                                     {columns.map(col => (
                                         <td key={col.key} className={`${col.class_td ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}>
-                                            {renderCellContent(campaign[col.key], col, campaign)}
+                                            {renderCellContent(list[col.key], col, list)}
                                         </td>
                                     ))}
 
@@ -159,13 +185,13 @@ export default function Index({ auth, session, title, subtitle, lists, queryPara
                                         {/* Estado */}
                                         {permissions?.['marketing-lists.edit'] && (
                                             <OverlayTrigger
-                                                key={"status-"+campaign.id}
+                                                key={"status-"+list.id}
                                                 placement="top"
-                                                overlay={<Tooltip className="ttp-top">{ campaign.status == 1 ? __('lista_activa') : __('lista_inactiva') }</Tooltip>}
+                                                overlay={<Tooltip className="ttp-top">{ list.status == 1 ? __('lista_activa') : __('lista_inactiva') }</Tooltip>}
                                             >
                                                 <StatusButton 
-                                                    status={campaign.status} 
-                                                    id={campaign.id} 
+                                                    status={list.status} 
+                                                    id={list.id} 
                                                     updateRoute='marketing-lists.status'
                                                     reloadUrl={route('marketing-lists.index')}
                                                     reloadResource="marketing-lists"
@@ -173,14 +199,32 @@ export default function Index({ auth, session, title, subtitle, lists, queryPara
                                             </OverlayTrigger>
                                         )}
 
+                                        {/* Exportar a Brevo */}
+                                        <OverlayTrigger
+                                                key={"export-"+list.id}
+                                                placement="top"
+                                                overlay={<Tooltip className="ttp-top">{ __('brevo_exportar') }</Tooltip>}
+                                            >
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm btn-info ms-1"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    handleExportToBrevo(list);
+                                                }}
+                                            >
+                                                <i className="la la-file-export"></i>
+                                            </button>
+                                        </OverlayTrigger>
+
                                         {/* Editar */}
                                         {permissions?.['marketing-lists.edit'] && (
                                             <OverlayTrigger
-                                                key={"edit-"+campaign.id}
+                                                key={"edit-"+list.id}
                                                 placement="top"
                                                 overlay={<Tooltip className="ttp-top">{ __('editar') }</Tooltip>}
                                             >
-                                                <Link href={route('marketing-lists.edit', campaign.id)} className="btn btn-sm btn-info ms-1">
+                                                <Link href={route('marketing-lists.edit', list.id)} className="btn btn-sm btn-info ms-1">
                                                     <i className="la la-edit"></i>
                                                 </Link>
                                             </OverlayTrigger>
@@ -189,7 +233,7 @@ export default function Index({ auth, session, title, subtitle, lists, queryPara
                                         {/* Eliminar */}
                                         {permissions?.['marketing-lists.destroy'] && (
                                             <OverlayTrigger
-                                                key={"delete-"+campaign.id}
+                                                key={"delete-"+list.id}
                                                 placement="top"
                                                 overlay={<Tooltip className="ttp-top">{ __('eliminar') }</Tooltip>}
                                             >
@@ -197,7 +241,7 @@ export default function Index({ auth, session, title, subtitle, lists, queryPara
                                                     <button
                                                         type="button"
                                                         className="btn btn-sm btn-danger ms-1"
-                                                        onClick={() => handleDelete(campaign.id)}
+                                                        onClick={() => handleDelete(list.id)}
                                                     >
                                                         <i className="la la-trash"></i>
                                                     </button>

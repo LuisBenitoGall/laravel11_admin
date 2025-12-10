@@ -197,4 +197,13 @@ class User extends Authenticatable implements MustVerifyEmail{
     {
         return $this->hasMany(UserAddress::class, 'user_id');
     }
+
+    /**
+     * 11. Categorías de usuario.
+     */
+    public function categories()
+    {
+        return $this->morphToMany(Category::class, 'categorizable');
+    }
+
 }

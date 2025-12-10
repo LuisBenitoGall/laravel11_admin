@@ -163,7 +163,6 @@ class CrmContactController extends Controller{
             return redirect($url);
         }
 
-        // /admin/crm-leads → segment(2) = 'crm-leads'
         $leads = $request->segment(2) === 'crm-leads';
 
         $perPage = (int) $request->input(

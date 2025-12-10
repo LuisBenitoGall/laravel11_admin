@@ -39,7 +39,7 @@ class CrmMarketingListMemberTmp extends Model
         'mobile',
         'private_phone1',
         'birthday',
-        'is_done',
+        'is_done'
     ];
 
     protected $casts = [

@@ -15,6 +15,7 @@ import Tabs from '@/Components/Tabs';
 import TextInput from '@/Components/TextInput';
 
 //Hooks:
+import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTranslation } from '@/Hooks/useTranslation';
 
 //Modals:
@@ -42,6 +43,8 @@ export default function Index({
     const languages = props.languages || [];
     const permissions = props.permissions || {};
     const cloneSourceLists = props.cloneSourceLists || [];
+
+    const { showConfirm } = useSweetAlert();
 
     const rawQueryParams = props.queryParams || {};
     const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
@@ -84,6 +87,42 @@ export default function Index({
         status: list.status
     });
 
+    // ⬅️ NUEVO: inicializamos el hook de SweetAlert
+    const { confirm } = useSweetAlert?.() || { confirm: null };
+
+    // ⬅️ NUEVO: handler de exportación a Brevo usando SweetAlert
+    const handleExportToBrevo = (e) => {
+        if (e && e.preventDefault) {
+            e.preventDefault();
+        }
+
+        showConfirm({
+            title: __('exportacion_listado'),
+            text: __('exportacion_listado_confirm'),
+            icon: 'warning',
+            onConfirm: () => {
+                router.post(
+                    route('marketing-lists.export-brevo', [list.id]),
+                    {},
+                    {
+                        preserveScroll: true,
+                        onSuccess: () => {
+                            router.reload({
+                                data: {
+                                    ...(queryParams || {}),
+                                    page: queryParams.page || 1,
+                                },
+                                only: ['list', 'users', 'rows'],
+                                preserveState: true,
+                                preserveScroll: true,
+                            });
+                        },
+                    }
+                );
+            },
+        });
+    };
+
     //Acciones:
     const actions = [];
     if (permissions?.['marketing-lists.index']) {
@@ -121,6 +160,17 @@ export default function Index({
             url: '',
             modal: true,
             onClick: handleOpenCloneModal
+        });
+    }
+
+    // Acción de exportar a Brevo usando el handler con SweetAlert
+    if (permissions?.['marketing-lists.edit']) {
+        actions.push({
+            text: __('brevo_exportar'),
+            icon: 'la-file-export',
+            url: '',
+            modal: true,
+            onClick: handleExportToBrevo
         });
     }
 
