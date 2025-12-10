@@ -33,13 +33,15 @@ class BrevoMarketingService
             throw new \RuntimeException('Brevo API key not configured.');
         }
 
-        // Si ya tiene brevo_list_id, podríamos actualizar nombre.
+        // 1) Asegurar carpeta remota
+        $this->ensureRemoteFolder($list);
+
+        // 2) Si ya tiene lista en Brevo, opcionalmente actualizamos nombre y salimos
         if ($list->brevo_list_id) {
-            // Por ahora sólo intentamos actualizar nombre,
-            // sin meternos en cosas raras.
             try {
                 $payload = [
                     'name' => $this->buildRemoteListName($list),
+                    // normalmente no hace falta tocar folderId al actualizar
                 ];
 
                 $response = $this->client()
@@ -64,10 +66,10 @@ class BrevoMarketingService
             return $list;
         }
 
-        // No existe en Brevo: la creamos
+        // 3) Crear lista en Brevo con folderId obligatorio
         $payload = [
             'name'     => $this->buildRemoteListName($list),
-            // 'folderId' => $list->brevo_folder_id ?? null, // si en un futuro gestionas carpetas
+            'folderId' => $list->brevo_folder_id, // aquí ya no es null gracias a ensureRemoteFolder
         ];
 
         try {
@@ -86,7 +88,6 @@ class BrevoMarketingService
 
             $data = $response->json();
 
-            // Brevo devuelve el id de la lista creada
             $list->brevo_list_id     = $data['id'] ?? null;
             $list->brevo_sync_status = 'ok';
             $list->brevo_sync_error  = null;
@@ -348,6 +349,67 @@ class BrevoMarketingService
         }
 
         return array_keys($allEmails);
+    }
+
+    /**
+     * Crea una carpeta en Brevo para esta lista si todavía no tiene.
+     *
+     * De momento: una carpeta por lista.
+     * Más adelante, si quieres, puedes pasar a carpeta por empresa.
+     */
+    protected function ensureRemoteFolder(MarketingList $list): void
+    {
+        if ($list->brevo_folder_id) {
+            return;
+        }
+
+        $payload = [
+            // Nombre que verá la clienta en Brevo
+            'name' => sprintf(
+                'ERP %s - Lista %s (#%d)',
+                $list->company_id,
+                $list->name,
+                $list->id
+            ),
+        ];
+
+        try {
+            $response = $this->client()
+                ->post($this->url('/contacts/folders'), $payload);
+
+            if ($response->failed()) {
+                $body = $response->json();
+
+                $list->brevo_sync_status = 'error';
+                $list->brevo_sync_error  = $body['message'] ?? $response->body();
+                $list->save();
+
+                throw new \RuntimeException('Brevo error creating folder: '.$response->body());
+            }
+
+            $data = $response->json();
+            $folderId = $data['id'] ?? null;
+
+            if (!$folderId) {
+                throw new \RuntimeException('Brevo folder id missing in response.');
+            }
+
+            $list->brevo_folder_id   = $folderId;
+            $list->brevo_sync_status = 'ok';
+            $list->brevo_sync_error  = null;
+            $list->save();
+        } catch (Throwable $e) {
+            Log::error('Brevo: exception creating folder', [
+                'list_id' => $list->id,
+                'error'   => $e->getMessage(),
+            ]);
+
+            $list->brevo_sync_status = 'error';
+            $list->brevo_sync_error  = $e->getMessage();
+            $list->save();
+
+            throw $e;
+        }
     }
 
 }
