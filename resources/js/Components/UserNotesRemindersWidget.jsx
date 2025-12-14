@@ -90,7 +90,7 @@ export default function UserNotesRemindersWidget() {
                 <div className="d-flex align-items-center">
                     <i className="la la-clock me-2" aria-hidden="true" />
                     <span className="fw-semibold">
-                        {__('recordatorios') || 'Recordatorios'}
+                        {__('recordatorios_contactos') || 'Recordatorios'}
                     </span>
                 </div>
 

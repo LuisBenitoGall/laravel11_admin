@@ -11,6 +11,7 @@ import { useTranslation } from '@/Hooks/useTranslation';
 import FavoritesGrid from './Partials/FavoritesGrid';
 
 // Widgets:
+import CompanyNotesRemindersWidget from '@/Components/CompanyNotesRemindersWidget';
 import NewContactsWidget from '@/Components/NewContactsWidget';
 import UserNotesRemindersWidget from '@/Components/UserNotesRemindersWidget';
 
@@ -42,6 +43,10 @@ export default function Index({ auth, session, title, subtitle, favorites = [] }
                     {/* Widgets */}
                     <div className="col-md-6 col-lg-4 my-5">
                         <UserNotesRemindersWidget />
+                    </div>
+
+                    <div className="col-md-6 col-lg-4 my-5">
+                        <CompanyNotesRemindersWidget />
                     </div>
 
                     <div className="col-md-6 col-lg-4 my-5">

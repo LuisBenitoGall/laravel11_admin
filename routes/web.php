@@ -48,6 +48,7 @@ use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\CompanyEmailController;
 // use App\Http\Controllers\Admin\CompanyGroupController;
 use App\Http\Controllers\Admin\CompanyModuleController;
+use App\Http\Controllers\Admin\CompanyNoteController;
 // use App\Http\Controllers\Admin\CompanyNotificationManagementController;
 // use App\Http\Controllers\Admin\CompanySectorController;
 use App\Http\Controllers\Admin\CompanySettingController;
@@ -419,6 +420,20 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     //Company Modules:
     Route::get('/company-modules', [CompanyModuleController::class, 'index'])->name('company-modules.index')->middleware('permission:company-modules.index');
     Route::post('/company-modules/toggle/{module_id}', [CompanyModuleController::class, 'toggle'])->name('company-modules.toggle');
+
+    //Company Notes:
+    Route::post('/company-notes/store', [CompanyNoteController::class, 'store'])->name('company-notes.store');
+    Route::get('company-notes/{company}/show', [CompanyNoteController::class, 'show'])->name('company-notes.show');
+    Route::put('company-notes/{note}/reminder', [CompanyNoteController::class, 'updateReminder'])->name('company-notes.update-reminder');
+    Route::put('/company-notes/{note}', [CompanyNoteController::class, 'update'])->name('company-notes.update');
+    Route::put('/company-notes/{note}/relevance', [CompanyNoteController::class, 'updateRelevance'])
+    ->name('company-notes.update-relevance');
+    Route::put('/company-notes/{note}/pin', [CompanyNoteController::class, 'togglePin'])
+    ->name('company-notes.toggle-pin');
+    Route::put('/company-notes/{note}/archive', [CompanyNoteController::class, 'toggleArchive'])
+    ->name('company-notes.toggle-archive');
+    Route::delete('/company-notes/{note}', [CompanyNoteController::class, 'destroy'])->name('company-notes.destroy');
+    Route::get('/company-notes/owner-reminders', [CompanyNoteController::class, 'ownerReminders'])->name('company-notes.owner-reminders');
 
     //Company Sectors. Los sectores empresariales se vinculan a Category:
     Route::get('/company-sectors', [CategoryController::class, 'index'])->name('company-sectors.index')->defaults('environment', 'sectors')->middleware('permission:companies.create');

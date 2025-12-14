@@ -43,7 +43,7 @@ class UserNoteResource extends JsonResource
                     'surname'   => $this->contact->surname,
                     'full_name' => $this->contact->full_name,
                 ];
-            }),
+            })
         ];
     }
 }

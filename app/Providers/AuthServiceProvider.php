@@ -4,10 +4,12 @@ namespace App\Providers;
 
 //Models:
 use App\Models\Category;
+use App\Models\CompanyNote;
 use App\Models\CustomerProvider;
 
 //Policies:
 use App\Policies\CategoryPolicy;
+use App\Policies\CompanyNotePolicy;
 use App\Policies\CustomerProviderPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as BaseAuthServiceProvider;
 
@@ -17,6 +19,7 @@ class AuthServiceProvider extends BaseAuthServiceProvider{
      */
     protected $policies = [
         Category::class => CategoryPolicy::class,
+        CompanyNote::class => CompanyNotePolicy::class,
         CustomerProvider::class => CustomerProviderPolicy::class,
         // añade aquí más mapeos cuando los vayas creando
     ];
