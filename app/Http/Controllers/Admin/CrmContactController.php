@@ -33,6 +33,7 @@ use App\Models\Country;
 use App\Models\CrmAccount;
 use App\Models\CrmContact;
 use App\Models\CustomerProvider;
+use App\Models\MarketingList;
 use App\Models\User;
 use App\Models\UserColumnPreference;
 
@@ -72,7 +73,8 @@ class CrmContactController extends Controller{
                 'crm-contacts.index',
                 'crm-contacts.search',
                 'crm-contacts.show',
-                'crm-contacts.update'
+                'crm-contacts.update',
+                'marketing-lists.create'
             ]);   
         } 
     }   
@@ -80,73 +82,7 @@ class CrmContactController extends Controller{
     /**
      * 1. Listado de contactos.
      */
-    public function index(Request $request)
-    {
-        $ctx = app(CompanyContext::class);
-        $currentCompanyId = (int) $ctx->id();
-        if($currentCompanyId <= 0){
-            $url = route('companies.refresh-session');
-
-            // si quieres ser fino, guarda a dónde quería ir originalmente
-            session(['intended_after_company' => request()->fullUrl()]);
-            session()->flash('alert', __('empresa_no_activa'));
-
-            if (request()->header('X-Inertia')) {
-                return \Inertia\Inertia::location($url);
-            }
-
-            return redirect($url);
-        }
-
-        // /admin/crm-leads → segment(2) = 'crm-leads'
-        $leads = $request->segment(2) === 'crm-leads';
-
-        $perPage = $request->input('per_page', config('constants.RECORDS_PER_PAGE_DEFAULT_'));
-
-        // que dataQuery pueda leerlo desde $request->input('leads')
-        $request->merge(['leads' => $leads]);
-
-        $contacts = $this->dataQuery($request)
-            ->paginate($perPage)
-            ->onEachSide(1);
-
-        $salutations          = HasSalutation::comboOptions();
-        $contact_types        = HasContactTypes::typesMap();
-        $contact_types_combo  = HasContactTypes::comboOptions();
-
-        //Subtipos de contacto:
-        $contact_subtypes = Category::where('company_id', $currentCompanyId)
-        ->where('module', 'users')
-        ->where('status', 1)
-        ->where('depth', '0')
-        ->orderBy('name', 'ASC')
-        ->get();
-
-        // importante para el front (rutas)
-        $slug = $leads ? 'crm-leads' : 'crm-contacts';
-
-        return Inertia::render('Admin/CrmContact/Index', [
-            "title"               => __($this->option),
-            "subtitle"            => $leads ? __('clientes_potenciales') : __('contactos'),
-            "module"              => $this->module,
-            "slug"                => $slug,
-            "contacts"            => UserResource::collection($contacts),
-            "salutations"         => $salutations,
-            "contact_types"       => $contact_types,
-            "contact_types_combo" => $contact_types_combo,
-            "contact_subtypes"    => $contact_subtypes,
-            "leads"               => $leads,
-            "queryParams"         => request()->query() ?: null,
-            "availableLocales"    => LocaleTrait::availableLocales(),
-            "permissions"         => $this->permissions,
-            "columnPreferences"   => UserColumnPreference::forUserAndTables(
-                Auth::id(),
-                ['tblContacts']
-            ),
-        ]);
-    }
-
-    public function index_(Request $request)
+    public function index_DEPRECATED(Request $request)
     {
         $ctx = app(CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
@@ -272,6 +208,90 @@ class CrmContactController extends Controller{
                 Auth::id(),
                 ['tblContacts']
             ),
+        ]);
+    }
+
+    public function index(Request $request)
+    {
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if($currentCompanyId <= 0){
+            $url = route('companies.refresh-session');
+
+            // si quieres ser fino, guarda a dónde quería ir originalmente
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
+
+        // /admin/crm-leads → segment(2) = 'crm-leads'
+        $leads = $request->segment(2) === 'crm-leads';
+
+        $perPage = $request->input('per_page', config('constants.RECORDS_PER_PAGE_DEFAULT_'));
+
+        // que dataQuery pueda leerlo desde $request->input('leads')
+        $request->merge(['leads' => $leads]);
+
+        $contacts = $this->dataQuery($request)
+            ->paginate($perPage)
+            ->onEachSide(1);
+
+        $salutations          = HasSalutation::comboOptions();
+        $contact_types        = HasContactTypes::typesMap();
+        $contact_types_combo  = HasContactTypes::comboOptions();
+
+        //Subtipos de contacto:
+        $contact_subtypes = Category::where('company_id', $currentCompanyId)
+        ->where('module', 'users')
+        ->where('status', 1)
+        ->where('depth', '0')
+        ->orderBy('name', 'ASC')
+        ->get();
+
+        // importante para el front (rutas)
+        $slug = $leads ? 'crm-leads' : 'crm-contacts';
+
+        // Modo "builder" para crear miembros de una lista de marketing desde contactos
+        $builderListId = (int) $request->input('marketing_list_id', 0);
+        $builderMode   = $request->boolean('build_marketing_list') && $builderListId > 0;
+        $builderList   = null;
+
+        if ($builderMode) {
+            $builderList = MarketingList::query()
+                ->where('company_id', $currentCompanyId)
+                ->where('id', $builderListId)
+                ->first();
+
+            if (!$builderList) {
+                $builderMode = false;
+            }
+        }
+
+        return Inertia::render('Admin/CrmContact/Index', [
+            "title"               => __($this->option),
+            "subtitle"            => $leads ? __('clientes_potenciales') : __('contactos'),
+            "module"              => $this->module,
+            "slug"                => $slug,
+            "contacts"            => UserResource::collection($contacts),
+            "salutations"         => $salutations,
+            "contact_types"       => $contact_types,
+            "contact_types_combo" => $contact_types_combo,
+            "contact_subtypes"    => $contact_subtypes,
+            "leads"               => $leads,
+            "queryParams"         => request()->query() ?: null,
+            "availableLocales"    => LocaleTrait::availableLocales(),
+            "permissions"         => $this->permissions,
+            "columnPreferences"   => UserColumnPreference::forUserAndTables(
+                Auth::id(),
+                ['tblContacts']
+            ),
+            "builderMode"         => $builderMode,
+            "builderList"         => $builderList
         ]);
     }
 

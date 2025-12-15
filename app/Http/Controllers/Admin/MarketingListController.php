@@ -58,8 +58,11 @@ class MarketingListController extends Controller
      * 1.2. Data Query.
      * 2. Formulario nueva lista.
      * 3. Guardar nueva lista.
+     * 3.1. Guardar nueva lista desde Crm Contacts.
      * 4. Mostrar lista.
      * 5. Editar lista.
+     * 5.1. Filtro de listado de miembros.
+     * 5.2. Data para exportación de miembros.
      * 6. Actualizar lista.
      * 7. Eliminar lista.
      * 8. Actualizar estado.
@@ -88,7 +91,25 @@ class MarketingListController extends Controller
         } 
     }   
 
+    /**
+     * 1. Listado de listas de marketing por empresa.
+     */
     public function index(MarketingListFilterRequest $request){
+        //Actualizando nº de miembros por lista:
+        $list_members = MarketingList::select('id', 'members_count')
+        ->where('members_count', '0')
+        ->where('status', 1)
+        ->get();
+
+        if($list_members->count()){
+            foreach($list_members as $lm){
+                $membersCount = MarketingListUser::countForList($lm->id);
+                
+                $lm->members_count = $membersCount;
+                $lm->save();   
+            }
+        }
+
         $perPage = $request->input('per_page', config('constants.RECORDS_PER_PAGE_DEFAULT_'));
 
         $lists = $this->dataQuery($request)->paginate($perPage)->onEachSide(1);
@@ -244,6 +265,56 @@ class MarketingListController extends Controller
     }
 
     /**
+     * 3.1. Guardar nueva lista desde Crm Contacts.
+     */
+    public function storeFromContacts(Request $request, SlugService $slugService)
+    {
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if ($currentCompanyId <= 0) {
+            $url = route('companies.refresh-session');
+
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if ($request->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
+
+        $data = $request->validate([
+            'name'         => ['required', 'string', 'max:255'],
+            'observations' => ['nullable', 'string'],
+        ]);
+
+        $slug = $slugService->generate(MarketingList::class, $data['name'], [
+            'company_id' => $currentCompanyId,
+        ]);
+
+        $list = new MarketingList();
+        $list->owner_id      = Auth::id();
+        $list->company_id    = $currentCompanyId;
+        $list->name          = $data['name'];
+        $list->slug          = $slug;
+        $list->observations  = $data['observations'] ?? null;
+        $list->status        = 1;
+        $list->is_dynamic    = 1;
+        $list->members_count = 0;
+        $list->created_by    = Auth::id();
+        $list->updated_by    = Auth::id();
+        $list->save();
+
+        // Redirigimos al índice de contactos en modo "construir lista"
+        return redirect()->route('crm-contacts.index', [
+                'marketing_list_id'     => $list->id,
+                'build_marketing_list'  => 1,
+            ])
+            ->with('msg', __('lista_creada_msg'));
+    }
+
+    /**
      * 4. Mostrar lista.
      */
     public function show(Request $request, MarketingList $list){
@@ -285,42 +356,27 @@ class MarketingListController extends Controller
         $list->created_by_name = optional($list->createdBy)->full_name ?? false;
         $list->updated_by_name = optional($list->updatedBy)->full_name ?? false;
 
-        // Paginación: tamaño de página desde request o valor por defecto
+        // Paginación
         $perPage = (int) $request->input('per_page', 10);
 
-        // Miembros del listado (query base)
-        $membersQuery = User::select(
-                'users.id',
-                'users.name',
-                'users.surname',
-                'users.email',
-                'marketing_list_users.id AS mlu_id',
-                'marketing_list_users.observations',
-                'marketing_list_users.status AS mlu_status',
-                'marketing_list_users.created_at',
-                'user_companies.company_id'
-            )
-            ->join('marketing_list_users', 'users.id', '=', 'marketing_list_users.user_id')
-            ->leftJoin('user_companies', 'users.id', '=', 'user_companies.user_id')
-            ->where('marketing_list_users.marketing_list_id', $list->id)
-            ->where('users.status', 1)
-            ->orderBy('users.name', 'ASC');
+        // Query de miembros con filtros/orden
+        $membersQuery = $this->membersDataQuery($request, $list);
 
-        // Paginator para Inertia (lleva data + meta + links)
+        // Paginator para Inertia
         $members = $membersQuery
             ->paginate($perPage)
             ->withQueryString();
 
-        // Mapeo de miembros SOLO sobre la colección interna
+        // Filas para la tabla (misma forma que en el tab)
         $table = $this->mapUsersForTable($members->getCollection(), $locale);
 
         // Listas de la misma empresa, activas, excluyendo la actual
         $cloneSourceLists = MarketingList::query()
-        ->where('company_id', $list->company_id)
-        ->where('status', 1)
-        ->where('id', '<>', $list->id)
-        ->orderBy('name')
-        ->get(['id', 'name']);
+            ->where('company_id', $list->company_id)
+            ->where('status', 1)
+            ->where('id', '<>', $list->id)
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
         return Inertia::render('Admin/MarketingList/Edit', [
             'title'            => __($this->option),
@@ -331,21 +387,163 @@ class MarketingListController extends Controller
             'list'             => $list,
             'tab'              => $tab,
 
-            // OJO: aquí va el paginator completo
-            'users'          => $members,
+            // paginator completo
+            'users'            => $members,
 
-            // Y aquí las filas ya transformadas para la tabla
+            // filas ya transformadas para la tabla
             'rows'             => $table,
 
             'cloneSourceLists' => $cloneSourceLists,
-
-            // Para mensajes, permisos y compañía
             'msg'              => session('msg'),
             'alert'            => session('alert'),
             'permissions'      => $this->permissions,
 
-            // Para que el frontend tenga el contexto de filtros / paginación
+            // contexto de filtros / paginación
             'queryParams'      => $request->all(),
+        ]);
+    }
+
+    /**
+     * 5.1. Filtro de listado de miembros.
+     */
+    private function membersDataQuery(Request $request, MarketingList $list): Builder
+    {
+        $companyId = (int) $list->company_id;
+
+        $nameFilter     = trim((string) $request->input('name', ''));
+        $emailFilter    = trim((string) $request->input('email', ''));
+        $phonesFilter   = trim((string) $request->input('phones', ''));
+        $positionFilter = trim((string) $request->input('position', ''));
+
+        $dateFrom = $request->input('date_from');
+        $dateTo   = $request->input('date_to');
+
+        // Orden
+        $sortField     = $request->input('sort_field', 'name');
+        $sortDirection = strtoupper($request->input('sort_direction', 'ASC'));
+
+        if (! in_array($sortDirection, ['ASC', 'DESC'], true)) {
+            $sortDirection = 'ASC';
+        }
+
+        $allowedSortFields = ['name', 'email', 'created_at'];
+        if (! in_array($sortField, $allowedSortFields, true)) {
+            $sortField = 'name';
+        }
+
+        $query = User::select(
+                'users.id',
+                'users.name',
+                'users.surname',
+                'users.email',
+                // aquí viene del CRM, no de users:
+                DB::raw('MIN(cc.position) AS position'),
+                'marketing_list_users.id AS mlu_id',
+                'marketing_list_users.observations',
+                'marketing_list_users.status AS mlu_status',
+                'marketing_list_users.created_at',
+                'user_companies.company_id'
+            )
+            ->join('marketing_list_users', 'users.id', '=', 'marketing_list_users.user_id')
+            ->leftJoin('user_companies', 'users.id', '=', 'user_companies.user_id')
+            ->leftJoin('crm_contacts AS cc', function ($j) use ($companyId) {
+                $j->on('cc.user_id', '=', 'users.id')
+                  ->where('cc.company_id', '=', $companyId)
+                  ->whereNull('cc.deleted_at');
+            })
+            ->where('marketing_list_users.marketing_list_id', $list->id)
+            ->where('users.status', 1)
+            ->with(['phones', 'avatar'])
+            ->groupBy(
+                'users.id',
+                'users.name',
+                'users.surname',
+                'users.email',
+                'marketing_list_users.id',
+                'marketing_list_users.observations',
+                'marketing_list_users.status',
+                'marketing_list_users.created_at',
+                'user_companies.company_id'
+            );
+
+        // Filtro por nombre (full_name)
+        if ($nameFilter !== '') {
+            $query->whereRaw("
+                CONCAT(
+                    TRIM(COALESCE(users.name, '')),
+                    ' ',
+                    TRIM(COALESCE(users.surname, ''))
+                ) LIKE ?
+            ", ["%{$nameFilter}%"]);
+        }
+
+        // Filtro por email
+        if ($emailFilter !== '') {
+            $query->where('users.email', 'like', "%{$emailFilter}%");
+        }
+
+        // Filtro por cargo (posición del crm_contact)
+        if ($positionFilter !== '') {
+            $query->where('cc.position', 'like', "%{$positionFilter}%");
+        }
+
+        // Filtro por teléfono (relación phones)
+        if ($phonesFilter !== '') {
+            $query->whereHas('phones', function ($q) use ($phonesFilter) {
+                $q->where('e164', 'like', "%{$phonesFilter}%");
+            });
+        }
+
+        // Rango de fechas: alta en la lista
+        if ($dateFrom && $dateTo) {
+            $query->whereBetween('marketing_list_users.created_at', [
+                "{$dateFrom} 00:00:00",
+                "{$dateTo} 23:59:59",
+            ]);
+        } elseif ($dateFrom) {
+            $query->where('marketing_list_users.created_at', '>=', "{$dateFrom} 00:00:00");
+        } elseif ($dateTo) {
+            $query->where('marketing_list_users.created_at', '<=', "{$dateTo} 23:59:59");
+        }
+
+        // Orden
+        switch ($sortField) {
+            case 'email':
+                $query->orderBy('users.email', $sortDirection);
+                break;
+
+            case 'created_at':
+                $query->orderBy('marketing_list_users.created_at', $sortDirection);
+                break;
+
+            case 'name':
+            default:
+                $query->orderBy('users.name', $sortDirection);
+                break;
+        }
+
+        return $query;
+    }
+
+    /**
+     * 5.2. Data para exportación de miembros.
+     */
+    public function membersFilteredData(Request $request, MarketingList $list)
+    {
+        $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
+
+        // misma query que usa la vista, pero sin paginación
+        $query = $this->membersDataQuery($request, $list);
+
+        $users = $query->get();
+
+        // Reutilizamos el mismo mapper de filas de la tabla
+        $rows = $this->mapUsersForTable($users, $locale);
+
+        // OJO: la key 'users' está elegida adrede para que
+        // useTableManagement (entityName = 'users') detecte el array
+        return response()->json([
+            'users' => $rows,
         ]);
     }
 

@@ -18,6 +18,7 @@ class MarketingListUserController extends Controller
      * 2. Guardar miembro.
      * 3. Eliminar miembro de listado.
      * 4. Clonar listas.
+     * 5. Guardar miembros desde un listado de contactos CRM.
      */
     
     /**
@@ -91,14 +92,20 @@ class MarketingListUserController extends Controller
             ->where('user_id', $data['user_id'])
             ->exists();
 
-        if (!$exists) {
-            MarketingListUser::create([
+        if(!$exists){
+            $list = MarketingListUser::create([
                 'marketing_list_id' => $data['marketing_list_id'],
                 'user_id'           => $data['user_id'],
                 'observations'      => $data['observations'] ?? null,
                 'status'            => 1,
-                'created_by'        => auth()->id(),
+                'created_by'        => auth()->id()
             ]);
+
+            //Actualizando nº de miembros de la lista:
+            $membersCount = MarketingListUser::countForList($list->marketing_list_id);
+
+            MarketingList::where('id', $list->marketing_list_id)
+            ->update(['members_count' => $membersCount]);
         }
 
         return back()->with('msg', __('usuario_anadido_ok'));
@@ -188,6 +195,71 @@ class MarketingListUserController extends Controller
         }
 
         return back()->with('msg', __('usuarios_copiados_desde_listas'));
+    }
+
+    /**
+     * 5. Guardar miembros desde un listado de contactos CRM.
+     */
+    public function storeFromContacts(Request $request, MarketingList $list)
+    {
+        $data = $request->validate([
+            'user_ids'   => ['required', 'array', 'min:1'],
+            'user_ids.*' => ['integer', 'distinct', 'exists:users,id'],
+        ]);
+
+        // Seguridad básica: misma empresa que la de sesión
+        $ctx = app(\App\Support\CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if ($currentCompanyId <= 0 || $list->company_id !== $currentCompanyId) {
+            abort(403, 'Empresa no válida para esta lista.');
+        }
+
+        $userIds = $data['user_ids'];
+
+        // Usuarios ya presentes en la lista
+        $existingUserIds = MarketingListUser::query()
+            ->where('marketing_list_id', $list->id)
+            ->whereIn('user_id', $userIds)
+            ->pluck('user_id')
+            ->all();
+
+        $newUserIds = array_values(array_diff($userIds, $existingUserIds));
+
+        if (empty($newUserIds)) {
+            return redirect()
+                ->route('marketing-lists.edit', [$list->id, 'members'])
+                ->with('msg', __('usuarios_ya_presentes_en_lista'));
+        }
+
+        $now    = now();
+        $userId = Auth::id();
+
+        $rows = [];
+        foreach ($newUserIds as $uid) {
+            $rows[] = [
+                'marketing_list_id' => $list->id,
+                'user_id'           => $uid,
+                'status'            => 1,
+                'observations'      => null,
+                'created_by'        => $userId,
+                'updated_by'        => $userId,
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ];
+        }
+
+        if (!empty($rows)) {
+            MarketingListUser::insert($rows);
+        }
+
+        // Actualizar members_count de la lista
+        $membersCount = MarketingListUser::countForList($list->id);
+        $list->members_count = $membersCount;
+        $list->save();
+
+        return redirect()
+            ->route('marketing-lists.edit', [$list->id, 'members'])
+            ->with('msg', __('miembros_anadidos_ok'));
     }
 
 }

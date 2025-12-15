@@ -651,10 +651,12 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/marketing-lists', [MarketingListController::class, 'index'])->name('marketing-lists.index')->middleware('permission:marketing');
     Route::get('/marketing-lists/create', [MarketingListController::class, 'create'])->name('marketing-lists.create')->middleware('permission:marketing-lists.create');
     Route::post('/marketing-lists/store', [MarketingListController::class, 'store'])->name('marketing-lists.store')->middleware('permission:marketing-lists.create');
+    Route::post('/marketing-lists/from-contacts', [MarketingListController::class, 'storeFromContacts'])->name('marketing-lists.store-from-contacts')->middleware('permission:marketing-lists.create');
     Route::get('/marketing-lists/{list}/show', [MarketingListController::class, 'show'])->name('marketing-lists.show');
     Route::get('/marketing-lists/{list}/edit/{tab?}', [MarketingListController::class, 'edit'])->name('marketing-lists.edit')->middleware('permission:marketing-lists.edit');
     Route::delete('/marketing-lists/{list}', [MarketingListController::class, 'destroy'])->name('marketing-lists.destroy')->middleware('permission:marketing-lists.destroy');
-    Route::post('marketing-lists/status', [MarketingListController::class, 'status'])->name('marketing-lists.status')->middleware('permission:marketing-lists.edit');
+    Route::post('/marketing-lists/status', [MarketingListController::class, 'status'])->name('marketing-lists.status')->middleware('permission:marketing-lists.edit');
+    Route::get('/marketing-lists/{list}/members/filtered-data', [MarketingListController::class, 'membersFilteredData'])->name('marketing-lists.members.filtered-data');
     Route::post('/marketing-lists/{list}/export-brevo', [MarketingListController::class, 'exportToBrevo'])->name('marketing-lists.export-brevo');
 
     //Marketing Lists Users:
@@ -662,6 +664,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::post('/marketing-lists-users', [MarketingListUserController::class, 'store'])->name('marketing-list-users.store');
     Route::delete('/marketing-list-users/{marketing_list_user_id}', [MarketingListUserController::class, 'destroy'])->name('marketing-list-users.destroy');
     Route::post('/marketing-list-users/{list}/clone', [MarketingListUserController::class, 'cloneFromLists'])->name('marketing-list-users.clone');
+    Route::post('/marketing-list-users/{list}/from-contacts', [MarketingListUserController::class, 'storeFromContacts'])->name('marketing-list-users.store-from-contacts');
 
     //Modules:
     Route::middleware('module_setted:settings')->group(function (){

@@ -9,6 +9,7 @@ import { format, parseISO, subYears, addYears } from 'date-fns';
 import axios from 'axios';
 
 //Components:
+import Checkbox from '@/Components/Checkbox';
 import ColumnFilter from '@/Components/ColumnFilter';
 import DataFilter from '@/Components/DataFilter';
 import FilterRow from '@/Components/FilterRow';
@@ -28,6 +29,7 @@ import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
 
 //Modals:
+import ModalMarketingListFromContacts from '@/Components/modals/ModalMarketingListFromContacts';
 import ModalUserCreate from '@/Components/modals/ModalUserCreate';
 
 //Partials:
@@ -49,10 +51,13 @@ export default function Index({
     leads,
     slug,
     queryParams: rawQueryParams = {}, 
-    availableLocales 
+    availableLocales,
+    builderMode = false,
+    builderList = null
 }) {
     const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
     const __ = useTranslation();
+    const { showConfirm } = useSweetAlert();
 
     const [showId, setShowId] = useState(null);
     const [showPanelOpen, setShowPanelOpen] = useState(false);
@@ -105,6 +110,50 @@ export default function Index({
     const handleCloseModalUserCreate = () => setShowModalUserCreate(false);
     const refreshUsersTable = () => setRefreshKey(prev => prev + 1);
 
+    const isBuildingList = !!builderMode && !!builderList;
+    const marketingListId = isBuildingList ? builderList.id : null;
+
+    const [selectedContactIds, setSelectedContactIds] = useState([]);
+    const [showModalListFromContacts, setShowModalListFromContacts] = useState(false);
+
+    const handleOpenModalListFromContacts = () => setShowModalListFromContacts(true);
+    const handleCloseModalListFromContacts = () => setShowModalListFromContacts(false);
+
+    const handleToggleContactInList = (contactId) => {
+        setSelectedContactIds(prev => {
+            if (prev.includes(contactId)) {
+                return prev.filter(id => id !== contactId);
+            }
+            return [...prev, contactId];
+        });
+    };
+
+    useEffect(() => {
+        // si salimos del modo builder, limpiamos la selección
+        if (!isBuildingList && selectedContactIds.length) {
+            setSelectedContactIds([]);
+        }
+    }, [isBuildingList]);
+
+    const handleSubmitSelectedToList = () => {
+        if (!marketingListId || selectedContactIds.length === 0) return;
+
+        showConfirm({
+            title: __('miembros_guardar'),
+            text: __('miembros_guardar_lista'),
+            icon: 'question',
+            onConfirm: () => {
+                router.post(
+                    route('marketing-list-users.store-from-contacts', marketingListId),
+                    { user_ids: selectedContactIds },
+                    {
+                        preserveScroll: true,
+                    }
+                );
+            },
+        });
+    };
+
     //Columnas:
     const columns = [
         { key: 'full_name',       label: __('nombre'),      sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_filtrar') },
@@ -152,6 +201,16 @@ export default function Index({
         });
     }
 
+    if (permissions?.['marketing-lists.create'] && !isBuildingList) {
+        actions.push({
+            text: __('marketing_lista_nueva'),
+            icon: 'la-newspaper',
+            url: '',
+            modal: true,
+            onClick: handleOpenModalListFromContacts,
+        });
+    }
+
     return (
         <AdminAuthenticatedLayout
             user={auth.user}
@@ -162,6 +221,26 @@ export default function Index({
             <Head title={title} />
 
             <div className="contents">
+                {isBuildingList && (
+                    <div className="alert alert-info d-flex justify-content-between align-items-center mb-3 mx-0">
+                        <div>
+                            {__('marketing_lista_construyendo')}: <strong>{builderList.name}</strong>
+                            {' · '}
+                            {__('contactos_seleccionados')}: <strong>{selectedContactIds.length}</strong>
+                        </div>
+                        <div>
+                            <button
+                                type="button"
+                                className="btn btn-sm btn-primary"
+                                disabled={selectedContactIds.length === 0}
+                                onClick={handleSubmitSelectedToList}
+                            >
+                                {__('miembros_guardar')}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Controles */}
                 <div className="row">
                     <div className="controls d-flex align-items-center">
@@ -224,6 +303,17 @@ export default function Index({
                                     ))}
 
                                     <td className="text-end">
+                                        {isBuildingList && (
+                                            <Checkbox
+                                                id={`mlist-${marketingListId}-user-${contact.id}`}
+                                                className="me-2"
+                                                checked={selectedContactIds.includes(contact.id)}
+                                                onChange={() => handleToggleContactInList(contact.id)}
+                                                value={contact.id}
+                                                size="lg"
+                                            />
+                                        )}
+
                                         {/* estado opcional, si quieres usarlo igual que en users */}
                                         {typeof contact.status !== 'undefined' && (
                                             <OverlayTrigger
@@ -323,6 +413,11 @@ export default function Index({
                     contact_types={contact_types_combo}
                     contact_subtypes={contact_subtypes}
                     linkCompany={false}
+                />
+
+                <ModalMarketingListFromContacts
+                    show={showModalListFromContacts}
+                    onClose={handleCloseModalListFromContacts}
                 />
             </div>
         </AdminAuthenticatedLayout>
