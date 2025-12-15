@@ -114,7 +114,10 @@ export default function Index({
     const marketingListId = isBuildingList ? builderList.id : null;
 
     const [selectedContactIds, setSelectedContactIds] = useState([]);
+    const totalContacts = contacts?.meta?.total ?? 0;
     const [showModalListFromContacts, setShowModalListFromContacts] = useState(false);
+    const [selectingAll, setSelectingAll] = useState(false);
+    const [savingMembers, setSavingMembers] = useState(false);
 
     const handleOpenModalListFromContacts = () => setShowModalListFromContacts(true);
     const handleCloseModalListFromContacts = () => setShowModalListFromContacts(false);
@@ -126,6 +129,46 @@ export default function Index({
             }
             return [...prev, contactId];
         });
+    };
+
+    const handleToggleSelectAll = async () => {
+        if (!isBuildingList || selectingAll) return;
+
+        // Si ya están todos, deseleccionamos
+        if (totalContacts > 0 && selectedContactIds.length >= totalContacts) {
+            setSelectedContactIds([]);
+            return;
+        }
+
+        // 1) Seleccionar inmediatamente los de la página actual (feedback instantáneo)
+        const currentPageIds = (contacts?.data || []).map(c => c.id);
+
+        setSelectedContactIds(prev => {
+            const set = new Set(prev);
+            currentPageIds.forEach(id => set.add(id));
+            return Array.from(set);
+        });
+
+        // 2) En paralelo, pedir TODOS los contactos filtrados y completar selección
+        try {
+            setSelectingAll(true);
+
+            const rows = await filteredData(tableQueryParams);   // devuelve todas las filas según filtros
+            const allIds = rows
+                .map(row => row.id)
+                .filter(id => id !== null && id !== undefined);
+
+            setSelectedContactIds(prev => {
+                // Si mientras tanto el usuario vació la selección, no machacamos
+                if (prev.length === 0) return prev;
+
+                const set = new Set(prev);
+                allIds.forEach(id => set.add(id));
+                return Array.from(set);
+            });
+        } finally {
+            setSelectingAll(false);
+        }
     };
 
     useEffect(() => {
@@ -143,11 +186,16 @@ export default function Index({
             text: __('miembros_guardar_lista'),
             icon: 'question',
             onConfirm: () => {
+                setSavingMembers(true);
+
                 router.post(
                     route('marketing-list-users.store-from-contacts', marketingListId),
                     { user_ids: selectedContactIds },
                     {
                         preserveScroll: true,
+                        onFinish: () => {
+                            setSavingMembers(false);
+                        }
                     }
                 );
             },
@@ -178,7 +226,8 @@ export default function Index({
         SearchFieldChanged,
         sortChanged,
         filteredData,
-        handleDelete
+        handleDelete,
+        queryParams: tableQueryParams
     } = useTableManagement({
         table: 'tblContacts',
         allColumnKeys: columns.map(col => col.key),
@@ -228,14 +277,47 @@ export default function Index({
                             {' · '}
                             {__('contactos_seleccionados')}: <strong>{selectedContactIds.length}</strong>
                         </div>
-                        <div>
+                        <div className="d-flex align-items-center gap-2">
+                            <button
+                                type="button"
+                                className="btn btn-sm btn-outline-secondary me-2"
+                                disabled={totalContacts === 0 || selectingAll}
+                                onClick={handleToggleSelectAll}
+                            >
+                                {selectingAll ? (
+                                    <>
+                                        <span
+                                            className="spinner-border spinner-border-sm me-2"
+                                            role="status"
+                                            aria-hidden="true"
+                                        />
+                                        {__('seleccionando_todos')} {/* 'Seleccionando todos' */}
+                                    </>
+                                ) : (
+                                    selectedContactIds.length >= totalContacts && totalContacts > 0
+                                        ? __('deseleccionar_todos')
+                                        : __('seleccionar_todos')
+                                )}
+                            </button>
+
                             <button
                                 type="button"
                                 className="btn btn-sm btn-primary"
-                                disabled={selectedContactIds.length === 0}
+                                disabled={selectedContactIds.length === 0 || savingMembers}
                                 onClick={handleSubmitSelectedToList}
                             >
-                                {__('miembros_guardar')}
+                                {savingMembers ? (
+                                    <>
+                                        <span
+                                            className="spinner-border spinner-border-sm me-2"
+                                            role="status"
+                                            aria-hidden="true"
+                                        />
+                                        {__('miembros_guardando')}
+                                    </>
+                                ) : (
+                                    __('miembros_guardar')
+                                )}
                             </button>
                         </div>
                     </div>

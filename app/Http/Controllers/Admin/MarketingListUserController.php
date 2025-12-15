@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 //Models:
 use App\Models\MarketingList;
@@ -136,7 +138,7 @@ class MarketingListUserController extends Controller
 
         $companyId = $list->company_id;
 
-        // Filtramos listas origen a las de la misma empresa y activas
+        // Listas origen válidas (misma empresa y activas)
         $sourceListIds = MarketingList::query()
             ->whereIn('id', $data['source_list_ids'])
             ->where('company_id', $companyId)
@@ -153,48 +155,70 @@ class MarketingListUserController extends Controller
             ->whereIn('marketing_list_id', $sourceListIds)
             ->pluck('user_id')
             ->unique()
-            ->values()
-            ->all();
+            ->values();
 
-        if (empty($sourceUserIds)) {
+        if ($sourceUserIds->isEmpty()) {
             return back()->with('alert', __('sin_usuarios_para_copiar'));
         }
 
         // Usuarios ya presentes en la lista destino
         $existingUserIds = MarketingListUser::query()
             ->where('marketing_list_id', $list->id)
-            ->pluck('user_id')
-            ->all();
+            ->pluck('user_id');
 
         // Solo insertamos los nuevos
-        $newUserIds = array_values(array_diff($sourceUserIds, $existingUserIds));
+        $newUserIds = $sourceUserIds->diff($existingUserIds)->values();
 
-        if (empty($newUserIds)) {
+        if ($newUserIds->isEmpty()) {
             return back()->with('msg', __('usuarios_ya_presentes_en_lista'));
         }
 
-        $now = now();
+        $now    = now();
         $userId = Auth::id();
 
-        $rows = [];
-        foreach ($newUserIds as $uid) {
-            $rows[] = [
-                'marketing_list_id' => $list->id,
-                'user_id'           => $uid,
-                'status'            => 1,
-                'observations'      => null,
-                'created_by'        => $userId,
-                'updated_by'        => $userId,
-                'created_at'        => $now,
-                'updated_at'        => $now,
-            ];
-        }
+        DB::beginTransaction();
 
-        if (!empty($rows)) {
-            MarketingListUser::insert($rows);
-        }
+        try {
+            $rows = [];
 
-        return back()->with('msg', __('usuarios_copiados_desde_listas'));
+            foreach ($newUserIds as $uid) {
+                $rows[] = [
+                    'marketing_list_id' => $list->id,
+                    'user_id'           => $uid,
+                    'status'            => 1,
+                    'observations'      => null,
+                    'created_by'        => $userId,
+                    'updated_by'        => $userId,
+                    'created_at'        => $now,
+                    'updated_at'        => $now,
+                ];
+            }
+
+            // Insert en chunks para no reventar el límite de placeholders
+            foreach (array_chunk($rows, 500) as $chunk) {
+                MarketingListUser::insert($chunk);
+            }
+
+            // Actualizamos members_count
+            $membersCount = MarketingListUser::countForList($list->id);
+
+            MarketingList::where('id', $list->id)
+                ->update(['members_count' => $membersCount]);
+
+            DB::commit();
+
+            return back()->with('msg', __('usuarios_copiados_desde_listas'));
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            Log::error('Error clonando listas de marketing', [
+                'list_id'  => $list->id,
+                'sources'  => $sourceListIds,
+                'error'    => $e->getMessage(),
+            ]);
+
+            return back()->with('alert', __('error_clonando_listas'));
+        }
     }
 
     /**
@@ -207,59 +231,81 @@ class MarketingListUserController extends Controller
             'user_ids.*' => ['integer', 'distinct', 'exists:users,id'],
         ]);
 
-        // Seguridad básica: misma empresa que la de sesión
-        $ctx = app(\App\Support\CompanyContext::class);
-        $currentCompanyId = (int) $ctx->id();
-        if ($currentCompanyId <= 0 || $list->company_id !== $currentCompanyId) {
-            abort(403, 'Empresa no válida para esta lista.');
+        // Normalizamos y quitamos duplicados
+        $userIds = collect($data['user_ids'])
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($userIds->isEmpty()) {
+            return back()->with('alert', __('sin_usuarios_para_guardar'));
         }
 
-        $userIds = $data['user_ids'];
-
-        // Usuarios ya presentes en la lista
+        // Usuarios ya presentes en la lista destino
         $existingUserIds = MarketingListUser::query()
             ->where('marketing_list_id', $list->id)
             ->whereIn('user_id', $userIds)
             ->pluck('user_id')
             ->all();
 
-        $newUserIds = array_values(array_diff($userIds, $existingUserIds));
+        $newUserIds = $userIds->diff($existingUserIds)->values();
 
-        if (empty($newUserIds)) {
-            return redirect()
-                ->route('marketing-lists.edit', [$list->id, 'members'])
-                ->with('msg', __('usuarios_ya_presentes_en_lista'));
+        if ($newUserIds->isEmpty()) {
+            return back()->with('msg', __('usuarios_ya_presentes_en_lista'));
         }
 
         $now    = now();
-        $userId = Auth::id();
+        $authId = Auth::id();
 
-        $rows = [];
-        foreach ($newUserIds as $uid) {
-            $rows[] = [
-                'marketing_list_id' => $list->id,
-                'user_id'           => $uid,
-                'status'            => 1,
-                'observations'      => null,
-                'created_by'        => $userId,
-                'updated_by'        => $userId,
-                'created_at'        => $now,
-                'updated_at'        => $now,
-            ];
-        }
+        // Insertamos en trozos para no reventar el límite de placeholders
+        DB::beginTransaction();
 
-        if (!empty($rows)) {
-            MarketingListUser::insert($rows);
-        }
+        try {
+            $rows = [];
 
-        // Actualizar members_count de la lista
-        $membersCount = MarketingListUser::countForList($list->id);
-        $list->members_count = $membersCount;
-        $list->save();
+            foreach ($newUserIds as $uid) {
+                $rows[] = [
+                    'marketing_list_id' => $list->id,
+                    'user_id'           => $uid,
+                    'observations'      => null,
+                    'status'            => 1,
+                    'created_by'        => $authId,
+                    'updated_by'        => $authId,
+                    'created_at'        => $now,
+                    'updated_at'        => $now,
+                ];
+            }
 
-        return redirect()
+            // tamaño de chunk configurable; 500 es bastante seguro
+            foreach (array_chunk($rows, 500) as $chunk) {
+                MarketingListUser::insert($chunk);
+            }
+
+            // Actualizamos members_count de la lista
+            $membersCount = MarketingListUser::countForList($list->id);
+
+            MarketingList::where('id', $list->id)
+                ->update(['members_count' => $membersCount]);
+
+            DB::commit();
+
+            return redirect()
             ->route('marketing-lists.edit', [$list->id, 'members'])
-            ->with('msg', __('miembros_anadidos_ok'));
+            ->with('msg', __('miembros_agregados'));
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            // Si quieres registrar el drama:
+            \Log::error('Error al guardar miembros desde contactos', [
+                'list_id'  => $list->id,
+                'error'    => $e->getMessage(),
+                'user_ids' => $newUserIds->all(),
+            ]);
+
+            return back()->with('alert', __('error_guardando_miembros'));
+        }
     }
 
 }
