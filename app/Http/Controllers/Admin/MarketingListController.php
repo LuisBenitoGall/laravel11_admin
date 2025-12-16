@@ -23,6 +23,9 @@ use File;
 use App\Concerns\HasContactTypes;
 use App\Concerns\HasSalutation;
 
+//Jobs:
+use App\Jobs\SyncMarketingListToBrevo;
+
 //Models:
 use App\Models\Company;
 use App\Models\Country;
@@ -666,7 +669,7 @@ class MarketingListController extends Controller
     /**
      * 10. Exportar lista a Brevo.
      */
-    public function exportToBrevo(MarketingList $list, BrevoMarketingService $brevo)
+    public function exportToBrevo_DEPRECATED(MarketingList $list, BrevoMarketingService $brevo)
     {
         // Seguridad mínima: misma empresa que la de sesión, etc.
         $ctx = app(\App\Support\CompanyContext::class);
@@ -692,6 +695,22 @@ class MarketingListController extends Controller
 
             return back()->with('alert', __('error_exportando_lista_brevo').': '.$e->getMessage());
         }
+    }
+
+    public function exportToBrevo(MarketingList $list/*, BrevoMarketingService $brevo*/)
+    {
+        $ctx = app(\App\Support\CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+
+        if ($currentCompanyId <= 0 || $list->company_id !== $currentCompanyId) {
+            abort(403, 'Empresa no válida para esta lista.');
+        }
+
+        // Disparamos la sincronización en segundo plano
+        SyncMarketingListToBrevo::dispatch($list->id, Auth::id());
+
+        // Respondemos rápido al usuario
+        return back()->with('msg', __('lista_export_brevo_en_proceso'));
     }
 
 }
