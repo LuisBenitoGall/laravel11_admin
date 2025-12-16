@@ -583,6 +583,7 @@
     "lista_eliminar_confirm": "Confirma que deseas eliminar esta lista",
     "lista_filtrar": "Filtrar por lista",
     "lista_editar": "Editar lista",
+    "lista_nombre_duplicado": "Este nombre de lista ya existe.",
     "lista_nueva": "Nueva lista",
     "listado": "Listado",
     "listas": "Listas",

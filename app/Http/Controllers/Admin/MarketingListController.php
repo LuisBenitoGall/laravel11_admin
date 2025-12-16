@@ -242,7 +242,23 @@ class MarketingListController extends Controller
             return redirect($url);
         }
 
-        $slug = $slugService->generate(MarketingList::class, $request->name, [
+        $normalizedName = trim($request->name);
+
+        // ✅ Regla de negocio: mismo nombre + misma empresa → NO permitido
+        $existsByName = MarketingList::where('company_id', $currentCompanyId)
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($normalizedName)])
+            ->exists();
+
+        if ($existsByName) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'name' => __('lista_nombre_duplicado'), 
+                    // crea esta key en lang: "Ya existe una lista con ese nombre en esta empresa."
+                ]);
+        }
+
+        $slug = $slugService->generate(MarketingList::class, $normalizedName, [
             'company_id' => $currentCompanyId,
         ]);
 
@@ -289,7 +305,23 @@ class MarketingListController extends Controller
             'observations' => ['nullable', 'string'],
         ]);
 
-        $slug = $slugService->generate(MarketingList::class, $data['name'], [
+        $normalizedName = trim($data['name']);
+
+        // ✅ Regla de negocio: mismo nombre + misma empresa → NO permitido
+        $existsByName = MarketingList::where('company_id', $currentCompanyId)
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($normalizedName)])
+            ->exists();
+
+        if ($existsByName) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'name' => __('lista_nombre_duplicado'), 
+                    // crea esta key en lang: "Ya existe una lista con ese nombre en esta empresa."
+                ]);
+        }
+
+        $slug = $slugService->generate(MarketingList::class, $normalizedName, [
             'company_id' => $currentCompanyId,
         ]);
 
