@@ -343,6 +343,7 @@ class MarketingListController extends Controller
     {
         $ctx = app(CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
+
         if ($currentCompanyId <= 0) {
             $url = route('companies.refresh-session');
 
@@ -357,13 +358,14 @@ class MarketingListController extends Controller
         }
 
         $data = $request->validate([
-            'name'         => ['required', 'string', 'max:255'],
-            'observations' => ['nullable', 'string'],
+            'name'             => ['required', 'string', 'max:255'],
+            'observations'     => ['nullable', 'string'],
+            'redirect_filters' => ['nullable', 'array'],   // 👈 aquí entran los filtros del listado
         ]);
 
         $normalizedName = trim($data['name']);
 
-        // ✅ Regla de negocio: mismo nombre + misma empresa → NO permitido
+        // Regla: mismo nombre + misma empresa → no permitido
         $existsByName = MarketingList::where('company_id', $currentCompanyId)
             ->whereRaw('LOWER(name) = ?', [mb_strtolower($normalizedName)])
             ->exists();
@@ -372,8 +374,7 @@ class MarketingListController extends Controller
             return back()
                 ->withInput()
                 ->withErrors([
-                    'name' => __('lista_nombre_duplicado'), 
-                    // crea esta key en lang: "Ya existe una lista con ese nombre en esta empresa."
+                    'name' => __('lista_nombre_duplicado'),
                 ]);
         }
 
@@ -381,8 +382,10 @@ class MarketingListController extends Controller
             'company_id' => $currentCompanyId,
         ]);
 
+        $userId = Auth::id();
+
         $list = new MarketingList();
-        $list->owner_id      = Auth::id();
+        $list->owner_id      = $userId;
         $list->company_id    = $currentCompanyId;
         $list->name          = $data['name'];
         $list->slug          = $slug;
@@ -390,15 +393,28 @@ class MarketingListController extends Controller
         $list->status        = 1;
         $list->is_dynamic    = 1;
         $list->members_count = 0;
-        $list->created_by    = Auth::id();
-        $list->updated_by    = Auth::id();
+        $list->created_by    = $userId;
+        $list->updated_by    = $userId;
         $list->save();
 
-        // Redirigimos al índice de contactos en modo "construir lista"
-        return redirect()->route('crm-contacts.index', [
-                'marketing_list_id'     => $list->id,
-                'build_marketing_list'  => 1,
-            ])
+        // Filtros con los que estabas viendo crm-contacts
+        $redirectFilters = $data['redirect_filters'] ?? [];
+        if (!is_array($redirectFilters)) {
+            $redirectFilters = [];
+        }
+
+        // Si quieres *siempre* empezar en la página 1, descomenta esto:
+        // unset($redirectFilters['page']);
+
+        // Redirigimos al índice de contactos en modo "construir lista" + filtros originales
+        return redirect()
+            ->route('crm-contacts.index', array_merge(
+                $redirectFilters,
+                [
+                    'marketing_list_id'    => $list->id,
+                    'build_marketing_list' => 1,
+                ]
+            ))
             ->with('msg', __('lista_creada_msg'));
     }
 

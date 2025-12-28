@@ -527,6 +527,7 @@ export default function Index({
                 <ModalMarketingListFromContacts
                     show={showModalListFromContacts}
                     onClose={handleCloseModalListFromContacts}
+                    filters={tableQueryParams}
                 />
             </div>
         </AdminAuthenticatedLayout>

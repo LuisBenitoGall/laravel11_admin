@@ -8,7 +8,7 @@ import InputError from '@/Components/InputError';
 // Hooks
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function ModalMarketingListFromContacts({ show, onClose }) {
+export default function ModalMarketingListFromContacts({ show, onClose, filters = {} }) {
     const __ = useTranslation();
 
     const [form, setForm] = useState({
@@ -53,6 +53,7 @@ export default function ModalMarketingListFromContacts({ show, onClose }) {
             {
                 name: form.name,
                 observations: form.observations || null,
+                redirect_filters: filters || {},   // 👈 aquí viajan los filtros
             },
             {
                 preserveScroll: true,
