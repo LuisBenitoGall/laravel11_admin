@@ -151,31 +151,78 @@ class MarketingListController extends Controller
     /**
      * 1.2. Data Query.
      */
-    private function dataQuery(MarketingListFilterRequest $request){
+    private function dataQuery(MarketingListFilterRequest $request)
+    {
         $ctx = app(CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
-        if($currentCompanyId <= 0){
+        if ($currentCompanyId <= 0) {
             $url = route('companies.refresh-session');
 
             // si quieres ser fino, guarda a dónde quería ir originalmente
             session(['intended_after_company' => request()->fullUrl()]);
             session()->flash('alert', __('empresa_no_activa'));
 
-            if (request()->header('X-Inertia')) {
+            if ($request->header('X-Inertia')) {
                 return \Inertia\Inertia::location($url);
             }
 
             return redirect($url);
         }
 
-        $query = MarketingList::where('company_id', $currentCompanyId);
+        // Eager load del autor, así el Resource no hace N+1
+        $query = MarketingList::query()
+            ->with('createdBy')
+            ->where('company_id', $currentCompanyId);
+
+        /*
+         * Normalizamos el filtro de autor: si llegan author o created_by_name,
+         * los reutilizamos como created_by.
+         */
+        if (!$request->filled('created_by')) {
+            $altAuthor = $request->input('author')
+                ?? $request->input('created_by_name');
+
+            if (is_string($altAuthor) && trim($altAuthor) !== '') {
+                $request->merge(['created_by' => $altAuthor]);
+            }
+        }
+
+        // Closure reutilizable para filtrar por nombre del autor
+        $authorFilterCallback = function ($q, $v) {
+            $v = trim((string) $v);
+            if ($v === '') {
+                return;
+            }
+
+            $q->whereHas('createdBy', function ($sub) use ($v) {
+                $sub->where(function ($qq) use ($v) {
+                    $qq->where('users.name', 'like', "%{$v}%")
+                       ->orWhere('users.surname', 'like', "%{$v}%")
+                       ->orWhereRaw(
+                           "CONCAT(TRIM(COALESCE(users.name, '')), ' ', TRIM(COALESCE(users.surname, ''))) LIKE ?",
+                           ["%{$v}%"]
+                       );
+                });
+            });
+        };
 
         // Filtros dinámicos
         $filters = [
-            'name' => fn($q, $v) => $q->where('name', 'like', "%$v%"),
+            'name'            => function ($q, $v) {
+                $v = trim((string) $v);
+                if ($v === '') {
+                    return;
+                }
+                $q->where('name', 'like', "%{$v}%");
+            },
+
+            // Aceptamos varias claves posibles desde el front
+            'created_by'      => $authorFilterCallback,
+            'created_by_name' => $authorFilterCallback,
+            'author'          => $authorFilterCallback,
         ];
 
-        foreach($filters as $key => $callback){
+        foreach ($filters as $key => $callback) {
             if ($request->filled($key)) {
                 $callback($query, $request->input($key));
             }
@@ -183,32 +230,38 @@ class MarketingListController extends Controller
 
         // Filtros por rangos de fechas dinámicos
         $dateFilters = [
-            'created_at' => ['date_from', 'date_to']
+            'created_at' => ['date_from', 'date_to'],
         ];
 
         foreach ($dateFilters as $column => [$fromKey, $toKey]) {
             $from = $request->input($fromKey);
-            $to = $request->input($toKey);
+            $to   = $request->input($toKey);
 
             if ($from && $to) {
-                $query->whereBetween($column, ["$from 00:00:00", "$to 23:59:59"]);
+                $query->whereBetween($column, ["{$from} 00:00:00", "{$to} 23:59:59"]);
             } elseif ($from) {
-                $query->where($column, '>=', "$from 00:00:00");
+                $query->where($column, '>=', "{$from} 00:00:00");
             } elseif ($to) {
-                $query->where($column, '<=', "$to 23:59:59");
+                $query->where($column, '<=', "{$to} 23:59:59");
             }
         }
 
-        // Ordenación
-        $sortField = $request->input('sort_field', 'name');
+        /*
+         * Ordenación
+         * - Permitimos name, members_count y created_at.
+         * - Si en el front decides ordenar por autor en algún momento,
+         *   ya haremos un join específico; de momento no lo fuerzo.
+         */
+        $sortField     = $request->input('sort_field', 'name');
         $sortDirection = $request->input('sort_direction', 'ASC');
-        $allowedSortFields = ['name', 'tradename', 'nif'];
 
-        if (!in_array($sortField, $allowedSortFields)) {
+        $allowedSortFields = ['name', 'members_count', 'created_at'];
+
+        if (!in_array($sortField, $allowedSortFields, true)) {
             $sortField = 'name';
         }
 
-        return $query->orderBy($sortField, $sortDirection);        
+        return $query->orderBy($sortField, $sortDirection);
     }
 
     /**

@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use App\Support\CompanyContext;
+use App\Support\Filters\AdHocFilterApplier;
 use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
@@ -59,6 +60,9 @@ class CrmAccountController extends Controller{
      * 1. Listado de cuentas.
      * 1.1. Data para exportación.
      * 1.2. Data Query.
+     * 1.3. Definición de filtros avanzados.
+     * 1.4. Configuración de filtros avanzados.
+     * 1.5. Leyenda de filtros aplicados.
      * 2. Formulario nueva cuenta.
      * 3. Guardar nueva cuenta.
      * 4. Mostrar cuenta.
@@ -110,6 +114,8 @@ class CrmAccountController extends Controller{
             "slug" => 'crm-accounts',
             "accounts" => CrmAccountResource::collection($accounts),
             "queryParams" => request()->query() ?: null,
+            "adhocFilters" => $this->adHocFilterUiConfig(),
+            "activeFiltersLegend" => $this->activeFiltersLegend($request),
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions,
             "columnPreferences" => UserColumnPreference::forUserAndTables(
@@ -137,54 +143,309 @@ class CrmAccountController extends Controller{
     /**
      * 1.2. Data Query.
      */
-    private function dataQuery(CrmAccountFilterRequest $request){
+    private function dataQuery(CrmAccountFilterRequest $request)
+    {
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        
         $user = auth()->user();
 
-        $query = CrmAccount::select('crm_accounts.*', 'companies.nif', 'companies.logo')
-        ->leftJoin('companies', 'crm_accounts.linked_company_id', '=', 'companies.id')
-        ->where('crm_accounts.company_id', session('currentCompany'));
+        $query = CrmAccount::select(
+                'crm_accounts.*',
+                'companies.nif',
+                'companies.logo',
+                'users.name AS user_name',
+                'users.surname'
+            )
+            ->leftJoin('companies', 'crm_accounts.linked_company_id', '=', 'companies.id')
+            ->leftJoin('users', 'crm_accounts.owner_id', '=', 'users.id')
+            ->where('crm_accounts.company_id', $currentCompanyId);
 
         // Filtros dinámicos
         $filters = [
-            'name' => fn($q, $v) => $q->where('companies.name', 'like', "%$v%"),
-            'tradename' => fn($q, $v) => $q->where('companies.tradename', 'like', "%$v%"),
-            'nif' => fn($q, $v) => $q->where('companies.nif', 'like', "%$v%"),
+            'name' => function ($q, $v) {
+                $v = trim((string) $v);
+                if ($v === '') {
+                    return;
+                }
+                $q->where('companies.name', 'like', "%{$v}%");
+            },
+
+            'tradename' => function ($q, $v) {
+                $v = trim((string) $v);
+                if ($v === '') {
+                    return;
+                }
+                $q->where('companies.tradename', 'like', "%{$v}%");
+            },
+
+            'nif' => function ($q, $v) {
+                $v = trim((string) $v);
+                if ($v === '') {
+                    return;
+                }
+                $q->where('companies.nif', 'like', "%{$v}%");
+            },
+
+            // Filtro por propietario (owner)
+            'owner' => function ($q, $v) {
+                $v = trim((string) $v);
+                if ($v === '') {
+                    return;
+                }
+
+                $q->where(function ($sub) use ($v) {
+                    $sub->where('users.name', 'like', "%{$v}%")
+                        ->orWhere('users.surname', 'like', "%{$v}%")
+                        ->orWhereRaw("CONCAT(users.name, ' ', users.surname) LIKE ?", ["%{$v}%"]);
+                });
+            },
         ];
 
-        foreach($filters as $key => $callback){
+        foreach ($filters as $key => $callback) {
             if ($request->filled($key)) {
                 $callback($query, $request->input($key));
             }
         }
 
-        // Filtros por rangos de fechas dinámicos
+        // Filtros por rangos de fechas (created_at de CRM_ACCOUNTS, bien prefijado)
         $dateFilters = [
-            'created_at' => ['date_from', 'date_to']
+            'crm_accounts.created_at' => ['date_from', 'date_to'],
         ];
 
-        foreach ($dateFilters as $column => [$fromKey, $toKey]) {
+        foreach ($dateFilters as $column => $keys) {
+            list($fromKey, $toKey) = $keys;
+
             $from = $request->input($fromKey);
-            $to = $request->input($toKey);
+            $to   = $request->input($toKey);
 
             if ($from && $to) {
-                $query->whereBetween($column, ["$from 00:00:00", "$to 23:59:59"]);
+                $query->whereBetween($column, ["{$from} 00:00:00", "{$to} 23:59:59"]);
             } elseif ($from) {
-                $query->where($column, '>=', "$from 00:00:00");
+                $query->where($column, '>=', "{$from} 00:00:00");
             } elseif ($to) {
-                $query->where($column, '<=', "$to 23:59:59");
+                $query->where($column, '<=', "{$to} 23:59:59");
             }
         }
 
-        // Ordenación
-        $sortField = $request->input('sort_field', 'name');
-        $sortDirection = $request->input('sort_direction', 'ASC');
-        $allowedSortFields = ['name', 'tradename'];
+        $query->applyAdhocFilters($request, $this->adHocFilterDefinitions($currentCompanyId));
 
-        if (!in_array($sortField, $allowedSortFields)) {
+        // Ordenación
+        $sortField     = $request->input('sort_field', 'name');
+        $sortDirection = strtoupper($request->input('sort_direction', 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
+
+        // Mapa de campos de ordenación → columnas reales
+        $sortMap = [
+            'name'       => 'companies.name',
+            'tradename'  => 'companies.tradename',
+            'created_at' => 'crm_accounts.created_at',
+            'owner'      => 'users.name',
+        ];
+
+        if (!array_key_exists($sortField, $sortMap)) {
             $sortField = 'name';
         }
 
-        return $query->orderBy($sortField, $sortDirection);        
+        return $query->orderBy($sortMap[$sortField], $sortDirection);
+    }
+
+    /**
+     * 1.3. Definición de filtros avanzados.
+     */
+    private function adHocFilterDefinitions(int $companyId): array
+    {
+        return [
+            'owner_id' => [
+                'rules' => ['nullable', 'integer', 'min:1'],
+                'apply' => function (Builder $q, $v) use ($companyId) {
+                    if (!$v) return;
+
+                    // Extra: seguridad por si alguien mete un owner de otra empresa (si aplica en tu negocio)
+                    // Si tu sistema NO tiene relación users<->companies, quita este whereHas y deja solo el where.
+                    $q->where('crm_accounts.owner_id', (int)$v);
+                },
+            ],
+
+            'status' => [
+                'rules' => ['nullable', 'integer', 'in:0,1'],
+                'apply' => fn (Builder $q, $v) => $q->where('crm_accounts.status', (int)$v),
+            ],
+
+            // Billing (strings)
+            'billing_city' => [
+                'rules' => ['nullable', 'string', 'max:255'],
+                'apply' => fn (Builder $q, $v) => $q->where('crm_accounts.billing_city', 'like', '%'.trim((string)$v).'%'),
+            ],
+            'billing_state' => [
+                'rules' => ['nullable', 'string', 'max:255'],
+                'apply' => fn (Builder $q, $v) => $q->where('crm_accounts.billing_state', 'like', '%'.trim((string)$v).'%'),
+            ],
+            'billing_postal_code' => [
+                'rules' => ['nullable', 'string', 'max:20'],
+                'apply' => function (Builder $q, $v) {
+                    $v = trim((string)$v);
+                    if ($v === '') return;
+                    // prefijo (más útil) en vez de contains
+                    $q->where('crm_accounts.billing_postal_code', 'like', $v.'%');
+                },
+            ],
+            'billing_country_code' => [
+                'rules' => ['nullable', 'string', 'size:2'],
+                'apply' => function (Builder $q, $v) {
+                    $v = strtoupper(trim((string)$v));
+                    if ($v === '') return;
+                    $q->where('crm_accounts.billing_country_code', $v);
+                },
+            ],
+
+            // Shipping (strings)
+            'shipping_street' => [
+                'rules' => ['nullable', 'string', 'max:255'],
+                'apply' => fn (Builder $q, $v) => $q->where('crm_accounts.shipping_street', 'like', '%'.trim((string)$v).'%'),
+            ],
+            'shipping_city' => [
+                'rules' => ['nullable', 'string', 'max:255'],
+                'apply' => fn (Builder $q, $v) => $q->where('crm_accounts.shipping_city', 'like', '%'.trim((string)$v).'%'),
+            ],
+            'shipping_state' => [
+                'rules' => ['nullable', 'string', 'max:255'],
+                'apply' => fn (Builder $q, $v) => $q->where('crm_accounts.shipping_state', 'like', '%'.trim((string)$v).'%'),
+            ],
+            'shipping_country_code' => [
+                'rules' => ['nullable', 'string', 'size:2'],
+                'apply' => function (Builder $q, $v) {
+                    $v = strtoupper(trim((string)$v));
+                    if ($v === '') return;
+                    $q->where('crm_accounts.shipping_country_code', $v);
+                },
+            ],
+        ];
+    }
+
+    /**
+     * 1.4. Configuración de filtros avanzados.
+     */
+    private function adHocFilterUiConfig(): array
+    {
+        return [
+            [
+                'key'   => 'owner_id',
+                'label' => __('propietario'),
+                'type'  => 'user_search',
+                'colClass' => 'col-12 col-md-6',
+                'searchUrl' => route('users.search'),
+                'placeholder' => __('propietario_filtrar'),
+                'extraParams' => [
+                    'company_id' => session('currentCompany'),
+                ],
+            ],
+            [
+                'key'   => 'status',
+                'label' => __('estado'),
+                'type'  => 'select',
+                'colClass' => 'col-sm-4',
+                'multiple' => false,
+                'options' => [
+                    ['value' => 1, 'label' => __('activo')],
+                    ['value' => 0, 'label' => __('inactivo')],
+                ],
+            ],
+
+            // Billing
+            ['key'=>'billing_city','label'=>__('facturacion_poblacion'),'type'=>'text', 'colClass' => 'col-sm-6 col-md-3'],
+            ['key'=>'billing_state','label'=>__('facturacion_provincia'),'type'=>'text', 'colClass' => 'col-sm-6 col-md-3'],
+            ['key'=>'billing_postal_code','label'=>__('facturacion_cp'),'type'=>'text', 'colClass' => 'col-sm-6 col-md-3'],
+            ['key'=>'billing_country_code','label'=>__('facturacion_pais'),'type'=>'text', 'colClass' => 'col-sm-6 col-md-3'],
+
+            // Shipping
+            ['key'=>'shipping_city','label'=>__('envio_poblacion'),'type'=>'text', 'colClass' => 'col-sm-6 col-md-3'],
+            ['key'=>'shipping_state','label'=>__('envio_provincia'),'type'=>'text', 'colClass' => 'col-sm-6 col-md-3'],
+            ['key'=>'shipping_postal_code','label'=>__('envio_cp'),'type'=>'text', 'colClass' => 'col-sm-6 col-md-3'],
+            ['key'=>'shipping_country_code','label'=>__('envio_pais'),'type'=>'text', 'colClass' => 'col-sm-6 col-md-3'],
+        ];
+    }
+
+    /**
+     * 1.5. Leyenda de filtros aplicados.
+     */
+    private function activeFiltersLegend(CrmAccountFilterRequest $request): array
+    {
+        $legend = [];
+
+        // Header filters (los que ya tienes)
+        foreach ([
+            'name'      => __('empresa'),
+            'tradename' => __('nombre_comercial'),
+            'nif'       => __('nif'),
+            'owner'     => __('propietario'),
+            'date_from' => __('desde'),
+            'date_to'   => __('hasta'),
+        ] as $key => $label) {
+            if ($request->filled($key)) {
+                $legend[] = [
+                    'key' => "header.$key",
+                    'scope' => 'header',
+                    'path' => $key,
+                    'label' => $label,
+                    'value' => $request->input($key),
+                ];
+            }
+        }
+
+        // Adhoc
+        $adhoc = $request->input('adhoc', []);
+        $adhoc = is_array($adhoc) ? $adhoc : [];
+
+        $status = $adhoc['status'] ?? null;
+
+        if ($status !== null && $status !== '') {
+            $legend[] = [
+                'key'   => 'adhoc.status',
+                'scope' => 'adhoc',
+                'path'  => 'status',
+                'label' => __('estado'),
+                'value' => ((string)$status === '1') ? __('activo') : __('inactivo'),
+            ];
+        }
+
+        if (!empty($adhoc['owner_id'])) {
+            $ownerId = (int)$adhoc['owner_id'];
+            $ownerName = Cache::remember("user_name_$ownerId", now()->addDays(7), function () use ($ownerId) {
+                $u = User::select('name','surname')->find($ownerId);
+                return $u ? trim($u->name.' '.$u->surname) : (string)$ownerId;
+            });
+
+            $legend[] = [
+                'key' => 'adhoc.owner_id',
+                'scope' => 'adhoc',
+                'path' => 'owner_id',
+                'label' => __('propietario'),
+                'value' => $ownerName,
+            ];
+        }
+
+        foreach ([
+            'billing_city' => __('facturacion_poblacion'),
+            'billing_state' => __('facturacion_provincia'),
+            'billing_postal_code' => __('facturacion_cp'),
+            'billing_country_code' => __('facturacion_pais'),
+            'shipping_city' => __('envio_poblacion'),
+            'shipping_state' => __('envio_provincia'),
+            'shipping_postal_code' => __('envio_cp'),
+            'shipping_country_code' => __('envio_pais')
+        ] as $k => $label) {
+            if (isset($adhoc[$k]) && trim((string)$adhoc[$k]) !== '') {
+                $legend[] = [
+                    'key' => "adhoc.$k",
+                    'scope' => 'adhoc',
+                    'path' => $k,
+                    'label' => $label,
+                    'value' => trim((string)$adhoc[$k]),
+                ];
+            }
+        }
+
+        return $legend;
     }
 
     /**

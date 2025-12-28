@@ -38,7 +38,7 @@ class MarketingListUserController extends Controller
             )
         );
 
-        $limit = (int) $request->input('limit', 15);
+        $limit = max((int) $request->input('limit', 15), 1);
 
         // Usuarios ya vinculados a la lista
         $usedUserIds = MarketingListUser::query()
@@ -53,23 +53,41 @@ class MarketingListUserController extends Controller
             });
 
         if ($term !== '') {
-            $query->where(function ($sub) use ($term) {
-                $sub->where('users.name', 'like', "%{$term}%")
-                    ->orWhere('users.surname', 'like', "%{$term}%")
-                    ->orWhere('users.email', 'like', "%{$term}%");
+            // troceamos por espacios: "paco sin" => ["paco", "sin"]
+            $tokens = preg_split('/\s+/', $term);
+
+            $query->where(function ($sub) use ($tokens) {
+                foreach ($tokens as $token) {
+                    $token = trim($token);
+                    if ($token === '') {
+                        continue;
+                    }
+
+                    $like = "%{$token}%";
+
+                    // Cada token debe aparecer al menos en name, surname o email
+                    // Agrupamos por token y combinamos los tokens con AND
+                    $sub->where(function ($qq) use ($like) {
+                        $qq->where('users.name', 'like', $like)
+                           ->orWhere('users.surname', 'like', $like)
+                           ->orWhere('users.email', 'like', $like);
+                    });
+                }
             });
         }
 
         $users = $query
             ->orderBy('users.name')
-            ->limit($limit > 0 ? $limit : 15)
+            ->limit($limit)
             ->get()
             ->map(function ($user) {
+                $fullName = trim($user->name . ' ' . $user->surname);
+
                 return [
                     'id'        => $user->id,
-                    'name'      => trim($user->name . ' ' . $user->surname),
+                    'name'      => $fullName,
                     'email'     => $user->email,
-                    'full_name' => trim($user->name . ' ' . $user->surname),
+                    'full_name' => $fullName,
                 ];
             });
 
@@ -86,31 +104,85 @@ class MarketingListUserController extends Controller
         $data = $request->validate([
             'marketing_list_id' => ['required', 'exists:marketing_lists,id'],
             'user_id'           => ['required', 'exists:users,id'],
-            'observations'      => ['nullable', 'string', 'max:500']
+            'observations'      => ['nullable', 'string', 'max:500'],
         ]);
 
-        // evitar duplicados por si acaso
-        $exists = MarketingListUser::where('marketing_list_id', $data['marketing_list_id'])
-            ->where('user_id', $data['user_id'])
-            ->exists();
+        $listId = (int) $data['marketing_list_id'];
+        $userId = (int) $data['user_id'];
 
-        if(!$exists){
-            $list = MarketingListUser::create([
-                'marketing_list_id' => $data['marketing_list_id'],
-                'user_id'           => $data['user_id'],
-                'observations'      => $data['observations'] ?? null,
-                'status'            => 1,
-                'created_by'        => auth()->id()
-            ]);
+        /** @var \App\Models\User $user */
+        $user = User::findOrFail($userId);
 
-            //Actualizando nº de miembros de la lista:
-            $membersCount = MarketingListUser::countForList($list->marketing_list_id);
+        // Helper para decidir si respondemos en JSON o con redirect
+        $respondJson = $request->expectsJson() || $request->wantsJson();
 
-            MarketingList::where('id', $list->marketing_list_id)
-            ->update(['members_count' => $membersCount]);
+        // 1) Veto de marketing (tu lógica interna)
+        if (! $user->canReceiveMarketingEmails()) {
+            $message = __('usuario_no_emails');
+
+            if ($respondJson) {
+                // 422: fallo de regla de negocio / validación
+                return response()->json([
+                    'message' => $message,
+                ], 422);
+            }
+
+            return back()->with('alert', $message);
         }
 
-        return back()->with('msg', __('usuario_anadido_ok'));
+        // 2) Evitar duplicados en la lista
+        $existing = MarketingListUser::where('marketing_list_id', $listId)
+            ->where('user_id', $userId)
+            ->first();
+
+        if ($existing) {
+            $message = __('usuario_ya_presente_en_lista');
+
+            if ($respondJson) {
+                return response()->json([
+                    'message' => $message,
+                ], 422);
+            }
+
+            return back()->with('msg', $message);
+        }
+
+        // 3) Crear vínculo
+        $link = MarketingListUser::create([
+            'marketing_list_id' => $listId,
+            'user_id'           => $userId,
+            'observations'      => $data['observations'] ?? null,
+            'status'            => 1,
+            'created_by'        => auth()->id(),
+            'updated_by'        => auth()->id(),
+        ]);
+
+        // 4) Recalcular nº de miembros
+        $membersCount = MarketingListUser::countForList($listId);
+
+        MarketingList::where('id', $listId)
+            ->update(['members_count' => $membersCount]);
+
+        $message = __('usuario_anadido_ok');
+
+        if ($respondJson) {
+            // respuesta pensada para el modal (axios)
+            $fullName = trim($user->name . ' ' . $user->surname);
+
+            return response()->json([
+                'message' => $message,
+                'data'    => [
+                    'id'             => $link->id,
+                    'user_id'        => $user->id,
+                    'name'           => $fullName,
+                    'email'          => $user->email,
+                    'members_count'  => $membersCount,
+                ],
+            ]);
+        }
+
+        // modo “clásico” (submit normal)
+        return back()->with('msg', $message);
     }
 
     /**
@@ -150,7 +222,7 @@ class MarketingListUserController extends Controller
             return back()->with('alert', __('listas_origen_no_validas'));
         }
 
-        // Usuarios de las listas origen
+        // Usuarios de las listas origen (ids únicos)
         $sourceUserIds = MarketingListUser::query()
             ->whereIn('marketing_list_id', $sourceListIds)
             ->pluck('user_id')
@@ -161,13 +233,27 @@ class MarketingListUserController extends Controller
             return back()->with('alert', __('sin_usuarios_para_copiar'));
         }
 
-        // Usuarios ya presentes en la lista destino
+        // 1) Cargamos usuarios y aplicamos veto centralizado (accept_emails, status, email, etc.)
+        $users = User::whereIn('id', $sourceUserIds)->get();
+
+        $eligibleUsers = $users->filter(function (User $user) {
+            return $user->canReceiveMarketingEmails();
+        });
+
+        $eligibleIds = $eligibleUsers->pluck('id')->values();
+
+        if ($eligibleIds->isEmpty()) {
+            return back()->with('alert', __('ningun_usuario_puede_recibir_emails'));
+        }
+
+        // 2) Usuarios ya presentes en la lista destino (entre los elegibles)
         $existingUserIds = MarketingListUser::query()
             ->where('marketing_list_id', $list->id)
+            ->whereIn('user_id', $eligibleIds)
             ->pluck('user_id');
 
-        // Solo insertamos los nuevos
-        $newUserIds = $sourceUserIds->diff($existingUserIds)->values();
+        // Solo insertamos los nuevos y elegibles
+        $newUserIds = $eligibleIds->diff($existingUserIds)->values();
 
         if ($newUserIds->isEmpty()) {
             return back()->with('msg', __('usuarios_ya_presentes_en_lista'));
@@ -242,14 +328,31 @@ class MarketingListUserController extends Controller
             return back()->with('alert', __('sin_usuarios_para_guardar'));
         }
 
-        // Usuarios ya presentes en la lista destino
+        // 1) Cargamos usuarios y aplicamos veto centralizado (accept_emails, status, email, etc.)
+        $users = User::whereIn('id', $userIds)->get();
+
+        $eligibleUsers = $users->filter(function (User $user) {
+            return $user->canReceiveMarketingEmails();
+        });
+
+        $eligibleIds = $eligibleUsers->pluck('id')->values();
+
+        // Si nadie de los seleccionados puede recibir marketing, salimos
+        if ($eligibleIds->isEmpty()) {
+            return back()->with('alert', __('ningun_usuario_puede_recibir_emails'));
+        }
+
+        // 2) Usuarios ya presentes en la lista destino (entre los elegibles)
         $existingUserIds = MarketingListUser::query()
             ->where('marketing_list_id', $list->id)
-            ->whereIn('user_id', $userIds)
+            ->whereIn('user_id', $eligibleIds)
             ->pluck('user_id')
             ->all();
 
-        $newUserIds = $userIds->diff($existingUserIds)->values();
+        // Solo insertamos los que:
+        //  - pueden recibir marketing
+        //  - aún no están en la lista
+        $newUserIds = $eligibleIds->diff($existingUserIds)->values();
 
         if ($newUserIds->isEmpty()) {
             return back()->with('msg', __('usuarios_ya_presentes_en_lista'));
@@ -258,7 +361,6 @@ class MarketingListUserController extends Controller
         $now    = now();
         $authId = Auth::id();
 
-        // Insertamos en trozos para no reventar el límite de placeholders
         DB::beginTransaction();
 
         try {
@@ -277,7 +379,7 @@ class MarketingListUserController extends Controller
                 ];
             }
 
-            // tamaño de chunk configurable; 500 es bastante seguro
+            // Insertamos en trozos para no reventar el límite de placeholders
             foreach (array_chunk($rows, 500) as $chunk) {
                 MarketingListUser::insert($chunk);
             }
@@ -291,13 +393,12 @@ class MarketingListUserController extends Controller
             DB::commit();
 
             return redirect()
-            ->route('marketing-lists.edit', [$list->id, 'members'])
-            ->with('msg', __('miembros_agregados'));
+                ->route('marketing-lists.edit', [$list->id, 'members'])
+                ->with('msg', __('miembros_agregados'));
 
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            // Si quieres registrar el drama:
             \Log::error('Error al guardar miembros desde contactos', [
                 'list_id'  => $list->id,
                 'error'    => $e->getMessage(),

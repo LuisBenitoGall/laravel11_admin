@@ -29,6 +29,7 @@ class CrmAccountResource extends JsonResource{
             'id' => $this->id,
             'name' => $this->name,
             'tradename' => $this->tradename,
+            'owner' => $this->user_name.' '.$this->surname,
             'logo' => $this->logo,
             'logo_url' => $this->logo? \Storage::url('companies/'.$this->logo): null,
             'nif' => $this->nif,

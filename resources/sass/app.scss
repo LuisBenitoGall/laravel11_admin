@@ -116,6 +116,14 @@ h5{
 .badge{
 	padding: .4rem .6rem;
 	text-decoration: none;
+
+	button {
+  		color: inherit;
+  		opacity: .65;
+	}
+	button:hover {
+  		opacity: 1;
+	}
 }
 
 .bg-color{
@@ -410,21 +418,21 @@ textarea.form-control{
 	position: relative;
 }
 
+.btn-light{
+	background-color: #FFF;
+	border: 1px solid $rd_grey3;
+	color: $rd_grey2; 
+	font-size: $fs_controls;
+	height: 30px;
+	&:hover{
+		background-color: #FFF;	
+	}
+}
+
 .column-filter{
 	border-color: transparent;
 	margin: 0;
 	padding: 0;
-
-	.btn-light{
-		background-color: #FFF;
-		border: 1px solid $rd_grey3;
-		color: $rd_grey2; 
-		font-size: $fs_controls;
-		height: 30px;
-		&:hover{
-			background-color: #FFF;	
-		}
-	}
 	.dropdown-menu{
 		border-radius: $br_xl;
 		padding: 10px 5px;
@@ -1033,3 +1041,54 @@ iframe[title="LastPass"] {
 	overflow-x: hidden;
 	overflow-y: auto;	
 }
+
+.modal-superwide {
+  max-width: 1200px; /* o 1400px si te da igual el mundo */
+}
+@media (min-width: 1400px) {
+  .modal-superwide {
+    max-width: 1400px;
+  }
+}
+
+/* === Modal AdHoc: DatePicker / input-group fixes === */
+.adhoc-filters-modal .react-datepicker-wrapper,
+.adhoc-filters-modal .react-datepicker__input-container {
+  width: 100%;
+  display: block;
+}
+
+.adhoc-filters-modal .react-datepicker__input-container input {
+  width: 100%;
+  text-align: center; /* como tu ejemplo “bueno” */
+}
+
+/* Evita que el icono salte arriba por wrap del input-group */
+.adhoc-filters-modal .input-group {
+  flex-wrap: nowrap;
+}
+
+/* Permite que el input se encoja y no fuerce el wrap */
+.adhoc-filters-modal .input-group > .form-control,
+.adhoc-filters-modal .input-group > .form-select {
+  min-width: 0;
+}
+
+/* Bootstrap 4: input-group-prepend/append */
+.adhoc-filters-modal .input-group-prepend,
+.adhoc-filters-modal .input-group-append {
+  display: flex;
+}
+
+/* === Modal AdHoc: LocationSelects grid alignment === */
+/* Neutraliza los márgenes negativos del .row interno SIN matar los gutters */
+// .adhoc-filters-modal .adhoc-location-wrap .row {
+//   margin-left: 0;
+//   margin-right: 0;
+// }
+
+// /* Mantén separación entre columnas */
+// .adhoc-filters-modal .adhoc-location-wrap .row > [class*="col-"] {
+//   padding-left: .75rem;
+//   padding-right: .75rem;
+// }

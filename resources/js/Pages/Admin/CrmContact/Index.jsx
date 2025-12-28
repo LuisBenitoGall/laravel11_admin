@@ -2,28 +2,25 @@ import AdminAuthenticatedLayout from '@/Layouts/Admin/AdminAuthenticatedLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { OverlayTrigger, Table, Tooltip } from 'react-bootstrap';
-import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import * as locales from "date-fns/locale";
-import { format, parseISO, subYears, addYears } from 'date-fns';
-import axios from 'axios';
 
 //Components:
+import ActiveFiltersLegend from '@/Components/ActiveFiltersLegend';
+import AdHocFiltersDropdown from '@/Components/AdHocFiltersDropdown';
 import Checkbox from '@/Components/Checkbox';
 import ColumnFilter from '@/Components/ColumnFilter';
-import DataFilter from '@/Components/DataFilter';
 import FilterRow from '@/Components/FilterRow';
 import { Pagination } from '@/Components/Pagination';
 import RecordsPerPage from '@/Components/RecordsPerPage';
-import { SortControl } from '@/Components/SortControl';
-import SelectInput from '@/Components/SelectInput';
 import ShowRegister from '@/Components/ShowRegister/ShowRegister';
 import ShowRegisterButton from '@/Components/ShowRegister/ShowRegisterButton';
+import { SortControl } from '@/Components/SortControl';
+import SpinnerInline from '@/Components/SpinnerInline';
 import StatusButton from '@/Components/StatusButton';
 import TableExporter from '@/Components/TableExporter';
-import TextInput from '@/Components/TextInput'; 
 
 //Hooks:
+import { useInertiaLoading } from '@/Hooks/useInertiaLoading';
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
@@ -55,8 +52,15 @@ export default function Index({
     builderMode = false,
     builderList = null
 }) {
-    const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
     const __ = useTranslation();
+    const { props } = usePage();
+    const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
+    const adhocFilters = props.adhocFilters ?? EMPTY;
+    const indexRouteName = `${slug}.index`;
+    const indexRouteParams = {};
+    const { loading } = useInertiaLoading();
+    const legendItems = props.activeFiltersLegend ?? EMPTY;
+    const hasActiveFilters = legendItems.length > 0;
     const { showConfirm } = useSweetAlert();
 
     const [showId, setShowId] = useState(null);
@@ -235,6 +239,7 @@ export default function Index({
         indexRoute: slug + '.index',
         destroyRoute: 'users.destroy',
         filteredDataRoute: slug + '.filtered-data',
+        filteredDataKey: 'users',
         labelName: 'contactos',
         queryParams
     });
@@ -269,6 +274,7 @@ export default function Index({
         >
             <Head title={title} />
 
+            {/* Contenido */}
             <div className="contents">
                 {isBuildingList && (
                     <div className="alert alert-info d-flex justify-content-between align-items-center mb-3 mx-0">
@@ -326,8 +332,15 @@ export default function Index({
                 {/* Controles */}
                 <div className="row">
                     <div className="controls d-flex align-items-center">
-
                         <ColumnFilter columns={columns} visibleColumns={visibleColumns} toggleColumn={toggleColumnVisibility} />
+
+                        {/* Filtros de datos */}
+                        <AdHocFiltersDropdown
+                            filters={adhocFilters}
+                            routeName={indexRouteName}
+                            routeParams={indexRouteParams}
+                            queryParams={tableQueryParams} 
+                        />
 
                         <RecordsPerPage perPage={perPage} setPerPage={setPerPage} />
 
@@ -335,6 +348,20 @@ export default function Index({
                     </div>
                 </div>
 
+                <div className="d-flex justify-content-between align-items-center my-2">
+                    <ActiveFiltersLegend
+                        items={legendItems}
+                        routeName={indexRouteName}
+                        routeParams={indexRouteParams}
+                        queryParams={tableQueryParams}
+                    />
+
+                    {hasActiveFilters && loading ? (
+                        <SpinnerInline text={__('cargando') ?? 'Cargando…'} />
+                    ) : null}
+                </div>
+
+                {/* Tabla */}
                 <div className="table-responsive">
                     <Table className="table table-nowrap table-striped align-middle mb-0" id="tblContacts">
                         <thead>
@@ -351,8 +378,8 @@ export default function Index({
                                             <SortControl
                                                 name={col.key}
                                                 sortable={true}
-                                                sort_field={queryParams.sort_field}
-                                                sort_direction={queryParams.sort_direction}
+                                                sort_field={tableQueryParams.sort_field}
+                                                sort_direction={tableQueryParams.sort_direction}
                                                 sortChanged={sortChanged}
                                             />
                                         )}
@@ -364,7 +391,7 @@ export default function Index({
 
                         <FilterRow
                             columns={columns}
-                            queryParams={queryParams}
+                            queryParams={tableQueryParams}
                             visibleColumns={visibleColumns}
                             SearchFieldChanged={SearchFieldChanged}
                             PrependColumns={1}
@@ -475,7 +502,7 @@ export default function Index({
                     currentPage={contacts.meta.current_page}
                     perPage={contacts.meta.per_page}
                     onPageChange={(page) => {
-                        router.get(route(slug + ".index"), {
+                        router.get(route(indexRouteName, indexRouteParams), {
                             ...queryParams,
                             page,
                             per_page: perPage,

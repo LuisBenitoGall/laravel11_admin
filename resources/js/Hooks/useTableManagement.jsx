@@ -132,35 +132,35 @@ export function useTableManagement({
   //   }
   // }, [perPage]);
 
-    useEffect(() => {
-        // si no hay ruta índice o se usa filtrado manual, no hacemos nada
-        if (!indexRoute || manualFiltering) return;
+    // useEffect(() => {
+    //     // si no hay ruta índice o se usa filtrado manual, no hacemos nada
+    //     if (!indexRoute || manualFiltering) return;
 
-        // si ya hicimos la sincronización inicial, no vuelvas a tocar nada aquí
-        if (hasSyncedPerPageRef.current) return;
+    //     // si ya hicimos la sincronización inicial, no vuelvas a tocar nada aquí
+    //     if (hasSyncedPerPageRef.current) return;
 
-        const qpPerPage = parseInt(queryParams.per_page);
-        const currentPer = parseInt(perPage);
+    //     const qpPerPage = parseInt(queryParams.per_page);
+    //     const currentPer = parseInt(perPage);
 
-        // solo forzar una visita si la URL NO tiene per_page pero el estado sí
-        if (Number.isNaN(qpPerPage) && !Number.isNaN(currentPer)) {
-          hasSyncedPerPageRef.current = true;
+    //     // solo forzar una visita si la URL NO tiene per_page pero el estado sí
+    //     if (Number.isNaN(qpPerPage) && !Number.isNaN(currentPer)) {
+    //       hasSyncedPerPageRef.current = true;
 
-          router.get(
-            route(getRouteName(indexRoute), getRouteParams(indexRoute)),
-            { 
-              ...queryParams, 
-              per_page: currentPer, 
-              page: 1 
-            },
-            { preserveState: true }
-          );
-        } else {
-          // ya está sincronizado o no hace falta
-          hasSyncedPerPageRef.current = true;
-        }
-        // 👈 que dependa de queryParams, no de perPage para evitar re-llamadas constantes
-    }, [indexRoute, manualFiltering, queryParams, perPage]);
+    //       router.get(
+    //         route(getRouteName(indexRoute), getRouteParams(indexRoute)),
+    //         { 
+    //           ...queryParams, 
+    //           per_page: currentPer, 
+    //           page: 1 
+    //         },
+    //         { preserveState: true }
+    //       );
+    //     } else {
+    //       // ya está sincronizado o no hace falta
+    //       hasSyncedPerPageRef.current = true;
+    //     }
+    //     // 👈 que dependa de queryParams, no de perPage para evitar re-llamadas constantes
+    // }, [indexRoute, manualFiltering, queryParams, perPage]);
 
   // Conversión kebab-case a snake_case si hace falta (fallback por si no se pasa filteredDataKey)
   const jsonEntityName = entityName.includes('-') ? entityName.replace(/-/g, '_') : entityName;

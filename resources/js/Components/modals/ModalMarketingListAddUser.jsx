@@ -1,6 +1,5 @@
-// resources/js/Components/modals/ModalMarketingListAddUser.jsx
-
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { router } from '@inertiajs/react';
 
 // Components
@@ -8,6 +7,7 @@ import ReusableModal from '@/Components/modals/ModalTemplate';
 import InfoPopover from '@/Components/InfoPopover';
 import InputError from '@/Components/InputError';
 import UserSearch from '@/Components/UserSearch';
+import FlashMessage from '@/Components/FlashMessage';
 
 // Hooks
 import { useTranslation } from '@/Hooks/useTranslation';
@@ -28,6 +28,12 @@ export default function ModalMarketingListAddUser({
     const [errors, setErrors] = useState({});
     const [processing, setProcessing] = useState(false);
 
+    // flash local (mismo estilo que el layout)
+    const [flash, setFlash] = useState({
+        type: null,
+        message: '',
+    });
+
     // Reset cada vez que se abre/cierra
     useEffect(() => {
         if (!show) {
@@ -37,12 +43,14 @@ export default function ModalMarketingListAddUser({
             });
             setErrors({});
             setProcessing(false);
+            setFlash({
+                type: null,
+                message: '',
+            });
         }
     }, [show]);
 
     const handleSelectUser = (user) => {
-        // Ajusta según la firma real de tu UserSearch
-        // Si te devuelve solo id, cambia esto en consecuencia
         setForm((prev) => ({
             ...prev,
             user_id: user ? user.id : null,
@@ -58,7 +66,7 @@ export default function ModalMarketingListAddUser({
         }));
     };
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         const newErrors = {};
 
         if (!form.user_id) {
@@ -71,34 +79,76 @@ export default function ModalMarketingListAddUser({
         }
 
         setProcessing(true);
+        setErrors({});
+        setFlash({ type: null, message: '' });
 
-        router.post(
-            route('marketing-list-users.store'), 
-            {
-                marketing_list_id: marketingListId,
-                user_id: form.user_id,
-                observations: form.observations || null,
-            },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setForm({
-                        user_id: null,
-                        observations: '',
-                    });
-                    setErrors({});
-                    onClose();
+        try {
+            const response = await axios.post(
+                route('marketing-list-users.store'),
+                {
+                    marketing_list_id: marketingListId,
+                    user_id: form.user_id,
+                    observations: form.observations || null,
+                },
+                {
+                    headers: {
+                        Accept: 'application/json',
+                    },
+                }
+            );
 
-                    if (typeof onAdded === 'function') {
-                        onAdded();
-                    }
-                },
-                onError: (err) => {
-                    setErrors(err || {});
-                },
-                onFinish: () => setProcessing(false),
+            // Éxito
+            const msg = response.data?.message ?? __('usuario_anadido_ok');
+
+            // Si quieres ver mensaje de éxito dentro del modal antes de cerrar, descomenta:
+            // setFlash({ type: 'success', message: msg });
+
+            // Cerramos modal directamente (ya que la operación fue correcta)
+            onClose?.();
+
+            if (typeof onAdded === 'function') {
+                onAdded(response.data?.data);
             }
-        );
+        } catch (error) {
+            const status = error.response?.status;
+            const data   = error.response?.data ?? {};
+
+            if (status === 422) {
+                // Puede venir como { message: '...' } o como { errors: { campo: [msg] } }
+                const backendErrors = data.errors || {};
+                if (Object.keys(backendErrors).length > 0) {
+                    const flatErrors = {};
+                    Object.entries(backendErrors).forEach(([field, msgs]) => {
+                        if (Array.isArray(msgs) && msgs.length) {
+                            flatErrors[field] = msgs[0];
+                        }
+                    });
+                    setErrors(flatErrors);
+                }
+
+                const firstError =
+                    data.message ||
+                    Object.values(data.errors ?? {})?.[0]?.[0] ||
+                    __('error_validacion');
+
+                setFlash({
+                    type: 'danger',
+                    message: firstError,
+                });
+            } else if (status === 403) {
+                setFlash({
+                    type: 'danger',
+                    message: data.message ?? __('empresa_no_activa'),
+                });
+            } else {
+                setFlash({
+                    type: 'danger',
+                    message: __('error_interno_intentelo_mas_tarde'),
+                });
+            }
+        } finally {
+            setProcessing(false);
+        }
     };
 
     return (
@@ -111,6 +161,12 @@ export default function ModalMarketingListAddUser({
             cancelText={__('cancelar')}
             confirmDisabled={processing}
         >
+            {/* Flash local dentro del modal, mismo estilo que el layout */}
+            <FlashMessage
+                type={flash.type || 'danger'}
+                message={flash.message}
+            />
+
             {/* Selector de usuario */}
             <div className="mb-3">
                 <div className="position-relative">
@@ -118,14 +174,6 @@ export default function ModalMarketingListAddUser({
                         {__('usuario')}*
                     </label>
 
-                    {/* 
-                        UserSearch:
-                        Ajusta las props según la implementación real.
-                        Ejemplo típico:
-                        - onSelect(user)
-                        - searchUrl / route
-                        - placeholder
-                    */}
                     <UserSearch
                         id="ml-user-search"
                         name="user_id"

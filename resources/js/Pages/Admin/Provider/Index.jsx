@@ -2,29 +2,51 @@ import AdminAuthenticatedLayout from '@/Layouts/Admin/AdminAuthenticatedLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { OverlayTrigger, Table, Tooltip } from 'react-bootstrap';
-import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import axios from 'axios';
 
 //Components:
+import ActiveFiltersLegend from '@/Components/ActiveFiltersLegend';
+import AdHocFiltersDropdown from '@/Components/AdHocFiltersDropdown';
 import ColumnFilter from '@/Components/ColumnFilter';
 import FilterRow from '@/Components/FilterRow';
 import { Pagination } from '@/Components/Pagination';
 import RecordsPerPage from '@/Components/RecordsPerPage';
 import { SortControl } from '@/Components/SortControl';
+import SpinnerInline from '@/Components/SpinnerInline';
 import StatusButton from '@/Components/StatusButton';
 import TableExporter from '@/Components/TableExporter';
 
 //Hooks:
+import { useInertiaLoading } from '@/Hooks/useInertiaLoading';
+import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
 
 //Utils:
 import renderCellContent from '@/Utils/renderCellContent.jsx';
 
-export default function Index({ auth, session, title, subtitle, companies, queryParams: rawQueryParams = {}, availableLocales }) {
-    const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
+const EMPTY = Object.freeze([]);
+const EMPTY_OBJ = Object.freeze({});
+
+export default function Index({ 
+    auth, 
+    session, 
+    title, 
+    subtitle, 
+    companies, 
+    queryParams: rawQueryParams = {}, 
+    availableLocales 
+}) {
     const __ = useTranslation();
+    const { props } = usePage();
+    const queryParams = (rawQueryParams && typeof rawQueryParams === 'object') ? rawQueryParams : EMPTY_OBJ;
+    const adhocFilters = props.adhocFilters ?? EMPTY;
+    const indexRouteName = 'providers.index';
+    const indexRouteParams = {};
+    const { loading } = useInertiaLoading();
+    const legendItems = props.activeFiltersLegend || [];
+    const hasActiveFilters = legendItems.length > 0;
+    const { showConfirm } = useSweetAlert();
 
     //Columnas:
     const columns = [
@@ -97,9 +119,30 @@ export default function Index({ auth, session, title, subtitle, companies, query
                 <div className="row">
                     <div className="controls d-flex align-items-center">
                         <ColumnFilter columns={columns} visibleColumns={visibleColumns} toggleColumn={toggleColumnVisibility} />
+
+                        {/* Filtros avanzados (Adhoc) */}
+                        <AdHocFiltersDropdown
+                            filters={adhocFilters}
+                            routeName={indexRouteName}
+                            routeParams={indexRouteParams}
+                            queryParams={queryParams}
+                        />
+
                         <RecordsPerPage perPage={perPage} setPerPage={setPerPage} />
+
                         <TableExporter filename={ __('proveedores') } columns={columns} fetchData={filteredData}/>
                     </div>
+                </div>
+
+                <div className="d-flex justify-content-between align-items-center my-2">
+                    <ActiveFiltersLegend
+                        items={legendItems}
+                        routeName={indexRouteName}
+                        routeParams={indexRouteParams}
+                    />
+                    {hasActiveFilters && loading ? (
+                        <SpinnerInline text={__('cargando') ?? 'Cargando…'} />
+                    ) : null}
                 </div>
 
                 {/* Tabla */}
@@ -204,7 +247,7 @@ export default function Index({ auth, session, title, subtitle, companies, query
                     currentPage={companies.meta.current_page} 
                     perPage={companies.meta.per_page}
                     onPageChange={(page) => {
-                        router.get(route("providers.index"), {
+                        router.get(route(indexRouteName, indexRouteParams), {
                             ...queryParams,
                             page,
                             per_page: perPage,

@@ -2,28 +2,24 @@ import AdminAuthenticatedLayout from '@/Layouts/Admin/AdminAuthenticatedLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { OverlayTrigger, Table, Tooltip } from 'react-bootstrap';
-import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import * as locales from "date-fns/locale";
-import { format, parseISO, subYears, addYears } from 'date-fns';
-import axios from 'axios';
 
 //Components:
+import ActiveFiltersLegend from '@/Components/ActiveFiltersLegend';
+import AdHocFiltersDropdown from '@/Components/AdHocFiltersDropdown';
 import ColumnFilter from '@/Components/ColumnFilter';
-import DataFilter from '@/Components/DataFilter';
 import FilterRow from '@/Components/FilterRow';
 import { Pagination } from '@/Components/Pagination';
 import RecordsPerPage from '@/Components/RecordsPerPage';
-import SelectInput from '@/Components/SelectInput';
 import ShowRegister from '@/Components/ShowRegister/ShowRegister';
 import ShowRegisterButton from '@/Components/ShowRegister/ShowRegisterButton';
 import { SortControl } from '@/Components/SortControl';
+import SpinnerInline from '@/Components/SpinnerInline';
 import StatusButton from '@/Components/StatusButton';
 import TableExporter from '@/Components/TableExporter';
-import TextInput from '@/Components/TextInput'; 
 
 //Hooks:
-import { useSweetAlert } from '@/Hooks/useSweetAlert';
+import { useInertiaLoading } from '@/Hooks/useInertiaLoading';
 import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
 
@@ -33,21 +29,43 @@ import UserShowView from '@/Pages/Admin/User/Partials/UserShowView';
 //Utils:
 import renderCellContent from '@/Utils/renderCellContent.jsx';
 
+const EMPTY = Object.freeze([]);
+const EMPTY_OBJ = Object.freeze({});
+
 export default function Index({ 
     auth, 
     session, 
     title, 
     subtitle, 
     users, 
+    countries,
     queryParams: rawQueryParams = {}, 
     availableLocales 
 }){
     const __ = useTranslation();
-	const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
+    const { props } = usePage();
+	const queryParams = (rawQueryParams && typeof rawQueryParams === 'object') ? rawQueryParams : EMPTY_OBJ;
+    const adhocFilters = props.adhocFilters ?? EMPTY;
+    const indexRouteName = 'users.index';
+    const indexRouteParams = {};
+    const { loading } = useInertiaLoading();
+    const legendItems = props.activeFiltersLegend || [];
+    const hasActiveFilters = legendItems.length > 0;
     
     //Columna Show Register
     const [showId, setShowId] = useState(null);
     const [showPanelOpen, setShowPanelOpen] = useState(false);
+    const [showLoading, setShowLoading] = useState(false);
+
+    useEffect(() => {
+        const removeStart = router.on('start', () => setShowLoading(true));
+        const removeFinish = router.on('finish', () => setShowLoading(false));
+
+        return () => {
+            removeStart();
+            removeFinish();
+        };
+    }, []);
 
     const handleShowRegister = (user) => {
         setShowId(user.id);
@@ -125,8 +143,13 @@ export default function Index({
 						{/* Filtro de columnas */}
 						<ColumnFilter columns={columns} visibleColumns={visibleColumns} toggleColumn={toggleColumnVisibility} />
 
-						{/* Filtros de datos */}
-						{/* <DataFilter /> */}
+                        {/* Filtros de datos */}
+                        <AdHocFiltersDropdown
+                            filters={adhocFilters}
+                            routeName={indexRouteName}
+                            routeParams={indexRouteParams}
+                            queryParams={queryParams}
+                        />
 
 						{/* A DERECHA */}
 						{/* Registros por página */}
@@ -136,6 +159,17 @@ export default function Index({
 						<TableExporter filename={ __('usuarios') } columns={columns} fetchData={filteredData}/>
 					</div>
 				</div>
+
+                <div className="d-flex justify-content-between align-items-center my-2">
+                    <ActiveFiltersLegend 
+                        items={legendItems} 
+                        routeName={indexRouteName}
+                        routeParams={indexRouteParams}
+                    />
+                    {hasActiveFilters && loading ? (
+                        <SpinnerInline text={__('cargando') ?? 'Cargando…'} />
+                    ) : null}
+                </div>
 
 				{/* Tabla */}
 				<div className="table-responsive">
@@ -174,6 +208,8 @@ export default function Index({
 							queryParams={queryParams}
 							visibleColumns={visibleColumns}
 							SearchFieldChanged={SearchFieldChanged}
+                            indexRoute={indexRouteName}
+                            indexParams={undefined}
                             PrependColumns={1}
 						/>
 
@@ -264,13 +300,13 @@ export default function Index({
 					currentPage={users.meta.current_page} 
 					perPage={users.meta.per_page}
 					onPageChange={(page) => {
-						router.get(route("users.index"), {
+						router.get(route(indexRouteName, indexRouteParams), {
 							...queryParams,
 							page,
 							per_page: perPage,
-							sort_field: sortParams.sort_field,
-							sort_direction: sortParams.sort_direction,
-						}, { preserveState: true });
+							// sort_field: sortParams.sort_field,
+							// sort_direction: sortParams.sort_direction,
+						}, { preserveState: true, replace: true });
 					}}
 				/>
 			</div>

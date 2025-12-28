@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\ServiceProvider;
 use Inertia\Inertia;
+use Illuminate\Database\Eloquent\Builder;
+use App\Support\Filters\AdHocFilterApplier;
 
 class AppServiceProvider extends ServiceProvider{
     /**
@@ -43,6 +45,11 @@ class AppServiceProvider extends ServiceProvider{
         //Permisos Spatie de Super-Administrador:
         Gate::before(function ($user, $ability) {
             return $user->hasRole('Super Admin') ? true : null;
+        });
+
+        Builder::macro('applyAdhocFilters', function ($request, array $definitions) {
+            /** @var \Illuminate\Database\Eloquent\Builder $this */
+            return AdHocFilterApplier::apply($this, $request, $definitions);
         });
     }
 }

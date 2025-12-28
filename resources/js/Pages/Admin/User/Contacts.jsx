@@ -1,29 +1,25 @@
 import AdminAuthenticatedLayout from '@/Layouts/Admin/AdminAuthenticatedLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { OverlayTrigger, Table, Tooltip } from 'react-bootstrap';
-import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import * as locales from "date-fns/locale";
-import { format, parseISO, subYears, addYears } from 'date-fns';
-import axios from 'axios';
 
 //Components:
+import ActiveFiltersLegend from '@/Components/ActiveFiltersLegend';
+import AdHocFiltersDropdown from '@/Components/AdHocFiltersDropdown';
 import ColumnFilter from '@/Components/ColumnFilter';
-import DataFilter from '@/Components/DataFilter';
 import FilterRow from '@/Components/FilterRow';
 import { Pagination } from '@/Components/Pagination';
 import RecordsPerPage from '@/Components/RecordsPerPage';
 import { SortControl } from '@/Components/SortControl';
-import SelectInput from '@/Components/SelectInput';
 import ShowRegister from '@/Components/ShowRegister/ShowRegister';
 import ShowRegisterButton from '@/Components/ShowRegister/ShowRegisterButton';
+import SpinnerInline from '@/Components/SpinnerInline';
 import StatusButton from '@/Components/StatusButton';
 import TableExporter from '@/Components/TableExporter';
-import TextInput from '@/Components/TextInput'; 
 
 //Hooks:
-import { useSweetAlert } from '@/Hooks/useSweetAlert';
+import { useInertiaLoading } from '@/Hooks/useInertiaLoading';
 import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
 
@@ -33,10 +29,30 @@ import UserShowView from '@/Pages/Admin/User/Partials/UserShowView';
 //Utils:
 import renderCellContent from '@/Utils/renderCellContent.jsx';
 
-export default function Index({ auth, session, title, subtitle, contacts, contact_types, queryParams: rawQueryParams = {}, availableLocales }) {
-    const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
-    const __ = useTranslation();
+const EMPTY = Object.freeze([]);
+const EMPTY_OBJ = Object.freeze({});
 
+export default function Index({ 
+    auth, 
+    session, 
+    title, 
+    subtitle, 
+    contacts, 
+    contact_types, 
+    queryParams: rawQueryParams = {}, 
+    availableLocales 
+}) {
+    const __ = useTranslation();
+    const { props } = usePage();
+    const queryParams = (rawQueryParams && typeof rawQueryParams === 'object') ? rawQueryParams : EMPTY_OBJ;
+    const adhocFilters = props.adhocFilters ?? EMPTY;
+    const indexRouteName = 'users.contacts';
+    const indexRouteParams = {};
+    const { loading } = useInertiaLoading();
+    const legendItems = props.activeFiltersLegend || [];
+    const hasActiveFilters = legendItems.length > 0;
+
+    //Columna Show Register
     const [showId, setShowId] = useState(null);
     const [showPanelOpen, setShowPanelOpen] = useState(false);
 
@@ -50,21 +66,37 @@ export default function Index({ auth, session, title, subtitle, contacts, contac
         setShowId(null);
     };
 
-    const contactTypesArray = Object.entries(contact_types || {}).map(([key, value]) => ({
-		value: key,
-		label: value
-	}));
+    const contactTypesArray = useMemo(() => {
+        return Object.entries(contact_types || {}).map(([key, value]) => ({
+            value: key,
+            label: value,
+        }));
+    }, [contact_types]);
 
-    const columns = [
-        { key: 'name',       label: __('nombre'),      sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_filtrar') },
-        { key: 'created_at', label: __('fecha_alta'),  sort: true,  filter: 'date', class_th: 'text-center', class_td: 'text-end', placeholder: __('fecha_alta'), dateKeys: ['date_from', 'date_to'] },
-        { key: 'email',      label: __('email'),       sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('email_filtrar') },
-        { key: 'phones',     label: __('telefonos'),   sort: false, filter: '', class_th: '', class_td: '', placeholder: __('telefonos_filtrar') },
-        { key: 'position',   label: __('cargo'),       sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('cargo_filtrar') },
+    //Columnas:
+    const columns = useMemo(() => ([
+        { key: 'name', label: __('nombre'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_filtrar') },
+        { key: 'created_at', label: __('fecha_alta'), sort: true, filter: 'date', class_th: 'text-center', class_td: 'text-end', placeholder: __('fecha_alta'), dateKeys: ['date_from', 'date_to'] },
+        { key: 'email', label: __('email'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('email_filtrar') },
+        { key: 'phones', label: __('telefonos'), sort: false, filter: '', class_th: '', class_td: '', placeholder: __('telefonos_filtrar') },
+        { key: 'position', label: __('cargo'), sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('cargo_filtrar') },
         { key: 'contact_type', label: __('contacto_tipo'), sort: false, filter: 'select', options: contactTypesArray, class_th: '', class_td: '', placeholder: __('contacto_tipo_filtrar') },
-        { key: 'companies',  label: __('empresa'), sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('empresa_filtrar') },
-        { key: 'avatar',     label: __('imagen'),      sort: false, filter: '',     type: 'image', icon: 'user-tie', class_th: 'text-center', class_td: 'text-center', placeholder: '' }
-    ];
+        { key: 'companies', label: __('empresa'), sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('empresa_filtrar') },
+        { key: 'avatar', label: __('imagen'), sort: false, filter: '', type: 'image', icon: 'user-tie', class_th: 'text-center', class_td: 'text-center', placeholder: '' },
+    ]), [__, contactTypesArray]);
+
+    const allColumnKeys = useMemo(() => columns.map(c => c.key), [columns]);
+
+    const tableConfig = useMemo(() => ({
+        table: 'tblContacts',
+        allColumnKeys,
+        entityName: 'contacts',
+        indexRoute: 'users.contacts',
+        destroyRoute: 'users.destroy',
+        filteredDataRoute: 'users.contacts-filtered-data',
+        labelName: 'contactos',
+        queryParams
+    }), [allColumnKeys, queryParams]);
 
     const {
         permissions,
@@ -72,29 +104,18 @@ export default function Index({ auth, session, title, subtitle, contacts, contac
         perPage,
         setPerPage,
         visibleColumns,
-        setVisibleColumns,
         toggleColumnVisibility,
         SearchFieldChanged,
         sortChanged,
         filteredData,
-        handleDelete
-    } = useTableManagement({
-        table: 'tblContacts',
-        allColumnKeys: columns.map(col => col.key),
-        entityName: 'contacts',
-        indexRoute: 'users.contacts',
-        destroyRoute: 'users.destroy',
-        filteredDataRoute: 'users.contacts-filtered-data',
-        labelName: 'contactos',
-        queryParams
-    });
+    } = useTableManagement(tableConfig);
 
     const actions = [];
-    if (permissions?.['contacts.create']) {
+    if (permissions?.['users.create']) {
         actions.push({
             text: __('contacto_nuevo'),
             icon: 'la-plus',
-            url: 'contacts.create',
+            url: 'users.create',
             modal: false
         });
     }
@@ -112,8 +133,17 @@ export default function Index({ auth, session, title, subtitle, contacts, contac
                 {/* Controles */}
                 <div className="row">
                     <div className="controls d-flex align-items-center">
-
+                        {/* A IZQUIERDA */}
+						{/* Filtro de columnas */}
                         <ColumnFilter columns={columns} visibleColumns={visibleColumns} toggleColumn={toggleColumnVisibility} />
+
+                        {/* Filtros de datos */}
+                        <AdHocFiltersDropdown
+                            filters={adhocFilters}
+                            routeName={indexRouteName}
+                            routeParams={indexRouteParams}
+                            queryParams={queryParams}
+                        />
 
                         <RecordsPerPage perPage={perPage} setPerPage={setPerPage} />
 
@@ -121,6 +151,18 @@ export default function Index({ auth, session, title, subtitle, contacts, contac
                     </div>
                 </div>
 
+                <div className="d-flex justify-content-between align-items-center my-2">
+                    <ActiveFiltersLegend 
+                        items={legendItems} 
+                        routeName={indexRouteName}
+                        routeParams={indexRouteParams}
+                    />
+                    {hasActiveFilters && loading ? (
+                        <SpinnerInline text={__('cargando') ?? 'Cargando…'} />
+                    ) : null}
+                </div>
+                
+                {/* Tabla */}
                 <div className="table-responsive">
                     <Table className="table table-nowrap table-striped align-middle mb-0" id="tblContacts">
                         <thead>
@@ -131,7 +173,7 @@ export default function Index({ auth, session, title, subtitle, contacts, contac
 
                                 {columns.map(col => (
                                     <th key={col.key} className={`${col.class_th ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}>
-                                        { col.label }
+                                        { __(col.label) }
 
                                         {col.sort && (
                                             <SortControl
@@ -186,7 +228,7 @@ export default function Index({ auth, session, title, subtitle, contacts, contac
                                                     status={contact.status}
                                                     id={contact.id}
                                                     updateRoute='users.status'
-                                                    reloadUrl={route('users.contacts')}
+                                                    reloadUrl={route(indexRouteName, indexRouteParams)}
                                                     reloadResource="contacts"
                                                 />
                                             </OverlayTrigger>
@@ -250,7 +292,7 @@ export default function Index({ auth, session, title, subtitle, contacts, contac
                     currentPage={contacts.meta.current_page}
                     perPage={contacts.meta.per_page}
                     onPageChange={(page) => {
-                        router.get(route("users.contacts"), {
+                        router.get(route(indexRouteName, indexRouteParams), {
                             ...queryParams,
                             page,
                             per_page: perPage,

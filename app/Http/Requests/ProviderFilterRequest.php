@@ -21,7 +21,8 @@ class ProviderFilterRequest extends FormRequest{
      */
     public function rules(): array{
         return [
-            'name'       => 'nullable|string|max:255',
+            'name'      => 'nullable|string|max:255',
+            'adhoc'     => 'nullable|array'
         ];
     }
 

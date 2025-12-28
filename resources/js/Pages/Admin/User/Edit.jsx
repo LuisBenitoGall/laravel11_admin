@@ -31,7 +31,7 @@ export default function Index({
     user, roles, user_roles, images,
     salutations, contact_types, contact_subtypes, contact_subtype_id, 
     crm_contact, addresses, countries, profile, company,
-    company_context, pivot, user_company_id          
+    company_context, pivot, user_companies        
 }) {
     const __ = useTranslation();
     const props = usePage()?.props || {};
@@ -65,39 +65,19 @@ export default function Index({
     const actions = [];
     const cc = company_context; 
 
-    // Acción regreso:
-    if (cc && cc.type === 'crm_account' && permissions['crm-accounts.edit']) {
+    // Acción regreso: si `crm_contact` es `null` -> `users.index`, si no es `null` -> `crm-contacts.index`.
+    try {
+        const backRoute = crm_contact != null ? 'crm-contacts.index' : 'users.index';
+        const backTextKey = crm_contact != null ? 'contactos_volver' : 'usuarios_volver';
         actions.push({
-            text: __('volver_a') + ' ' + cc.name,
+            text: __(backTextKey),
             icon: 'la-angle-left',
-            url: 'crm-accounts.edit',
-            params: [cc.crm_id, 'users'],
+            url: backRoute,
             modal: false
         });
-    } else if (cc && cc.type === 'company' && (permissions['companies.edit'] || permissions['users.index'])) {
-        if (permissions['companies.edit']) {
-            actions.push({
-                text: __('volver_a') + ' ' + cc.name,
-                icon: 'la-angle-left',
-                url: 'companies.edit',
-                params: [cc.ref_id, 'users'],
-                modal: false
-            });
-        } else {
-            actions.push({
-                text: __('usuarios_volver'),
-                icon: 'la-angle-left',
-                url: 'users.index',
-                modal: false
-            });
-        }
-    } else if (permissions['users.index']) {
-        actions.push({
-            text: __('usuarios_volver'),
-            icon: 'la-angle-left',
-            url: 'users.index',
-            modal: false
-        });
+    } catch (e) {
+        // Fallback sencillo en caso de problemas: volver a users.index
+        actions.push({ text: __('usuarios_volver'), icon: 'la-angle-left', url: 'users.index', modal: false });
     }
 
     // Nuevo usuario
@@ -183,9 +163,9 @@ export default function Index({
                                         contact_subtypes={contact_subtypes}
                                         contact_subtype_id={contact_subtype_id}
                                         crm_contact={crm_contact}
-                                        user_company_id={user_company_id}
                                         pivot={pivot}
                                         company_context={company_context}
+                                        user_companies={user_companies}
                                         // En el futuro, podrías pasar refreshKey aquí
                                         // para recargar un listado de notas si lo añades en este tab
                                         // notesRefreshKey={refreshKey}
@@ -246,7 +226,6 @@ export default function Index({
                     show={showModalUserNoteCreate}
                     onClose={handleCloseModalUserNoteCreate}
                     contact={user}
-                    user_company={user_company_id}
                     onSaved={handleUserNoteSaved}
                     onCreated={handleNoteCreated}
                 />

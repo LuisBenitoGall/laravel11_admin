@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
@@ -14,6 +16,7 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use App\Support\CompanyContext;
+use App\Support\Filters\AdHocFilterApplier;
 use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
@@ -27,6 +30,8 @@ use App\Models\AccountingAccount;
 use App\Models\Category;
 use App\Models\Company;
 use App\Models\CompanyAccount;
+use App\Models\Country;
+use App\Models\Currency;
 use App\Models\CustomerProvider;
 use App\Models\UserColumnPreference;
 use App\Models\UserCompany;
@@ -50,10 +55,14 @@ class CustomerProviderController extends Controller{
     /**
      * 1. Listado de clientes.
      * 1.1. Data para exportación clientes.
-     * 1.2. Data Query clientes.
+     * 1.2. Data Query genérica clientes y proveedores.
+     * 1.2.1. Side clientes.
+     * 1.2.2. Side proveedores.     * 
+     * 1.3. Definición de filtros avanzados.
+     * 1.4. Configuración de filtros avanzados.
+     * 1.5. Leyenda de filtros aplicados.
      * 2. Listado de proveedores.
      * 2.1. Data para exportación proveedores.
-     * 2.2. Data Query proveedores.
      * 3. Formulario nuevo cliente o proveedor.
      * 3.1. Helper normalización cliente o proveedor.
      * 3.2. Helper empresas no vinculadas.
@@ -112,7 +121,12 @@ class CustomerProviderController extends Controller{
             "module" => $this->module,
             "slug" => 'customers',
             "companies" => CustomerProviderResource::collection($companies),
+            "countries" => Cache::remember('countries_select', now()->addDay(), function () {
+                return Country::query()->orderBy('name')->get(['id','name']);
+            }),
             "queryParams" => request()->query() ?: null,
+            "adhocFilters" => $this->adHocFilterUiConfig(),
+            "activeFiltersLegend" => $this->activeFiltersLegend($request),
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions,
             "columnPreferences" => UserColumnPreference::forUserAndTables(
@@ -138,56 +152,373 @@ class CustomerProviderController extends Controller{
     }
 
     /**
-     * 1.2. Data Query clientes.
+     * 1.2. Data Query genérica clientes y proveedores.
      */
-    private function dataQueryCustomers(CustomerFilterRequest $request){
-        $user = auth()->user();
+    private function dataQuerySide(Request $request, string $side): Builder
+    {
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
 
-        $query = Company::select('companies.*', 'customer_providers.id AS relation_id')
-        ->join('customer_providers', 'companies.id', '=', 'customer_providers.customer_id')
-        ->where('customer_providers.provider_id', session('currentCompany'))
-        ->whereNull('customer_providers.deleted_at');
+        $query = Company::query()
+            ->from('companies')
+            ->select([
+                'companies.*',
+                'cp.id AS relation_id',
+                'cp.status AS relation_status',
+                'cp.default_currency_id',
+                'cur.name AS currency_name',
+            ])
+            ->join('customer_providers as cp', function ($j) use ($side, $currentCompanyId) {
+                if ($side === 'customers') {
+                    $j->on('companies.id', '=', 'cp.customer_id')
+                      ->where('cp.provider_id', '=', $currentCompanyId);
+                } else {
+                    $j->on('companies.id', '=', 'cp.provider_id')
+                      ->where('cp.customer_id', '=', $currentCompanyId);
+                }
+            })
+            ->leftJoin('currencies as cur', 'cur.id', '=', 'cp.default_currency_id')
+            ->whereNull('cp.deleted_at')
+            ->whereNull('companies.deleted_at');
 
-        // Filtros dinámicos
+        // Header filters (los que ya tenías)
         $filters = [
-            'name' => fn($q, $v) => $q->where('name', 'like', "%$v%"),
-            'tradename' => fn($q, $v) => $q->where('tradename', 'like', "%$v%")
+            'name' => function (Builder $q, $v) {
+                $v = trim((string)$v);
+                if ($v !== '') $q->where('companies.name', 'like', "%{$v}%");
+            },
+            'tradename' => function (Builder $q, $v) {
+                $v = trim((string)$v);
+                if ($v !== '') $q->where('companies.tradename', 'like', "%{$v}%");
+            },
         ];
 
-        foreach($filters as $key => $callback){
-            if ($request->filled($key)) {
-                $callback($query, $request->input($key));
-            }
+        foreach ($filters as $key => $cb) {
+            if ($request->filled($key)) $cb($query, $request->input($key));
         }
 
-        // Filtros por rangos de fechas dinámicos
-        $dateFilters = [
-            'created_at' => ['date_from', 'date_to']
-        ];
+        // Date range (companies.created_at)
+        $from = $request->input('date_from');
+        $to   = $request->input('date_to');
 
-        foreach ($dateFilters as $column => [$fromKey, $toKey]) {
-            $from = $request->input($fromKey);
-            $to = $request->input($toKey);
-
-            if ($from && $to) {
-                $query->whereBetween($column, ["$from 00:00:00", "$to 23:59:59"]);
-            } elseif ($from) {
-                $query->where($column, '>=', "$from 00:00:00");
-            } elseif ($to) {
-                $query->where($column, '<=', "$to 23:59:59");
-            }
+        if ($from && $to) {
+            $query->whereBetween('companies.created_at', ["{$from} 00:00:00", "{$to} 23:59:59"]);
+        } elseif ($from) {
+            $query->where('companies.created_at', '>=', "{$from} 00:00:00");
+        } elseif ($to) {
+            $query->where('companies.created_at', '<=', "{$to} 23:59:59");
         }
 
-        // Ordenación
+        // ✅ Adhoc filters (usa tu macro applyAdhocFilters ya existente)
+        $query->applyAdhocFilters($request, $this->adHocFilterDefinitions());
+
+        // Sort
         $sortField = $request->input('sort_field', 'name');
-        $sortDirection = $request->input('sort_direction', 'ASC');
-        $allowedSortFields = ['name', 'tradename'];
+        $sortDir   = strtoupper((string)$request->input('sort_direction', 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
 
-        if (!in_array($sortField, $allowedSortFields)) {
-            $sortField = 'name';
+        $map = [
+            'name' => 'companies.name',
+            'tradename' => 'companies.tradename',
+            'created_at' => 'companies.created_at',
+            'nif' => 'companies.nif'
+        ];
+
+        if (!isset($map[$sortField])) $sortField = 'name';
+
+        return $query->orderBy($map[$sortField], $sortDir);
+    }
+
+    /**
+     * 1.2.1. Side clientes.
+     */
+    private function dataQueryCustomers(CustomerFilterRequest $request): Builder
+    {
+        return $this->dataQuerySide($request, 'customers');
+    }
+
+    /**
+     * 1.2.2. Side proveedores.
+     */
+    private function dataQueryProviders(ProviderFilterRequest $request): Builder
+    {
+        return $this->dataQuerySide($request, 'providers');
+    }
+
+    /**
+     * 1.3. Definición de filtros avanzados.
+     */
+    private function adHocFilterDefinitions(): array
+    {
+        return [
+            // companies.is_ute
+            'ute' => [
+                'rules' => ['nullable', 'integer', 'in:0,1'],
+                'apply' => fn (Builder $q, $v) => $q->where('companies.is_ute', (int)$v),
+            ],
+
+            // companies.status
+            'status' => [
+                'rules' => ['nullable', 'integer', 'in:0,1'],
+                'apply' => fn (Builder $q, $v) => $q->where('companies.status', (int)$v),
+            ],
+
+            // cp.default_currency_id
+            'currency_id' => [
+                'rules' => ['nullable', 'integer', 'min:1'],
+                'apply' => fn (Builder $q, $v) => $q->where('cp.default_currency_id', (int)$v),
+            ],
+
+            /**
+             * Workplaces filters (sin duplicar filas)
+             * companies.id = workplaces.company_id
+             */
+
+            // workplaces.cp (prefijo)
+            // 'workplace_cp' => [
+            //     'rules' => ['nullable', 'string', 'max:12'],
+            //     'apply' => function (Builder $q, $v) {
+            //         $v = trim((string)$v);
+            //         if ($v === '') return;
+
+            //         $q->whereExists(function ($sub) use ($v) {
+            //             $sub->selectRaw('1')
+            //                 ->from('workplaces as w')
+            //                 ->whereColumn('w.company_id', 'companies.id')
+            //                 ->whereNull('w.deleted_at')
+            //                 ->where('w.cp', 'like', $v.'%');
+            //         });
+            //     },
+            // ],
+
+            // towns.id (población)
+            'town_id' => [
+                'rules' => ['nullable', 'integer', 'min:1'],
+                'apply' => function (Builder $q, $v) {
+                    $q->whereExists(function ($sub) use ($v) {
+                        $sub->selectRaw('1')
+                            ->from('workplaces as w')
+                            ->whereColumn('w.company_id', 'companies.id')
+                            ->whereNull('w.deleted_at')
+                            ->where('w.town_id', '=', (int)$v);
+                    });
+                },
+            ],
+
+            // provinces.id (provincia, vía towns.province_id)
+            'province_id' => [
+                'rules' => ['nullable', 'integer', 'min:1'],
+                'apply' => function (Builder $q, $v) {
+                    $pid = (int)$v;
+
+                    $q->whereExists(function ($sub) use ($pid) {
+                        $sub->selectRaw('1')
+                            ->from('workplaces as w')
+                            ->join('towns as t', 't.id', '=', 'w.town_id')
+                            ->whereColumn('w.company_id', 'companies.id')
+                            ->whereNull('w.deleted_at')
+                            ->where('t.province_id', '=', $pid);
+                    });
+                },
+            ],
+
+            // countries.id (país, vía provinces.country_id)
+            'country_id' => [
+                'rules' => ['nullable', 'integer', 'min:1'],
+                'apply' => function (Builder $q, $v) {
+                    $cid = (int)$v;
+
+                    $q->whereExists(function ($sub) use ($cid) {
+                        $sub->selectRaw('1')
+                            ->from('workplaces as w')
+                            ->join('towns as t', 't.id', '=', 'w.town_id')
+                            ->join('provinces as p', 'p.id', '=', 't.province_id')
+                            ->whereColumn('w.company_id', 'companies.id')
+                            ->whereNull('w.deleted_at')
+                            ->where('p.country_id', '=', $cid);
+                    });
+                },
+            ],
+        ];
+    }
+
+    /**
+     * 1.4. Configuración de filtros avanzados.
+     */
+    private function adHocFilterUiConfig(): array
+    {
+        $currencies = Cache::remember('adhoc_currencies_active', now()->addDays(1), function () {
+            return Currency::query()
+                ->select('id', 'name')
+                ->where('status', 1)
+                ->orderBy('name', 'ASC')
+                ->get()
+                ->map(fn ($c) => ['value' => $c->id, 'label' => $c->name])
+                ->values()
+                ->all();
+        });
+
+        return [
+            //28/12/2025: no aplica a RFT:
+            // [
+            //     'key' => 'ute',
+            //     'label' => __('ute'),
+            //     'type' => 'select',
+            //     'multiple' => false,
+            //     'options' => [
+            //         ['value' => 1, 'label' => __('si')],
+            //         ['value' => 0, 'label' => __('no')],
+            //     ],
+            // ],
+            [
+                'key' => 'status',
+                'label' => __('estado'),
+                'type' => 'select',
+                'multiple' => false,
+                'options' => [
+                    ['value' => 1, 'label' => __('activo')],
+                    ['value' => 0, 'label' => __('inactivo')],
+                ],
+            ],
+            [
+                'key' => 'currency_id',
+                'label' => __('moneda'),
+                'type' => 'select',
+                'multiple' => false,
+                'options' => $currencies,
+            ],
+
+            [
+                'key' => 'location',
+                'label' => __('ubicacion'),
+                'type' => 'location_selects',
+                'colClass' => 'col-12',
+                // keys reales que vas a guardar en adhoc (y que luego aplicarás en query):
+                'countryKey'  => 'country_id',
+                'provinceKey' => 'province_id',
+                'townKey'     => 'town_id',
+                'cpKey'       => 'cp'
+            ]
+        ];
+    }
+
+    /**
+     * 1.5. Leyenda de filtros aplicados.
+     */
+    private function activeFiltersLegend(Request $request): array
+    {
+        $legend = [];
+
+        foreach ([
+            'name'      => __('empresa'),
+            'tradename' => __('nombre_comercial'),
+            'date_from' => __('desde'),
+            'date_to'   => __('hasta'),
+        ] as $key => $label) {
+            if ($request->filled($key)) {
+                $legend[] = [
+                    'key' => "header.$key",
+                    'scope' => 'header',
+                    'path' => $key,
+                    'label' => $label,
+                    'value' => $request->input($key),
+                ];
+            }
         }
 
-        return $query->orderBy($sortField, $sortDirection);        
+        $adhoc = $request->input('adhoc', []);
+        $adhoc = is_array($adhoc) ? $adhoc : [];
+
+        if (($adhoc['ute'] ?? '') !== '') {
+            $legend[] = [
+                'key' => 'adhoc.ute',
+                'scope' => 'adhoc',
+                'path' => 'ute',
+                'label' => __('ute'),
+                'value' => ((string)$adhoc['ute'] === '1') ? __('si') : __('no'),
+            ];
+        }
+
+        if (($adhoc['status'] ?? '') !== '') {
+            $legend[] = [
+                'key' => 'adhoc.status',
+                'scope' => 'adhoc',
+                'path' => 'status',
+                'label' => __('estado'),
+                'value' => ((string)$adhoc['status'] === '1') ? __('activo') : __('inactivo'),
+            ];
+        }
+
+        if (!empty($adhoc['currency_id'])) {
+            $cid = (int)$adhoc['currency_id'];
+            $cname = Cache::remember("currency_name_$cid", now()->addDays(30), function () use ($cid) {
+                return Currency::query()->whereKey($cid)->value('name') ?: (string)$cid;
+            });
+
+            $legend[] = [
+                'key' => 'adhoc.currency_id',
+                'scope' => 'adhoc',
+                'path' => 'currency_id',
+                'label' => __('moneda'),
+                'value' => $cname,
+            ];
+        }
+
+        if (!empty($adhoc['workplace_cp'])) {
+            $legend[] = [
+                'key' => 'adhoc.workplace_cp',
+                'scope' => 'adhoc',
+                'path' => 'workplace_cp',
+                'label' => __('cp'),
+                'value' => trim((string)$adhoc['workplace_cp']),
+            ];
+        }
+
+        if (!empty($adhoc['country_id'])) {
+            $id = (int)$adhoc['country_id'];
+            $name = Cache::remember("country_name_$id", now()->addDays(30), function () use ($id) {
+                return Country::query()->whereKey($id)->value('name') ?: (string)$id;
+            });
+
+            $legend[] = [
+                'key' => 'adhoc.country_id',
+                'scope' => 'adhoc',
+                'path' => 'country_id',
+                'label' => __('pais'),
+                'value' => $name,
+            ];
+        }
+
+        if (!empty($adhoc['province_id'])) {
+            $id = (int)$adhoc['province_id'];
+            $name = Cache::remember("province_name_$id", now()->addDays(30), function () use ($id) {
+                return DB::table('provinces')->where('id', $id)->value('name') ?: (string)$id;
+            });
+
+            $legend[] = [
+                'key' => 'adhoc.province_id',
+                'scope' => 'adhoc',
+                'path' => 'province_id',
+                'label' => __('provincia'),
+                'value' => $name,
+            ];
+        }
+
+        if (!empty($adhoc['town_id'])) {
+            $id = (int)$adhoc['town_id'];
+            $name = Cache::remember("town_name_$id", now()->addDays(30), function () use ($id) {
+                return DB::table('towns')->where('id', $id)->value('name') ?: (string)$id;
+            });
+
+            $legend[] = [
+                'key' => 'adhoc.town_id',
+                'scope' => 'adhoc',
+                'path' => 'town_id',
+                'label' => __('poblacion'),
+                'value' => $name,
+            ];
+        }
+
+        return $legend;
     }
 
     /**
@@ -204,7 +535,12 @@ class CustomerProviderController extends Controller{
             "module" => $this->module,
             "slug" => 'providers',
             "companies" => CustomerProviderResource::collection($companies),
+            "countries" => Cache::remember('countries_select', now()->addDay(), function () {
+                return Country::query()->orderBy('name')->get(['id','name']);
+            }),
             "queryParams" => request()->query() ?: null,
+            "adhocFilters" => $this->adHocFilterUiConfig(),
+            "activeFiltersLegend" => $this->activeFiltersLegend($request),
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions,
             "columnPreferences" => UserColumnPreference::forUserAndTables(
@@ -227,59 +563,6 @@ class CustomerProviderController extends Controller{
         return response()->json([
             'companies' => CustomerProviderResource::collection($companies)
         ]);
-    }
-
-    /**
-     * 2.2. Data Query proveedores.
-     */
-    private function dataQueryProviders(ProviderFilterRequest $request){
-        $user = auth()->user();
-
-        $query = Company::select('companies.*', 'customer_providers.id AS relation_id')
-        ->join('customer_providers', 'companies.id', '=', 'customer_providers.provider_id')
-        ->where('customer_providers.customer_id', session('currentCompany'))
-        ->whereNull('customer_providers.deleted_at');
-
-        // Filtros dinámicos
-        $filters = [
-            'name' => fn($q, $v) => $q->where('name', 'like', "%$v%"),
-            'tradename' => fn($q, $v) => $q->where('tradename', 'like', "%$v%")
-        ];
-
-        foreach($filters as $key => $callback){
-            if ($request->filled($key)) {
-                $callback($query, $request->input($key));
-            }
-        }
-
-        // Filtros por rangos de fechas dinámicos
-        $dateFilters = [
-            'created_at' => ['date_from', 'date_to']
-        ];
-
-        foreach ($dateFilters as $column => [$fromKey, $toKey]) {
-            $from = $request->input($fromKey);
-            $to = $request->input($toKey);
-
-            if ($from && $to) {
-                $query->whereBetween($column, ["$from 00:00:00", "$to 23:59:59"]);
-            } elseif ($from) {
-                $query->where($column, '>=', "$from 00:00:00");
-            } elseif ($to) {
-                $query->where($column, '<=', "$to 23:59:59");
-            }
-        }
-
-        // Ordenación
-        $sortField = $request->input('sort_field', 'name');
-        $sortDirection = $request->input('sort_direction', 'ASC');
-        $allowedSortFields = ['name', 'tradename'];
-
-        if (!in_array($sortField, $allowedSortFields)) {
-            $sortField = 'name';
-        }
-
-        return $query->orderBy($sortField, $sortDirection);        
     }
 
     /**
@@ -362,19 +645,6 @@ class CustomerProviderController extends Controller{
     public function storeCustomer(CustomerStoreRequest $request){
         $ctx = app(CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
-        if($currentCompanyId <= 0){
-            $url = route('companies.refresh-session');
-
-            // si quieres ser fino, guarda a dónde quería ir originalmente
-            session(['intended_after_company' => request()->fullUrl()]);
-            session()->flash('alert', __('empresa_no_activa'));
-
-            if (request()->header('X-Inertia')) {
-                return \Inertia\Inertia::location($url);
-            }
-
-            return redirect($url);
-        }
 
         //Guardando empresa. El método del Model guarda también company_account, roles, workplace y user_company.
         $customer = Company::saveCompany($request);
@@ -403,19 +673,6 @@ class CustomerProviderController extends Controller{
     public function storeProvider(CustomerStoreRequest $request){
         $ctx = app(CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
-        if($currentCompanyId <= 0){
-            $url = route('companies.refresh-session');
-
-            // si quieres ser fino, guarda a dónde quería ir originalmente
-            session(['intended_after_company' => request()->fullUrl()]);
-            session()->flash('alert', __('empresa_no_activa'));
-
-            if (request()->header('X-Inertia')) {
-                return \Inertia\Inertia::location($url);
-            }
-
-            return redirect($url);
-        }
 
         //Guardando empresa. El método del Model guarda también company_account, roles, workplace y user_company.
         $provider = Company::saveCompany($request);
@@ -476,19 +733,6 @@ class CustomerProviderController extends Controller{
     public function editCustomer(Company $customer, $tab = false){
         $ctx = app(CompanyContext::class);
         $providerId = (int) $ctx->id();
-        if($providerId <= 0){
-            $url = route('companies.refresh-session');
-
-            // si quieres ser fino, guarda a dónde quería ir originalmente
-            session(['intended_after_company' => request()->fullUrl()]);
-            session()->flash('alert', __('empresa_no_activa'));
-
-            if (request()->header('X-Inertia')) {
-                return \Inertia\Inertia::location($url);
-            }
-
-            return redirect($url);
-        }
 
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 
@@ -580,19 +824,6 @@ class CustomerProviderController extends Controller{
         // CompanyContext resolved manually to avoid controller injection issues when route provides optional params
         $ctx = app(CompanyContext::class);
         $customerId = (int) $ctx->id();
-        if($customerId <= 0){
-            $url = route('companies.refresh-session');
-
-            // si quieres ser fino, guarda a dónde quería ir originalmente
-            session(['intended_after_company' => request()->fullUrl()]);
-            session()->flash('alert', __('empresa_no_activa'));
-
-            if (request()->header('X-Inertia')) {
-                return \Inertia\Inertia::location($url);
-            }
-
-            return redirect($url);
-        }
 
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 

@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use App\Http\Middleware\EnsureCurrentCompany;
 use App\Http\Middleware\ModuleSetted;
 use App\Http\Middleware\NoIndexMiddleware;
 use App\Http\Middleware\SetCompanyContext;
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'company'            => SetCompanyContext::class,
+            'current_company'    => EnsureCurrentCompany::class,
             'module_setted'      => ModuleSetted::class,
             'role'               => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission'         => \Spatie\Permission\Middleware\PermissionMiddleware::class,

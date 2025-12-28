@@ -10,7 +10,6 @@ import axios from 'axios';
 
 //Components:
 import ColumnFilter from '@/Components/ColumnFilter';
-import DataFilter from '@/Components/DataFilter';
 import FilterRow from '@/Components/FilterRow';
 import { Pagination } from '@/Components/Pagination';
 import RecordsPerPage from '@/Components/RecordsPerPage';
@@ -90,10 +89,6 @@ export default function Index({ auth, session, title, subtitle, roles, is_supera
                         {/* A IZQUIERDA */}
                         {/* Filtro de columnas */}
                         <ColumnFilter columns={columns} visibleColumns={visibleColumns} toggleColumn={toggleColumnVisibility} />
-
-                        {/* Filtros de datos */}
-                        {/* <DataFilter /> */}
-
 
                         {/* A DERECHA */}
                         {/* Registros por página */}

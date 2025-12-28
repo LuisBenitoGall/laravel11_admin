@@ -36,6 +36,12 @@ class UserUpdateRequest extends FormRequest{
                     ->ignore($userId)        
                     ->whereNull('deleted_at')
             ],
+            'nif' => [
+                'nullable',
+                Rule::unique('users', 'nif')
+                    ->ignore($userId)        
+                    ->whereNull('deleted_at')
+            ],
             'birthday' => ['nullable','date_format:Y-m-d','before:today'],
             'signature' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:1024'
         ];
@@ -48,7 +54,8 @@ class UserUpdateRequest extends FormRequest{
             'surname.required' => __('apellido_oblig'),
             'email.email' => __('email_formato_error'),
             //'email.required' => __('email_oblig'),
-            'email.unique' => __('email_unico_error')
+            'email.unique' => __('email_unico_error'),
+            'nif.unique' => __('nif_unico_error')
         ];
     }
 

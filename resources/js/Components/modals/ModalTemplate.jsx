@@ -1,4 +1,3 @@
-// resources/js/Components/modals/ModalTemplate.jsx
 import React from 'react';
 
 const ReusableModal = ({
@@ -12,6 +11,7 @@ const ReusableModal = ({
     dialogClassName = '',
     confirmDisabled = false,
     confirmLoading = false,
+    footerLeft = null, 
 }) => {
     return (
         <>
@@ -45,32 +45,39 @@ const ReusableModal = ({
                                 {children}
                             </div>
 
-                            <div className="modal-footer">
-                                <button
-                                    type="button"
-                                    className="btn btn-secondary"
-                                    onClick={onClose}
-                                    disabled={confirmLoading}
-                                >
-                                    {cancelText}
-                                </button>
+                            <div className="modal-footer d-flex justify-content-between">
+                                <div className="d-flex align-items-center">
+                                    {footerLeft}
+                                </div>
 
-                                <button
-                                    type="button"
-                                    className="btn btn-primary d-inline-flex align-items-center"
-                                    onClick={onConfirm}
-                                    disabled={confirmDisabled || confirmLoading}
-                                >
-                                    {confirmLoading && (
-                                        <span
-                                            className="spinner-border spinner-border-sm me-2"
-                                            role="status"
-                                            aria-hidden="true"
-                                        />
-                                    )}
-                                    {confirmText}
-                                </button>
+                                <div className="d-flex gap-2">
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        onClick={onClose}
+                                        disabled={confirmLoading}
+                                    >
+                                        {cancelText}
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary d-inline-flex align-items-center"
+                                        onClick={onConfirm}
+                                        disabled={confirmDisabled || confirmLoading}
+                                    >
+                                        {confirmLoading && (
+                                            <span
+                                                className="spinner-border spinner-border-sm me-2"
+                                                role="status"
+                                                aria-hidden="true"
+                                            />
+                                        )}
+                                        {confirmText}
+                                    </button>
+                                </div>
                             </div>
+
                         </div>
                     </div>
                 </div>

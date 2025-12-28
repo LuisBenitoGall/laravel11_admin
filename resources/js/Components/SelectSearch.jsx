@@ -4,7 +4,7 @@ import Select from 'react-select';
 const SelectSearch = ({
     options = [],
     onChange,
-    placeholder = 'Search...',
+    placeholder = 'Busca...',
     isMulti = false,
     name,
     required,

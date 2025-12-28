@@ -2,51 +2,68 @@ import AdminAuthenticatedLayout from '@/Layouts/Admin/AdminAuthenticatedLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 import { OverlayTrigger, Table, Tooltip } from 'react-bootstrap';
-import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import axios from 'axios';
 
 //Components:
+import ActiveFiltersLegend from '@/Components/ActiveFiltersLegend';
+import AdHocFiltersDropdown from '@/Components/AdHocFiltersDropdown';
 import ColumnFilter from '@/Components/ColumnFilter';
 import FilterRow from '@/Components/FilterRow';
 import { Pagination } from '@/Components/Pagination';
 import RecordsPerPage from '@/Components/RecordsPerPage';
 import { SortControl } from '@/Components/SortControl';
+import SpinnerInline from '@/Components/SpinnerInline';
 import StatusButton from '@/Components/StatusButton';
 import TableExporter from '@/Components/TableExporter';
 
 //Hooks:
+import { useInertiaLoading } from '@/Hooks/useInertiaLoading';
+import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
 
 //Utils:
 import renderCellContent from '@/Utils/renderCellContent.jsx';
 
-export default function Index({ auth, session, title, subtitle, companies, queryParams: rawQueryParams = {}, availableLocales }) {
-    const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
-    const __ = useTranslation();
+const EMPTY = Object.freeze([]);
+const EMPTY_OBJ = Object.freeze({});
 
-    //Columnas:
+export default function Index({
+    auth,
+    session,
+    title,
+    subtitle,
+    companies,
+    queryParams: rawQueryParams = {},
+    availableLocales
+}) {
+    const __ = useTranslation();
+    const { props } = usePage();
+    const queryParams = (rawQueryParams && typeof rawQueryParams === 'object') ? rawQueryParams : EMPTY_OBJ;
+    const adhocFilters = props.adhocFilters ?? EMPTY;
+    const indexRouteName = 'customers.index';
+    const indexRouteParams = {};
+    const { loading } = useInertiaLoading();
+    const legendItems = props.activeFiltersLegend || [];
+    const hasActiveFilters = legendItems.length > 0;
+    const { showConfirm } = useSweetAlert();
+
+    // Columnas:
     const columns = [
-        { key: 'name', label: __('razon_social'), sort: true, filter: 'text', type: 'link', link: 'companies.edit', class_th: '', class_td: '', placeholder: __('razon_social_filtrar') },
+        // 👇 OJO: esto debe ir a customers.edit, no companies.edit
+        { key: 'name', label: __('razon_social'), sort: true, filter: 'text', type: 'link', link: 'customers.edit', class_th: '', class_td: '', placeholder: __('razon_social_filtrar') },
         { key: 'tradename', label: __('nombre_comercial'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_comercial_filtrar') },
         { key: 'created_at', label: __('fecha_alta'), sort: true, filter: 'date', class_th: 'text-center', class_td: 'text-end', placeholder: __('fecha_alta'), dateKeys: ['date_from', 'date_to'] },
         { key: 'nif', label: __('nif'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('nif_filtrar') },
-        // { key: 'is_ute', label: __('ute'), sort: true, filter: 'select', options: [
-        //     { value: '1', label: __('si') },
-        //     { value: '0', label: __('no') }
-        // ], class_th: 'text-center', class_td: 'text-center', placeholder: __('ute_filtrar') },
         { key: 'logo', label: __('logo'), sort: false, filter: '', type: 'image', icon: 'building', class_th: 'text-center', class_td: 'text-center', placeholder: '' }
-    ];    
+    ];
 
-    //Métodos de la tabla:
     const {
         permissions,
         sortParams,
         perPage,
         setPerPage,
         visibleColumns,
-        setVisibleColumns,
         toggleColumnVisibility,
         SearchFieldChanged,
         sortChanged,
@@ -63,7 +80,7 @@ export default function Index({ auth, session, title, subtitle, companies, query
         queryParams
     });
 
-    //Acciones:
+    // Acciones:
     const actions = [];
     if (permissions?.['customers.create']) {
         actions.push({
@@ -72,9 +89,7 @@ export default function Index({ auth, session, title, subtitle, companies, query
             url: 'customers.create',
             modal: false
         });
-    }
 
-    if (permissions?.['customers.create']) {
         actions.push({
             text: __('clientes_importar'),
             icon: 'la-file-import',
@@ -96,10 +111,39 @@ export default function Index({ auth, session, title, subtitle, companies, query
                 {/* Controles */}
                 <div className="row">
                     <div className="controls d-flex align-items-center">
-                        <ColumnFilter columns={columns} visibleColumns={visibleColumns} toggleColumn={toggleColumnVisibility} />
+                        <ColumnFilter
+                            columns={columns}
+                            visibleColumns={visibleColumns}
+                            toggleColumn={toggleColumnVisibility}
+                        />
+
+                        {/* Filtros avanzados (Adhoc) */}
+                        <AdHocFiltersDropdown
+                            filters={adhocFilters}
+                            routeName={indexRouteName}
+                            routeParams={indexRouteParams}
+                            queryParams={queryParams}
+                        />
+
                         <RecordsPerPage perPage={perPage} setPerPage={setPerPage} />
-                        <TableExporter filename={ __('empresas') } columns={columns} fetchData={filteredData}/>
+
+                        <TableExporter
+                            filename={__('clientes')}
+                            columns={columns}
+                            fetchData={filteredData}
+                        />
                     </div>
+                </div>
+
+                <div className="d-flex justify-content-between align-items-center my-2">
+                    <ActiveFiltersLegend
+                        items={legendItems}
+                        routeName={indexRouteName}
+                        routeParams={indexRouteParams}
+                    />
+                    {hasActiveFilters && loading ? (
+                        <SpinnerInline text={__('cargando') ?? 'Cargando…'} />
+                    ) : null}
                 </div>
 
                 {/* Tabla */}
@@ -108,8 +152,13 @@ export default function Index({ auth, session, title, subtitle, companies, query
                         <thead>
                             <tr>
                                 {columns.map(col => (
-                                    <th key={col.key} className={`${col.class_th ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}>
-                                        {__(col.label)}
+                                    <th
+                                        key={col.key}
+                                        className={`${col.class_th ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}
+                                    >
+                                        {/* 👇 NO vuelvas a traducir lo ya traducido */}
+                                        {col.label}
+
                                         {col.sort && (
                                             <SortControl
                                                 name={col.key}
@@ -121,7 +170,7 @@ export default function Index({ auth, session, title, subtitle, companies, query
                                         )}
                                     </th>
                                 ))}
-                                <th className="text-center">{ __('acciones') }</th> 
+                                <th className="text-center">{__('acciones')}</th>
                             </tr>
                         </thead>
 
@@ -133,10 +182,13 @@ export default function Index({ auth, session, title, subtitle, companies, query
                         />
 
                         <tbody>
-                            {companies.data.map((company) => (
-                                <tr key={"company-"+company.id}>
+                            {(companies?.data || []).map((company) => (
+                                <tr key={`company-${company.id}`}>
                                     {columns.map(col => (
-                                        <td key={col.key} className={`${col.class_td ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}>
+                                        <td
+                                            key={col.key}
+                                            className={`${col.class_td ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}
+                                        >
                                             {renderCellContent(company[col.key], col, company)}
                                         </td>
                                     ))}
@@ -146,13 +198,17 @@ export default function Index({ auth, session, title, subtitle, companies, query
                                         {/* Estado */}
                                         {permissions?.['customers.edit'] && (
                                             <OverlayTrigger
-                                                key={"status-"+company.id}
+                                                key={`status-${company.id}`}
                                                 placement="top"
-                                                overlay={<Tooltip className="ttp-top">{ company.status == 1 ? __('cliente_activo') : __('cliente_inactivo') }</Tooltip>}
+                                                overlay={
+                                                    <Tooltip className="ttp-top">
+                                                        {company.status == 1 ? __('cliente_activo') : __('cliente_inactivo')}
+                                                    </Tooltip>
+                                                }
                                             >
-                                                <StatusButton 
-                                                    status={company.status} 
-                                                    id={company.id} 
+                                                <StatusButton
+                                                    status={company.status}
+                                                    id={company.id}
                                                     updateRoute='customers.status'
                                                     reloadUrl={route('customers.index')}
                                                     reloadResource="customers"
@@ -163,22 +219,25 @@ export default function Index({ auth, session, title, subtitle, companies, query
                                         {/* Editar */}
                                         {permissions?.['customers.edit'] && (
                                             <OverlayTrigger
-                                                key={"edit-"+company.id}
+                                                key={`edit-${company.id}`}
                                                 placement="top"
-                                                overlay={<Tooltip className="ttp-top">{ __('editar') }</Tooltip>}
+                                                overlay={<Tooltip className="ttp-top">{__('editar')}</Tooltip>}
                                             >
-                                                <Link href={route('customers.edit', company.id)} className="btn btn-sm btn-info ms-1">
+                                                <Link
+                                                    href={route('customers.edit', company.id)}
+                                                    className="btn btn-sm btn-info ms-1"
+                                                >
                                                     <i className="la la-edit"></i>
                                                 </Link>
                                             </OverlayTrigger>
                                         )}
 
-                                        {/* Eliminar */}
+                                        {/* Eliminar relación */}
                                         {permissions?.['customers.destroy'] && (
                                             <OverlayTrigger
-                                                key={"delete-"+company.id}
+                                                key={`delete-${company.id}`}
                                                 placement="top"
-                                                overlay={<Tooltip className="ttp-top">{ __('eliminar') }</Tooltip>}
+                                                overlay={<Tooltip className="ttp-top">{__('eliminar')}</Tooltip>}
                                             >
                                                 <span>
                                                     <button
@@ -198,13 +257,13 @@ export default function Index({ auth, session, title, subtitle, companies, query
                     </Table>
                 </div>
 
-                <Pagination 
-                    links={companies.meta.links} 
-                    totalRecords={companies.meta.total} 
-                    currentPage={companies.meta.current_page} 
+                <Pagination
+                    links={companies.meta.links}
+                    totalRecords={companies.meta.total}
+                    currentPage={companies.meta.current_page}
                     perPage={companies.meta.per_page}
                     onPageChange={(page) => {
-                        router.get(route("customers.index"), {
+                        router.get(route(indexRouteName, indexRouteParams), {
                             ...queryParams,
                             page,
                             per_page: perPage,

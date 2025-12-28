@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Http\Request;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -14,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Support\Filters\AdHocFilterApplier;
 use Spatie\Permission\Traits\HasRoles;
 
 //Concerns:
@@ -36,6 +39,10 @@ class User extends Authenticatable implements MustVerifyEmail{
      * 8. Normalización email.
      * 9. Normalización nif.
      * 10. Direcciones de usuario.
+     * 11. Categorías de usuario.
+     * 12. Filtros avanzados.
+     * 13. Scope: sólo usuarios que pueden recibir emails de marketing.
+     * 14. Helper de instancia, por si algún día lo quieres usar en lógica suelta.
      */
     
     use HasFactory, Notifiable, SoftDeletes, HasRoles, HasCompanyPermissions;
@@ -204,6 +211,37 @@ class User extends Authenticatable implements MustVerifyEmail{
     public function categories()
     {
         return $this->morphToMany(Category::class, 'categorizable');
+    }
+
+    /**
+     * 12. Filtros avanzados.
+     */
+    public function scopeApplyAdhocFilters(Builder $query, Request $request, array $definitions): Builder
+    {
+        AdHocFilterApplier::apply($query, $request, $definitions);
+        return $query;
+    }
+
+    /**
+     * 13. Scope: sólo usuarios que pueden recibir emails de marketing.
+     */
+    public function scopeAcceptsMarketingEmails(Builder $query): Builder
+    {
+        return $query
+            ->where('accept_emails', true)
+            ->where('status', 1)
+            ->whereNotNull('email')
+            ->where('email', '!=', '');
+    }
+
+    /**
+     * 14. Helper de instancia, por si algún día lo quieres usar en lógica suelta.
+     */
+    public function canReceiveMarketingEmails(): bool
+    {
+        return (bool) $this->accept_emails
+            && (int) $this->status === 1
+            && !empty($this->email);
     }
 
 }

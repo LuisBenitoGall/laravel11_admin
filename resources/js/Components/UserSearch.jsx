@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import axios from 'axios';
-import { Form, InputGroup, ListGroup, Spinner } from 'react-bootstrap';
+import { Form, InputGroup, ListGroup, Spinner, Button } from 'react-bootstrap';
 
 export default function UserSearch({
     label,
     name,
-    value = null,                // { id, name, email } inicial (opcional)
-    onChange,                    // function(user|null)
-    searchUrl,                   // '/admin/users/search'
+    value = null,                 // { id, name, email } inicial (opcional)
+    onChange,                     // function(user|null)
+    searchUrl,                    // '/admin/users/search'
     placeholder = 'Search user...',
     disabled = false,
     autoFocus = false,
@@ -15,8 +15,10 @@ export default function UserSearch({
     limit = 10,
     error = null,
     helpText = null,
+    extraParams = {},
+    allowClear = true,
 }) {
-    const [query, setQuery] = useState(value ? value.name : '');
+    const [query, setQuery] = useState(value ? (value.name ?? '') : '');
     const [selectedUser, setSelectedUser] = useState(value);
     const [results, setResults] = useState([]);
     const [open, setOpen] = useState(false);
@@ -26,203 +28,215 @@ export default function UserSearch({
     const containerRef = useRef(null);
     const debounceRef = useRef(null);
 
+    // Control de peticiones
+    const abortRef = useRef(null);
+    const seqRef = useRef(0);
+
     // sync external value -> internal state
     useEffect(() => {
-        if (value && value.id !== (selectedUser?.id ?? null)) {
-            setSelectedUser(value);
-            setQuery(value.name);
-        }
-        if (!value && selectedUser) {
-            setSelectedUser(null);
-            setQuery('');
+        const incomingId = value?.id ?? null;
+        const currentId = selectedUser?.id ?? null;
+
+        if (incomingId !== currentId) {
+          setSelectedUser(value);
+          setQuery(value ? (value.name ?? '') : '');
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [value]);
 
-    const fetchResults = (term) => {
+    const safeClose = useCallback(() => {
+        setOpen(false);
+        setHighlightIndex(-1);
+    }, []);
+
+    const fetchResults = useCallback(async (term) => {
         if (!searchUrl) return;
 
-        if (term.length < minLength) {
-            setResults([]);
-            setOpen(false);
-            setLoading(false);
-            return;
+        const t = (term ?? '').trim();
+
+        if (t.length < minLength) {
+        setResults([]);
+        safeClose();
+        setLoading(false);
+        return;
         }
 
+        // abort anterior
+        if (abortRef.current) {
+        abortRef.current.abort();
+        }
+        const controller = new AbortController();
+        abortRef.current = controller;
+
+        const mySeq = ++seqRef.current;
+
         setLoading(true);
-        axios
-            .get(searchUrl, {
-                params: { q: term, limit },
-            })
-            .then((response) => {
-                const data = response.data?.data || [];
-                setResults(data);
-                setOpen(true);
-                setHighlightIndex(data.length ? 0 : -1);
-            })
-            .catch(() => {
-                setResults([]);
-                setOpen(false);
-            })
-            .finally(() => {
-                setLoading(false);
-            });
-    };
+
+        try {
+        const response = await axios.get(searchUrl, {
+            params: {
+            q: t,
+            limit,
+            ...(extraParams && typeof extraParams === 'object' ? extraParams : {}),
+            },
+            signal: controller.signal,
+            headers: { Accept: 'application/json' },
+        });
+
+        // Si llegó tarde, ignoramos
+        if (mySeq !== seqRef.current) return;
+
+        const data = response.data?.data || [];
+        setResults(Array.isArray(data) ? data : []);
+        setOpen(true);
+        setHighlightIndex(data.length ? 0 : -1);
+        } catch (e) {
+        // abort = silencio elegante
+        if (e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED') return;
+
+        setResults([]);
+        safeClose();
+        } finally {
+        // Solo el último request apaga loading
+        if (mySeq === seqRef.current) setLoading(false);
+        }
+    }, [searchUrl, minLength, limit, extraParams, safeClose]);
 
     const handleInputChange = (e) => {
         const term = e.target.value;
         setQuery(term);
         setSelectedUser(null);
-        if (onChange) {
-            onChange(null);
-        }
+        onChange?.(null);
 
-        if (debounceRef.current) {
-            clearTimeout(debounceRef.current);
-        }
+        if (debounceRef.current) clearTimeout(debounceRef.current);
 
         debounceRef.current = setTimeout(() => {
-            fetchResults(term);
+        fetchResults(term);
         }, 300);
     };
 
     const handleSelectUser = (user) => {
+        if (!user) return;
+
         setSelectedUser(user);
-        setQuery(user.name);
+        setQuery(user.name ?? '');
         setResults([]);
-        setOpen(false);
-        setHighlightIndex(-1);
-        if (onChange) {
-            onChange(user);
-        }
+        safeClose();
+        onChange?.(user);
+    };
+
+    const handleClear = () => {
+        setQuery('');
+        setSelectedUser(null);
+        setResults([]);
+        safeClose();
+        onChange?.(null);
     };
 
     const handleKeyDown = (e) => {
-        if (!open || !results.length) {
-            return;
-        }
+        if (!open || !results.length) return;
 
         if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            setHighlightIndex((prev) =>
-                prev < results.length - 1 ? prev + 1 : prev
-            );
+        e.preventDefault();
+        setHighlightIndex((prev) => (prev < results.length - 1 ? prev + 1 : prev));
         } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            setHighlightIndex((prev) => (prev > 0 ? prev - 1 : prev));
+        e.preventDefault();
+        setHighlightIndex((prev) => (prev > 0 ? prev - 1 : prev));
         } else if (e.key === 'Enter') {
-            e.preventDefault();
-            if (highlightIndex >= 0 && highlightIndex < results.length) {
-                handleSelectUser(results[highlightIndex]);
-            }
+        e.preventDefault();
+        if (highlightIndex >= 0 && highlightIndex < results.length) {
+            handleSelectUser(results[highlightIndex]);
+        }
         } else if (e.key === 'Escape') {
-            setOpen(false);
-            setHighlightIndex(-1);
+        safeClose();
         }
     };
 
     // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (
-                containerRef.current &&
-                !containerRef.current.contains(event.target)
-            ) {
-                setOpen(false);
-                setHighlightIndex(-1);
-            }
+        if (containerRef.current && !containerRef.current.contains(event.target)) {
+            safeClose();
+        }
         };
 
         document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [safeClose]);
+
+    // Cleanup on unmount
+    useEffect(() => {
         return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        if (abortRef.current) abortRef.current.abort();
         };
     }, []);
 
     return (
         <div className="mb-3 position-relative" ref={containerRef}>
-            {label && (
-                <Form.Label className="form-label">
-                    {label}
-                </Form.Label>
-            )}
+        {label ? <Form.Label className="form-label">{label}</Form.Label> : null}
 
-            <InputGroup>
-                <Form.Control
-                    type="text"
-                    value={query}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyDown}
-                    placeholder={placeholder}
-                    disabled={disabled}
-                    autoFocus={autoFocus}
-                    autoComplete="off"
-                    isInvalid={!!error}
-                />
-                {loading && (
-                    <InputGroup.Text>
-                        <Spinner
-                            animation="border"
-                            size="sm"
-                            role="status"
-                            aria-hidden="true"
-                        />
-                    </InputGroup.Text>
-                )}
-            </InputGroup>
+        <InputGroup>
+            <Form.Control
+            type="text"
+            value={query}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            disabled={disabled}
+            autoFocus={autoFocus}
+            autoComplete="off"
+            isInvalid={!!error}
+            />
 
-            {/* Hidden input to send selected id in forms */}
-            {name && (
-                <input
-                    type="hidden"
-                    name={name}
-                    value={selectedUser ? selectedUser.id : ''}
-                />
-            )}
+            {allowClear && !disabled && (query?.length > 0 || selectedUser) ? (
+            <Button variant="outline-secondary" onClick={handleClear} title="Clear">
+                <i className="la la-times" />
+            </Button>
+            ) : null}
 
-            {helpText && !error && (
-                <Form.Text className="text-muted">
-                    {helpText}
-                </Form.Text>
-            )}
+            {loading ? (
+            <InputGroup.Text>
+                <Spinner animation="border" size="sm" role="status" aria-hidden="true" />
+            </InputGroup.Text>
+            ) : null}
+        </InputGroup>
 
-            {error && (
-                <div className="invalid-feedback d-block">
-                    {error}
-                </div>
-            )}
+        {/* Hidden input to send selected id in classic forms */}
+        {name ? (
+            <input type="hidden" name={name} value={selectedUser ? selectedUser.id : ''} />
+        ) : null}
 
-            {open && results.length > 0 && (
-                <ListGroup
-                    className="position-absolute w-100 mt-1 shadow-sm"
-                    style={{ zIndex: 1050, maxHeight: '250px', overflowY: 'auto' }}
+        {helpText && !error ? <Form.Text className="text-muted">{helpText}</Form.Text> : null}
+        {error ? <div className="invalid-feedback d-block">{error}</div> : null}
+
+        {open && results.length > 0 ? (
+            <ListGroup
+            className="position-absolute w-100 mt-1 shadow-sm"
+            style={{ zIndex: 1050, maxHeight: '250px', overflowY: 'auto' }}
+            >
+            {results.map((user, index) => (
+                <ListGroup.Item
+                key={user.id}
+                action
+                onClick={() => handleSelectUser(user)}
+                active={index === highlightIndex}
                 >
-                    {results.map((user, index) => (
-                        <ListGroup.Item
-                            key={user.id}
-                            action
-                            onClick={() => handleSelectUser(user)}
-                            active={index === highlightIndex}
-                        >
-                            <div className="fw-semibold">{user.name}</div>
-                            {user.email && (
-                                <div className="small text-muted">
-                                    {user.email}
-                                </div>
-                            )}
-                        </ListGroup.Item>
-                    ))}
-                </ListGroup>
-            )}
+                <div className="fw-semibold">{user.name}</div>
+                {user.email ? <div className="small text-muted">{user.email}</div> : null}
+                </ListGroup.Item>
+            ))}
+            </ListGroup>
+        ) : null}
 
-            {open && !loading && results.length === 0 && query.length >= minLength && (
-                <div
-                    className="position-absolute w-100 mt-1 bg-white border rounded p-2 small text-muted"
-                    style={{ zIndex: 1050 }}
-                >
-                    No users found.
-                </div>
-            )}
+        {open && !loading && results.length === 0 && query.trim().length >= minLength ? (
+            <div
+            className="position-absolute w-100 mt-1 bg-white border rounded p-2 small text-muted"
+            style={{ zIndex: 1050 }}
+            >
+            No users found.
+            </div>
+        ) : null}
         </div>
     );
 }

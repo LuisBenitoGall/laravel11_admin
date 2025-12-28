@@ -74,7 +74,7 @@ export default function Index({
     const columns = [
         { key: 'name', label: __('lista'), sort: true, filter: 'text', type: 'link', link: 'marketing-lists.edit', class_th: '', class_td: '', placeholder: __('lista_filtrar') },
         { key: 'members_count', label: __('miembros'), sort: true, filter: '', class_th: 'text-center', class_td: 'text-end' },
-        { key: 'created_by', label: __('creado'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_filtrar') }
+        { key: 'created_by', label: __('autor'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_filtrar') }
     ];    
 
     //Métodos de la tabla:

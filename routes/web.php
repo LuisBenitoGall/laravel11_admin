@@ -207,7 +207,7 @@ Route::middleware('guest')->group(function () {
 });
 
 //ADMIN:
-Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function(){
+Route::middleware(['web', 'auth', 'company', 'current_company'])->prefix('admin')->group(function(){
     //Accounting Account Types:
     Route::middleware('module_setted:accounting')->group(function (){
         Route::get('/accounting-account-types', [AccountingAccountTypeController::class, 'index'])->name('accounting-account-types.index')->middleware('permission:accounting-account-types.index');
@@ -401,7 +401,6 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
         Route::get('/companies/{company}/select', [CompanyController::class, 'selectCompany'])->name('companies.select-get')->middleware('permission:companies.index');
         Route::post('/companies/select', [CompanyController::class, 'selectCompanyPost'])->name('companies.select')->withoutMiddleware(VerifyCsrfToken::class);
         //->middleware('permission:companies.index')
-        Route::get('/companies/refresh-session', [CompanyController::class, 'refreshSession'])->name('companies.refresh-session');
     //});
 
     //Company Accounts:
@@ -942,7 +941,7 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
     Route::get('/users/create', [UserController::class, 'create'])->name('users.create')->middleware('permission:users.create');
     Route::post('/users/store', [UserController::class, 'store'])->name('users.store')->middleware('permission:users.create');
     Route::get('/users/{user}/show', [UserController::class, 'show'])->name('users.show');
-    Route::get('/users/{user}/edit/{company_id?}/{profile?}', [UserController::class, 'edit'])->name('users.edit')->middleware('permission:users.edit');
+    Route::get('/users/{user}/edit/{profile?}', [UserController::class, 'edit'])->name('users.edit')->middleware('permission:users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update')->middleware('permission:users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('permission:users.destroy');
     Route::post('users/status', [UserController::class, 'status'])->name('users.status')->middleware('permission:users.edit');
@@ -981,6 +980,20 @@ Route::middleware(['web', 'auth', 'company'])->prefix('admin')->group(function()
 
     Route::get('/test1/', [WorkplaceController::class, 'test'])->name('test1.index');
 });
+
+Route::middleware(['auth', 'verified'])
+    ->prefix('admin')
+    ->group(function () {
+        // ✅ zona de confort (sin middleware company)
+        Route::get('companies/refresh-session', [CompanyController::class, 'refreshSession'])
+            ->name('companies.refresh-session');
+
+        Route::get('companies/select', [CompanyController::class, 'select'])
+            ->name('companies.select');
+
+        // ...también error.no-company si lo tienes
+    });
+
 
 Route::middleware('auth')->group(function(){
     

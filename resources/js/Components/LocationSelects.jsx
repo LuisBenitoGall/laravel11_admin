@@ -13,8 +13,8 @@ export default function LocationSelects({
     provincesUrl = '/api/provinces',
     townsUrl = '/api/towns',
     labels = { country: 'Country', province: 'Province', town: 'Town' },
-    layout = 'row3',              // <--- NUEVO
-    extraRight = null             // <--- NUEVO (para poner el CP al lado de población)
+    layout = 'row3',              
+    extraRight = null             
 }) {
     const __ = useTranslation();
     const [provinces, setProvinces] = useState([]);
