@@ -6,6 +6,7 @@ import Checkbox from '@/Components/Checkbox';
 import DatePickerToForm from '@/Components/DatePickerToForm';
 import FileInput from '@/Components/FileInput';
 import InputError from '@/Components/InputError';
+import ManageExtraEmails from '@/Components/ManageExtraEmails';
 import ManagePhones from '@/Components/ManagePhones';
 import PrimaryButton from '@/Components/PrimaryButton';
 import RadioButton from '@/Components/RadioButton';
@@ -362,16 +363,26 @@ export default function UserPersonalData({
                         <label htmlFor="accept_emails" className="form-label">
                             {__('emails_acepta')}
                         </label>
-                        <div className='pt-1 position-relative'>
+
+                        <div className="d-flex align-items-start gap-2">
                             <Checkbox
-                                className="xl"
-                                id="accept_emails"
-                                name="accept_emails"
-                                checked={!!data.accept_emails}
-                                onChange={(e) => setData('accept_emails', e.target.checked)}
+                            className="xl"
+                            id="accept_emails"
+                            name="accept_emails"
+                            checked={!!data.accept_emails}
+                            onChange={(e) => setData('accept_emails', e.target.checked)}
                             />
-                            <span className="ms-3 pt-5 text-warning">{__('emails_acepta_texto')}</span>
+
+                            {/* Importante: label con htmlFor, multi-línea, clicable */}
+                            <label
+                            htmlFor="accept_emails"
+                            className="mb-0 text-warning user-select-none"
+                            style={{ cursor: 'pointer', lineHeight: 1.25 }}
+                            >
+                            {__('emails_acepta_texto')}
+                            </label>
                         </div>
+
                         <InputError message={errors.accept_emails} />
                     </div>
                 </div>
@@ -548,6 +559,9 @@ export default function UserPersonalData({
                 phoneableId={user.id}
                 defaultWaMessage={__('whatsapp_mensaje')}
             />
+
+            {/* Emails extra */}
+            <ManageExtraEmails userId={user.id} addNewEmail={true} />
         </div>
     );
 }

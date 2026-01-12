@@ -24,7 +24,7 @@ export default function FlashMessage({ type = 'success', message }) {
 
     return (
         <div
-            className={`mx-0 alert- alert alert-${type} alert-dismissible fade show`}
+            className={`alert- alert alert-${type} alert-dismissible fade show`}
             role="alert"
         >
             {message}

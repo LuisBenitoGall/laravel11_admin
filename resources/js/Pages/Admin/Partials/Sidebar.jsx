@@ -11,7 +11,7 @@ import { useCompanySession } from '@/Hooks/useCompanySession';
 import { useSafePage } from '@/Hooks/useSafePage.js';
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function Sidebar(auth) {
+export default function Sidebar() {
     const __ = useTranslation();
     const txt_areas_negocio = __('areas_negocio');
     const txt_bancos = __('bancos');
@@ -50,14 +50,43 @@ export default function Sidebar(auth) {
     const { currentCompany, companyModules, companySettings } = useCompanySession();
     const { module: currentModule, slug: currentSlug } = props;
 
-    //Módulos por defecto para RFT:
-    const default_modules = ['crm', 'marketing'];
+    // Leer auth desde usePage().props.auth y normalizar
+    const page = usePage();
+    const auth = page?.props?.auth || {};
+    const permissions = Array.isArray(auth.permissions) ? auth.permissions : [];
+    const isSuperAdmin = !!auth.is_super_admin;
 
-    //Mostrar módulos principales:
-    const module_my_account = false;
-    const module_settings = false;
-    const module_users = true;
-    const module_companies = true;
+    // Helper para verificar permisos por nombre de ruta
+    const can = (routeName) => permissions.includes(routeName) || isSuperAdmin;
+
+    //Permisos para módulos obligatorios:
+    const myAccountItems = [
+        { route: 'company-accounts.index',  activeSlug: 'company-accounts', label: txt_cuenta },
+        { route: 'company-modules.index',   activeSlug: 'company-modules',  label: txt_modulos },
+    ];
+    const visibleMyAccountItems = myAccountItems.filter(i => can(i.route));
+    const showMyAccountModule = visibleMyAccountItems.length > 0;
+
+    const usersItems = [
+        { route: 'users.index',             activeSlug: 'users',            label: txt_usuarios_listados },
+        { route: 'users.contacts',          activeSlug: 'contacts',         label: txt_cli_pro },
+        { route: 'users.categories',        activeSlug: 'categories',       label: txt_categorias_por },
+    ];
+    const visibleUsersItems = usersItems.filter(i => can(i.route));
+    const showUsersModule = visibleUsersItems.length > 0;
+
+    const companiesItems = [
+        { route: 'companies.index',         activeSlug: 'companies',        label: txt_empresas_mis },
+        { route: 'companies.sectors',       activeSlug: 'sectors',          label: txt_sectores_directorio },
+        { route: 'cost-centers.index',      activeSlug: 'cost-centers',     label: txt_centros_coste },
+        { route: 'workplaces.index',        activeSlug: 'workplaces',       label: txt_centros_trabajo },
+        { route: 'company-settings.index',  activeSlug: 'company-settings', label: txt_configuracion },
+        { route: 'customers.index',         activeSlug: 'customers',        label: txt_clientes },
+        { route: 'providers.index',         activeSlug: 'providers',        label: txt_proveedores },
+        { route: 'company-sectors.index',   activeSlug: 'company-sectors',  label: txt_sectores },
+    ];
+    const visibleCompaniesItems = companiesItems.filter(i => can(i.route));
+    const showCompaniesModule = visibleCompaniesItems.length > 0;
 
     useEffect(() => {
         document.querySelectorAll('.menu-link[data-bs-toggle="collapse"]').forEach((el) => {
@@ -69,27 +98,36 @@ export default function Sidebar(auth) {
             return;
         }
 
-        // if (!Array.isArray(companyModules) || companyModules.length === 0 || !currentCompany) {
-        //     setModules([]);
-        //     return;
-        // }
-
-        //     axios.get('/secondary-menu')
-        //         .then(response => {
-        //             const filteredModules = response.data.filter(module => companyModules.includes(module.id));
-        //             setModules(filteredModules);
-        //         })
-        //         .catch(error => console.error('Error fetching secondary menu:', error));
-        // }, [JSON.stringify(companyModules), currentCompany?.id]);
-
+        // Obtener módulos dinámicos desde el backend
+        // El backend ya filtra por módulos activos de empresa y permisos del usuario
         axios.get('/secondary-menu')
-        .then(({ data }) => {
-        // Backend ya filtra por slug. No vuelvas a filtrar por id.
-        setModules(Array.isArray(data) ? data : []);
-        })
-        .catch(error => console.error('Error fetching secondary menu:', error));
-    // No uses solo .length; si cambian los slugs con igual longitud no se re-renderiza
+            .then(({ data }) => {
+                // Backend ya filtra por slug. No vuelvas a filtrar por id.
+                setModules(Array.isArray(data) ? data : []);
+            })
+            .catch(error => {
+                // Resiliencia ante error: si falla, establecer array vacío
+                console.error('Error fetching secondary menu:', error);
+                setModules([]);
+            });
+        // No uses solo .length; si cambian los slugs con igual longitud no se re-renderiza
     }, [JSON.stringify(companyModules), currentCompany?.id]);
+
+    //Helper de renderizado de módulo obligatorio:
+    const renderSubMenu = (items) => (
+        <ul className="nav nav-sm flex-column">
+            {items.map(item => (
+                <li key={item.route} className="nav-item">
+                    <NavLink
+                        href={route(item.route)}
+                        className={`nav-link menu-link ${currentSlug === item.activeSlug ? 'active text-white' : ''}`}
+                    >
+                        <span>{item.label}</span>
+                    </NavLink>
+                </li>
+            ))}
+        </ul>
+    );
 
     return (
         <div className={`app-menu navbar-menu ${isOpen ? 'show' : 'hide'}`}>
@@ -152,200 +190,90 @@ export default function Sidebar(auth) {
                         })()}
 
                         {/* Mi cuenta */}
-                        {module_my_account && (() => {
-                            const isActive = currentModule === 'company-accounts';
-                            return (
+                        {showMyAccountModule && (() => {
+                          const isActive = currentModule === 'company-accounts';
+                          return (
                                 <li className={`nav-item ${isActive ? 'active text-white' : ''}`}>
-                                    <Link href="#" className={`nav-link menu-link ${isActive ? 'active text-white' : ''}`} data-bs-toggle="collapse" data-bs-target="#menuMyAccount" role="button" aria-expanded={isActive} aria-controls="menuMyAccount">
+                                    <Link href="#" className={`nav-link menu-link ${isActive ? 'active text-white' : ''}`}
+                                    data-bs-toggle="collapse" data-bs-target="#menuMyAccount" role="button"
+                                    aria-expanded={isActive} aria-controls="menuMyAccount">
                                         <i className="la la-user-circle"></i>
                                         <span>{txt_cuenta_mi}</span>
                                     </Link>
                                     <div className={`collapse menu-dropdown ${isActive ? 'show' : ''}`} id="menuMyAccount">
-                                        <ul className="nav nav-sm flex-column">
-                                            <li>
-                                                <NavLink href={route('company-accounts.index')} className={`nav-link menu-link ${currentSlug === 'company-accounts' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_cuenta}</span>
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink href={route('company-modules.index')} className={`nav-link menu-link ${currentSlug === 'company-modules' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_modulos}</span>
-                                                </NavLink>
-                                            </li>
-                                        </ul>
+                                        {renderSubMenu(visibleMyAccountItems)}
                                     </div>
                                 </li>
                             );
                         })()}
 
-                        {/* Configuración */}
-                        {module_settings && (() => {
+                        {/* Configuración - Solo visible para Super Admin */}
+                        {isSuperAdmin && (() => {
                             const isActive = currentModule === 'settings';
+                            
+                            // Opcional: filtrar links internos por can() para granularidad incluso para Super Admin
+                            const settingsItems = [
+                                { route: 'accounts.index', activeSlug: 'accounts', label: txt_cuentas },
+                                { route: 'modules.index', activeSlug: 'modules', label: txt_modulos },
+                                { route: 'roles.index', activeSlug: 'roles', label: txt_roles },
+                                { route: 'permissions.index', activeSlug: 'permissions', label: txt_permisos },
+                                { route: 'currencies.index', activeSlug: 'currencies', label: txt_monedas },
+                                { route: 'banks.index', activeSlug: 'banks', label: txt_bancos },
+                                { route: 'countries.index', activeSlug: 'countries', label: txt_paises },
+                                { route: 'contents.index', activeSlug: 'contents', label: txt_contenidos },
+                                { route: 'stock-movements.index', activeSlug: 'stock-movements', label: txt_stock_movimientos },
+                                { route: 'units.index', activeSlug: 'units', label: txt_unidades },
+                                { route: 'iva-types.index', activeSlug: 'iva-types', label: txt_iva_tipos },
+                                { route: 'accounting-account-types.index', activeSlug: 'accounting-account-types', label: txt_contables_grupos },
+                            ];
+                            const visibleSettingsItems = settingsItems.filter(i => can(i.route));
+                            
                             return (
                                 <li className={`nav-item ${isActive ? 'active text-white' : ''}`}>
                                     <Link href="#" className={`nav-link menu-link ${isActive ? 'active text-white' : ''}`} data-bs-toggle="collapse" data-bs-target="#menuSettings" role="button" aria-expanded={isActive} aria-controls="menuSettings">
                                         <i className="la la-cog"></i>
                                         <span>{txt_configuracion}</span>
                                     </Link>
-                                    <div className={`collapse menu-dropdown ${isActive ? 'show' : ''}`} id="menuSettings">
-                                        <ul className="nav nav-sm flex-column">
-                                            <li>
-                                                <NavLink href={route('accounts.index')} className={`nav-link menu-link ${currentSlug === 'accounts' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_cuentas}</span>
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink href={route('modules.index')} className={`nav-link menu-link ${currentSlug === 'modules' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_modulos}</span>
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink href={route('roles.index')} className={`nav-link menu-link ${currentSlug === 'roles' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_roles}</span>
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink href={route('permissions.index')} className={`nav-link menu-link ${currentSlug === 'permissions' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_permisos}</span>
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink href={route('currencies.index')} className={`nav-link menu-link ${currentSlug === 'currencies' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_monedas}</span>
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink href={route('banks.index')} className={`nav-link menu-link ${currentSlug === 'banks' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_bancos}</span>
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink href={route('countries.index')} className={`nav-link menu-link ${currentSlug === 'countries' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_paises}</span>
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink href={route('contents.index')} className={`nav-link menu-link ${currentSlug === 'contents' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_contenidos}</span>
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink href={route('stock-movements.index')} className={`nav-link menu-link ${currentSlug === 'stock-movements' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_stock_movimientos}</span>
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink href={route('units.index')} className={`nav-link menu-link ${currentSlug === 'units' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_unidades}</span>
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink href={route('iva-types.index')} className={`nav-link menu-link ${currentSlug === 'iva-types' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_iva_tipos}</span>
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink href={route('accounting-account-types.index')} className={`nav-link menu-link ${currentSlug === 'accounting-account-types' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_contables_grupos}</span>
-                                                </NavLink>
-                                            </li>
-                                        </ul>
-                                    </div>
+                                    {visibleSettingsItems.length > 0 && (
+                                        <div className={`collapse menu-dropdown ${isActive ? 'show' : ''}`} id="menuSettings">
+                                            {renderSubMenu(visibleSettingsItems)}
+                                        </div>
+                                    )}
                                 </li>
                             );
                         })()}
 
                         {/* Usuarios */}
-                        {module_users && (() => {
-                            const isActive = currentModule === 'users';
-                            return (
+                        {showUsersModule && (() => {
+                          const isActive = currentModule === 'users';
+                          return (
                                 <li className={`nav-item ${isActive ? 'active text-white' : ''}`}>
-                                    <Link href="#" className={`nav-link menu-link ${isActive ? 'active text-white' : ''}`} data-bs-toggle="collapse" data-bs-target="#menuUsers" role="button" aria-expanded={isActive} aria-controls="menuUsers">
+                                    <Link href="#" className={`nav-link menu-link ${isActive ? 'active text-white' : ''}`}
+                                    data-bs-toggle="collapse" data-bs-target="#menuUsers" role="button"
+                                    aria-expanded={isActive} aria-controls="menuUsers">
                                         <i className="la la-users"></i>
                                         <span>{txt_usuarios}</span>
                                     </Link>
                                     <div className={`collapse menu-dropdown ${isActive ? 'show' : ''}`} id="menuUsers">
-                                        <ul className="nav nav-sm flex-column">
-                                            <li>
-                                                <NavLink href={route('users.index')} className={`nav-link menu-link ${currentSlug === 'users' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_usuarios_listados}</span>
-                                                </NavLink>
-                                            </li>
-
-                                            <li>
-                                                <NavLink href={route('users.contacts')} className={`nav-link menu-link ${currentSlug === 'contacts' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_cli_pro}</span>
-                                                </NavLink>
-                                            </li>
-
-                                            <li>
-                                                <NavLink href={route('users.categories')} className={`nav-link menu-link ${currentSlug === 'categories' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_categorias_por}</span>
-                                                </NavLink>
-                                            </li>
-                                        </ul>
+                                        {renderSubMenu(visibleUsersItems)}
                                     </div>
                                 </li>
                             );
                         })()}
 
                         {/* Empresas */}
-                        {module_companies && (() => {
+                        {showCompaniesModule && (() => {
                             const isActive = currentModule === 'companies';
                             return (
                                 <li className={`nav-item ${isActive ? 'active text-white' : ''}`}>
-                                    <Link href="#" className={`nav-link menu-link ${isActive ? 'active text-white' : ''}`} data-bs-toggle="collapse" data-bs-target="#menuCompanies" role="button" aria-expanded={isActive} aria-controls="menuCompanies">
+                                    <Link href="#" className={`nav-link menu-link ${isActive ? 'active text-white' : ''}`}
+                                    data-bs-toggle="collapse" data-bs-target="#menuCompanies" role="button"
+                                    aria-expanded={isActive} aria-controls="menuCompanies">
                                         <i className="la la-building"></i>
                                         <span>{txt_empresas}</span>
                                     </Link>
                                     <div className={`collapse menu-dropdown ${isActive ? 'show' : ''}`} id="menuCompanies">
-                                        <ul className="nav nav-sm flex-column">
-                                            <li>
-                                                <NavLink href={route('companies.index')} className={`nav-link menu-link ${currentSlug === 'companies' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_empresas_mis}</span>
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink href={route('companies.sectors')} className={`nav-link menu-link ${currentSlug === 'sectors' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_sectores_directorio}</span>
-                                                </NavLink>
-                                            </li>
-                                            {/* <li>
-                                                <NavLink href={route('business-areas.index')} className={`nav-link menu-link ${currentSlug === 'business-areas' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_areas_negocio}</span>
-                                                </NavLink>
-                                            </li> */}
-                                            <li>
-                                                <NavLink href={route('cost-centers.index')} className={`nav-link menu-link ${currentSlug === 'cost-centers' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_centros_coste}</span>
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink href={route('workplaces.index')} className={`nav-link menu-link ${currentSlug === 'workplaces' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_centros_trabajo}</span>
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink href={route('company-settings.index')} className={`nav-link menu-link ${currentSlug === 'company-settings' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_configuracion}</span>
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink href={route('customers.index')} className={`nav-link menu-link ${currentSlug === 'customers' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_clientes}</span>
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink href={route('providers.index')} className={`nav-link menu-link ${currentSlug === 'providers' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_proveedores}</span>
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink href={route('company-sectors.index')} className={`nav-link menu-link ${currentSlug === 'company-sectors' ? 'active text-white' : ''}`}>
-                                                    <span>{txt_sectores}</span>
-                                                </NavLink>
-                                            </li>
-                                        </ul>
+                                        {renderSubMenu(visibleCompaniesItems)}
                                     </div>
                                 </li>
                             );
@@ -354,27 +282,40 @@ export default function Sidebar(auth) {
                         {/* Módulos dinámicos */}
                         {Array.isArray(modules) && modules.length > 0 ? (
                             modules
-                                .filter(module => ((Array.isArray(module.functionalities) && module.functionalities.length > 0) || default_modules.includes(module.slug)))
                                 .map(module => {
-                                const menuId = `menu${module.slug.charAt(0).toUpperCase() + module.slug.slice(1)}`;
-                                const isModuleActive = currentModule === module.slug;
+                                    const functionalities = Array.isArray(module.functionalities)
+                                        ? module.functionalities
+                                            .filter(f => Number(f.status) === 1)
+                                            .slice() // evitar mutar el array original antes de sort
+                                            .sort((a, b) => {
+                                                const sa = Number(a.sort ?? 0);
+                                                const sb = Number(b.sort ?? 0);
+                                                return sa - sb;
+                                            })
+                                        : [];
 
-                                return (
-                                    <li key={module.id} className={`nav-item ${isModuleActive ? 'active text-white' : ''}`}>
-                                        <Link
-                                            href="#"
-                                            className={`nav-link menu-link ${isModuleActive ? 'active text-white' : ''}`}
-                                            data-bs-toggle="collapse"
-                                            data-bs-target={`#${menuId}`}
-                                            role="button"
-                                            aria-expanded={isModuleActive}
-                                            aria-controls={menuId}
-                                        >
-                                            <i className={`la la-${module.icon}`}></i>
-                                            <span>{module.label}</span>
-                                        </Link>
+                                    return { ...module, functionalities };
+                                })
+                                .filter(module => module.functionalities.length > 0)
+                                .map(module => {
+                                    const menuId = `menu${module.slug.charAt(0).toUpperCase() + module.slug.slice(1)}`;
+                                    const isModuleActive = currentModule === module.slug;
 
-                                        {Array.isArray(module.functionalities) && module.functionalities.length > 0 && (
+                                    return (
+                                        <li key={module.id} className={`nav-item ${isModuleActive ? 'active text-white' : ''}`}>
+                                            <Link
+                                                href="#"
+                                                className={`nav-link menu-link ${isModuleActive ? 'active text-white' : ''}`}
+                                                data-bs-toggle="collapse"
+                                                data-bs-target={`#${menuId}`}
+                                                role="button"
+                                                aria-expanded={isModuleActive}
+                                                aria-controls={menuId}
+                                            >
+                                                <i className={`la la-${module.icon}`}></i>
+                                                <span>{module.label}</span>
+                                            </Link>
+
                                             <div className={`collapse menu-dropdown ${isModuleActive ? 'show' : ''}`} id={menuId}>
                                                 <ul className="nav nav-sm flex-column">
                                                     {module.functionalities.map(subModule => {
@@ -392,10 +333,9 @@ export default function Sidebar(auth) {
                                                     })}
                                                 </ul>
                                             </div>
-                                        )}
-                                    </li>
-                                );
-                            })
+                                        </li>
+                                    );
+                                })
                         ) : (
                             <li className='nav-item'>
                                 <span className="text-white"></span>

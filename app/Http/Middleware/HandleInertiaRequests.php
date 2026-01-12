@@ -37,19 +37,59 @@ class HandleInertiaRequests extends Middleware{
             ...parent::share($request),
             'auth' => function () use ($request) {
                 $user = $request->user();
-                if (!$user) return ['user' => null];
+                
+                // Si no hay usuario autenticado, devolver estructura mínima
+                if (!$user) {
+                    return [
+                        'user' => null,
+                        'permissions' => [],
+                        'is_super_admin' => false
+                    ];
+                }
 
+                // Cargar avatar del usuario (manejo seguro de errores)
                 try {
-                    // cargar relación avatar (featured + public) y construir URL pública
                     $avatarModel = $user->avatar; // lazy-load
-                    $avatarUrl = ($avatarModel && isset($avatarModel->image)) ? '/storage/users/' . ltrim($avatarModel->image, '/') : null;
+                    $avatarUrl = ($avatarModel && isset($avatarModel->image)) 
+                        ? '/storage/users/' . ltrim($avatarModel->image, '/') 
+                        : null;
                 } catch (\Throwable $e) {
                     $avatarUrl = null;
                 }
 
-                // Devolvemos el usuario como array y añadimos avatar como key simple
+                // Obtener permisos efectivos del usuario (Spatie: roles + directos)
+                // Manejo seguro: si falla el cálculo, devolver array vacío
+                $permissions = [];
+                try {
+                    if (method_exists($user, 'getAllPermissions')) {
+                        $permissions = $user->getAllPermissions()
+                            ->pluck('name')
+                            ->filter() // Eliminar valores null/empty
+                            ->values()
+                            ->all();
+                    }
+                } catch (\Throwable $e) {
+                    // En caso de error, devolver array vacío (comportamiento seguro)
+                    $permissions = [];
+                }
+
+                // Verificar si el usuario es Super Admin
+                // Compatible PHP 7.4: verificar método antes de llamarlo
+                $isSuperAdmin = false;
+                try {
+                    if (method_exists($user, 'isSuperAdmin')) {
+                        $isSuperAdmin = (bool) $user->isSuperAdmin();
+                    }
+                } catch (\Throwable $e) {
+                    // En caso de error, mantener false (comportamiento seguro)
+                    $isSuperAdmin = false;
+                }
+
+                // Devolver estructura auth manteniendo compatibilidad con shape actual
                 return [
                     'user' => array_merge($user->toArray(), ['avatar' => $avatarUrl]),
+                    'permissions' => $permissions, // string[] - permisos efectivos del usuario
+                    'is_super_admin' => $isSuperAdmin // boolean - usando $user->isSuperAdmin()
                 ];
             },
             'ziggy' => fn () => [

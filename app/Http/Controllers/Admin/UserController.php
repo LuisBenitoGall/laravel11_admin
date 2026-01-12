@@ -626,6 +626,7 @@ class UserController extends Controller{
         $user->surname = $request->surname;
         $user->salutation = $request->salutation;
         $user->email = $request->email;
+        $user->email_verified_at = Carbon::now();
         $user->sex = $request->sex;
         $user->password = bcrypt($random_password);
         $user->birthday = $request->birthday;

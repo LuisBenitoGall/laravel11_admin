@@ -18,26 +18,61 @@ class CompanySetting extends Model{
     protected $table = 'company_settings';
 
     protected $fillable = [
-        'company_id','currency_id',
-        'customers_management','providers_management','validate_nif',
-        'primary_color','secondary_color','base_color_budgets','base_color_orders','base_color_invoices',
-        'iva','ip','emails','public_info',
+        'company_id',
+        'currency_id',
+        'language',
+        'customers_management',
+        'providers_management',
+        'require_2fa',
+        'validate_nif',
+        'primary_color',
+        'secondary_color',
+        'base_color_budgets',
+        'base_color_orders',
+        'base_color_invoices',
+        'iva',
+        'ip',
+        'emails',
+        'accounting_account_digits',
+        'pattern_budgets',
+        'pattern_sales',
+        'pattern_purchases',
+        'pattern_deliveries',
+        'pattern_projects',
+        'pattern_invoices',
+        'public_info',
+        'public_catalogue'
     ];
 
-    protected function casts(): array{
-        return [
-            'customers_management' => 'boolean',
-            'providers_management' => 'boolean',
-            'validate_nif'         => 'boolean',
-            'iva'                  => 'decimal:2',
-            'emails'               => 'array',
-            'public_info'          => 'array',
-        ];
-    }
+    protected $casts = [
+        'company_id'            => 'integer',
+        'currency_id'           => 'integer',
+        'customers_management'  => 'boolean',
+        'providers_management'  => 'boolean',
+        'validate_nif'          => 'boolean',
+        'require_2fa'           => 'boolean',
+        'iva'                   => 'decimal:2',
+        'emails'                => 'array',
+        'public_info'           => 'array',
+        'public_catalogue'      => 'boolean',
+        'primary_color'         => 'string',
+        'secondary_color'       => 'string',
+        'pattern_budgets'       => 'boolean',
+        'pattern_sales'         => 'boolean',
+        'pattern_purchases'     => 'boolean',
+        'pattern_deliveries'    => 'boolean',
+        'pattern_projects'      => 'boolean',
+        'pattern_invoices'      => 'boolean',
+        'accounting_account_digits' => 'integer'
+    ];
 
     // Relaciones
-    public function company(){ return $this->belongsTo(Company::class); }
-    public function currency(){ return $this->belongsTo(Currency::class); }
+    public function company(){ 
+        return $this->belongsTo(Company::class); 
+    }
+    public function currency(){ 
+        return $this->belongsTo(Currency::class); 
+    }
 
     /**
      * 1. Configuración por empresa.

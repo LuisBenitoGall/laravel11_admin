@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use App\Support\CompanyContext;
 use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
@@ -40,6 +42,9 @@ class ProductController extends Controller{
      * 1. Listado de productos.
      * 1.1. Data para exportación.
      * 1.2. Data Query.
+     * 1.3. Definición de filtros avanzados.
+     * 1.4. Configuración de filtros avanzados.
+     * 1.5. Leyenda de filtros aplicados.
      * 2. Formulario nuevo producto.
      * 3. Guardar nuevo producto.
      * 4. Ver producto.
@@ -74,23 +79,35 @@ class ProductController extends Controller{
      * 1. Listado de productos.
      */
     public function index(ProductFilterRequest $request){
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+
         $perPage = $request->input('per_page', config('constants.RECORDS_PER_PAGE_DEFAULT_'));
 
-        $products = $this->dataQuery($request)->paginate($perPage)->onEachSide(1);
+        $products = $this->dataQuery($request)
+            ->paginate($perPage)
+            ->onEachSide(1);
 
         return Inertia::render('Admin/Product/Index', [
             "title" => __($this->option),
             "subtitle" => __('listado'),
             "module" => $this->module,
-            "slug" => 'products',
-            "products" => ProductResource::collection($products),
-            "queryParams" => request()->query() ?: null,
-            "availableLocales" => LocaleTrait::availableLocales(),
-            "permissions" => $this->permissions,
-            "columnPreferences" => UserColumnPreference::forUserAndTables(
-                auth()->user()->id,
-                ['tblProducts'] 
-            )
+            "table"               => [
+                'id'                    => 'tblProducts',
+                'rows'                  => ProductResource::collection($products),
+                'meta'                  => $products->toArray()['meta'] ?? null, // o el meta que ya mandas
+                'queryParams'           => request()->query() ?: [],
+                'permissions'           => $this->permissions,
+                'columnPreferences'     => UserColumnPreference::forUserAndTables(
+                    Auth::id(),
+                    ['tblProducts']
+                ),
+                'adhocFilters'          => $this->adHocFilterUiConfig(),
+                'activeFiltersLegend'   => $this->activeFiltersLegend($request),   
+            ],
+            "slug"                      => 'products',
+            "permissions"               => $this->permissions,
+            "availableLocales"          => LocaleTrait::availableLocales()
         ]);
     }
 
@@ -98,7 +115,10 @@ class ProductController extends Controller{
      * 1.1. Data para exportación.
      */
     public function filteredData(ProductFilterRequest $request){
-        $cacheKey = 'filtered_products_' . md5(json_encode($request->all()));
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+
+        $cacheKey = 'filtered_products_' . $currentCompanyId . '_' . md5(json_encode($request->all()));
 
         $products = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($request) {
             return $this->dataQuery($request)->get();
@@ -112,8 +132,11 @@ class ProductController extends Controller{
     /**
      * 1.2. Data Query.
      */
-    private function dataQuery(ProductFilterRequest $request){
-        $query = Product::where('company_id', session('currentCompany'));
+    private function dataQuery(ProductFilterRequest $request): Builder{
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+
+        $query = Product::where('company_id', $currentCompanyId);
 
         // Filtros dinámicos
         $filters = [
@@ -149,6 +172,9 @@ class ProductController extends Controller{
             }
         }
 
+        // Filtros avanzados:
+        $query->applyAdhocFilters($request, $this->adHocFilterDefinitions($currentCompanyId));
+
         // Ordenación
         $sortField = $request->input('sort_field', 'name');
         $sortDirection = $request->input('sort_direction', 'ASC');
@@ -162,12 +188,223 @@ class ProductController extends Controller{
     }
 
     /**
+     * 1.3. Definición de filtros avanzados.
+     */
+    private function adHocFilterDefinitions(string|int $company_id): array
+    {
+        return [
+            'type' => [
+                'rules' => ['nullable'],
+                'apply' => function (Builder $q, $v) {
+                    // Soporte para select que manda objeto {value,label}
+                    if (is_array($v)) {
+                        $v = $v['value'] ?? null;
+                    }
+                    $v = is_string($v) ? trim($v) : $v;
+                    if (!$v) return;
+
+                    // 'p' producto, 's' servicio
+                    $q->where('type', $v);
+                },
+            ],
+
+            'on_sale' => [
+                'rules' => ['nullable'],
+                'apply' => function (Builder $q, $v) {
+                    if (is_array($v)) {
+                        $v = $v['value'] ?? null;
+                    }
+                    if ($v === null || $v === '') return;
+
+                    $bool = filter_var($v, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                    if ($bool === null) return;
+
+                    $q->where('on_sale', $bool ? 1 : 0);
+                },
+            ],
+
+            'batch' => [
+                'rules' => ['nullable'],
+                'apply' => function (Builder $q, $v) {
+                    if (is_array($v)) {
+                        $v = $v['value'] ?? null;
+                    }
+                    if ($v === null || $v === '') return;
+
+                    $bool = filter_var($v, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                    if ($bool === null) return;
+
+                    $q->where('batch', $bool ? 1 : 0);
+                },
+            ],
+
+            'stock_management' => [
+                'rules' => ['nullable'],
+                'apply' => function (Builder $q, $v) {
+                    if (is_array($v)) {
+                        $v = $v['value'] ?? null;
+                    }
+                    if ($v === null || $v === '') return;
+
+                    $bool = filter_var($v, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                    if ($bool === null) return;
+
+                    $q->where('stock_management', $bool ? 1 : 0);
+                },
+            ],
+        ];
+    }
+
+    /**
+     * 1.4. Configuración de filtros avanzados.
+     */
+    private function adHocFilterUiConfig(): array
+    {
+        return [
+            [
+                'key' => 'type',
+                'label' => __('tipo'),
+                'type' => 'select',
+                'multiple' => false,
+                'options' => [
+                    ['value' => 'p', 'label' => __('producto')],
+                    ['value' => 's', 'label' => __('servicio')],
+                ],
+            ],
+
+            [
+                'key' => 'on_sale',
+                'label' => __('venta_para'),
+                'type' => 'select',
+                'multiple' => false,
+                'options' => [
+                    ['value' => true,  'label' => __('si')],
+                    ['value' => false, 'label' => __('no')],
+                ],
+            ],
+
+            [
+                'key' => 'batch',
+                'label' => __('lotes_gestion'),
+                'type' => 'select',
+                'multiple' => false,
+                'options' => [
+                    ['value' => true,  'label' => __('si')],
+                    ['value' => false, 'label' => __('no')],
+                ],
+            ],
+
+            [
+                'key' => 'stock_management',
+                'label' => __('stock_gestion'),
+                'type' => 'select',
+                'multiple' => false,
+                'options' => [
+                    ['value' => true,  'label' => __('si')],
+                    ['value' => false, 'label' => __('no')],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * 1.5. Leyenda de filtros aplicados.
+     */
+    private function activeFiltersLegend(Request $request): array
+    {
+        $legend = [];
+
+        // 1) Cabecera: filtros "normales"
+        foreach ([
+            'name'             => __('nombre'),
+            'description'      => __('descripcion'),
+            'long_description' => __('descripcion_larga'),
+            'ref'              => __('ref'),
+            'manual_ref'       => __('ref_manual'),
+            'status'           => __('estado'),
+        ] as $key => $label) {
+            if ($request->filled($key)) {
+                $legend[] = [
+                    'key'   => "header.$key",
+                    'scope' => 'header',
+                    'path'  => $key,
+                    'label' => $label,
+                    'value' => $request->input($key),
+                ];
+            }
+        }
+
+        // Rango fechas (created_at) desde date_from/date_to
+        $from = $request->input('date_from');
+        $to   = $request->input('date_to');
+        if (($from && trim((string)$from) !== '') || ($to && trim((string)$to) !== '')) {
+            $legend[] = [
+                'key'   => 'header.created_at',
+                'scope' => 'header',
+                'path'  => 'created_at',
+                'label' => __('alta'),
+                'value' => trim(($from ?: '') . ' — ' . ($to ?: '')),
+            ];
+        }
+
+        // 2) Adhoc
+        $adhoc = $request->input('adhoc', []);
+        $adhoc = is_array($adhoc) ? $adhoc : [];
+
+        // type
+        $type = $adhoc['type'] ?? null;
+        if (is_array($type)) $type = $type['value'] ?? null;
+        $type = is_string($type) ? trim($type) : $type;
+
+        if ($type) {
+            $map = [
+                'p' => __('producto'),
+                's' => __('servicio'),
+            ];
+
+            $legend[] = [
+                'key'   => 'adhoc.type',
+                'scope' => 'adhoc',
+                'path'  => 'type',
+                'label' => __('tipo'),
+                'value' => $map[$type] ?? $type,
+            ];
+        }
+
+        // Helpers para booleans tri-estado
+        $addBool = function (string $key, string $label) use (&$legend, $adhoc) {
+            if (!array_key_exists($key, $adhoc)) return;
+
+            $v = $adhoc[$key];
+            if (is_array($v)) $v = $v['value'] ?? null;
+            if ($v === null || $v === '') return;
+
+            $bool = filter_var($v, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if ($bool === null) return;
+
+            $legend[] = [
+                'key'   => "adhoc.$key",
+                'scope' => 'adhoc',
+                'path'  => $key,
+                'label' => $label,
+                'value' => $bool ? __('si') : __('no'),
+            ];
+        };
+
+        $addBool('on_sale', __('venta_para'));
+        $addBool('batch', __('lotes_gestion'));
+        $addBool('stock_management', __('stock_gestion'));
+
+        return $legend;
+    }
+
+    /**
      * 2. Formulario nuevo producto.
      */
     public function create(){
         return Inertia::render('Admin/Product/Create', [
             "title" => __($this->option),
-            "subtitle" => __('producto_nuevo'),
+            "subtitle" => __('articulo_nuevo'),
             'module' => $this->module,
             "slug" => 'products',
             "availableLocales" => LocaleTrait::availableLocales(),
@@ -189,7 +426,7 @@ class ProductController extends Controller{
     /**
      * 4. Ver producto.
      */
-    public function show(Product $product){
+    public function show(Request $request, Product $product){
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 
         $product->load(['createdBy', 'updatedBy']);
@@ -201,9 +438,17 @@ class ProductController extends Controller{
         $product->created_by_name = optional($product->createdBy)->full_name ?? false;
         $product->updated_by_name = optional($product->updatedBy)->full_name ?? false;
 
+        //Vista en modal:
+        if ($request->expectsJson()) {
+            return response()->json([
+                'data' => $product,
+            ]);
+        }
+
+        //Vista en página:
         return Inertia::render('Admin/Product/Show', [
             "title" => __($this->option),
-            "subtitle" => __('producto_ver'),
+            "subtitle" => __('articulo_ver'),
             "module" => $this->module,
             "slug" => 'products',
             "availableLocales" => LocaleTrait::availableLocales(),
@@ -238,7 +483,7 @@ class ProductController extends Controller{
 
         return Inertia::render('Admin/Product/Edit', [
             "title" => __($this->option),
-            "subtitle" => __('producto_editar'),
+            "subtitle" => __('articulo_editar'),
             "module" => $this->module,
             "slug" => 'products',
             "availableLocales" => LocaleTrait::availableLocales(),

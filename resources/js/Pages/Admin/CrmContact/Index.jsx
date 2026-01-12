@@ -35,33 +35,40 @@ import UserShowView from '@/Pages/Admin/User/Partials/UserShowView';
 //Utils:
 import renderCellContent from '@/Utils/renderCellContent.jsx';
 
+const EMPTY = Object.freeze([]);
+const EMPTY_OBJ = Object.freeze({});
+
 export default function Index({ 
-    auth, 
-    session, 
-    title, 
-    subtitle, 
-    contacts, 
-    contact_types, 
+    auth,
+    session,
+    title,
+    subtitle,
+    table = EMPTY_OBJ,
+    contact_types,
     contact_types_combo,
     contact_subtypes,
     salutations,
     leads,
     slug,
-    queryParams: rawQueryParams = {}, 
     availableLocales,
     builderMode = false,
     builderList = null
 }) {
     const __ = useTranslation();
+    const t = (table && typeof table === 'object') ? table : EMPTY_OBJ;
     const { props } = usePage();
-    const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
-    const adhocFilters = props.adhocFilters ?? EMPTY;
-    const indexRouteName = `${slug}.index`;
-    const indexRouteParams = {};
+    const tableId     = t.id ?? 'tblContacts';
+    const rows        = t.rows ?? EMPTY_OBJ;          // Resource collection (data/meta/links)
+    const queryParams = t.queryParams ?? EMPTY_OBJ;   // query state
+    const adhocFilters = t.adhocFilters ?? EMPTY;
+    const legendItems  = t.activeFiltersLegend ?? EMPTY;
+
     const { loading } = useInertiaLoading();
-    const legendItems = props.activeFiltersLegend ?? EMPTY;
     const hasActiveFilters = legendItems.length > 0;
     const { showConfirm } = useSweetAlert();
+
+    const indexRouteName = `${slug}.index`;
+    const indexRouteParams = {};
 
     const [showId, setShowId] = useState(null);
     const [showPanelOpen, setShowPanelOpen] = useState(false);
@@ -118,7 +125,7 @@ export default function Index({
     const marketingListId = isBuildingList ? builderList.id : null;
 
     const [selectedContactIds, setSelectedContactIds] = useState([]);
-    const totalContacts = contacts?.meta?.total ?? 0;
+    const totalContacts = rows?.meta?.total ?? 0;
     const [showModalListFromContacts, setShowModalListFromContacts] = useState(false);
     const [selectingAll, setSelectingAll] = useState(false);
     const [savingMembers, setSavingMembers] = useState(false);
@@ -138,14 +145,12 @@ export default function Index({
     const handleToggleSelectAll = async () => {
         if (!isBuildingList || selectingAll) return;
 
-        // Si ya están todos, deseleccionamos
         if (totalContacts > 0 && selectedContactIds.length >= totalContacts) {
             setSelectedContactIds([]);
             return;
         }
 
-        // 1) Seleccionar inmediatamente los de la página actual (feedback instantáneo)
-        const currentPageIds = (contacts?.data || []).map(c => c.id);
+        const currentPageIds = (rows?.data || []).map(c => c.id);
 
         setSelectedContactIds(prev => {
             const set = new Set(prev);
@@ -153,19 +158,16 @@ export default function Index({
             return Array.from(set);
         });
 
-        // 2) En paralelo, pedir TODOS los contactos filtrados y completar selección
         try {
             setSelectingAll(true);
 
-            const rows = await filteredData(tableQueryParams);   // devuelve todas las filas según filtros
-            const allIds = rows
-                .map(row => row.id)
-                .filter(id => id !== null && id !== undefined);
+            const allRows = await filteredData(tableQueryParams); // <- no pises "rows"
+            const allIds = allRows
+              .map(r => r.id)
+              .filter(id => id !== null && id !== undefined);
 
             setSelectedContactIds(prev => {
-                // Si mientras tanto el usuario vació la selección, no machacamos
                 if (prev.length === 0) return prev;
-
                 const set = new Set(prev);
                 allIds.forEach(id => set.add(id));
                 return Array.from(set);
@@ -233,13 +235,12 @@ export default function Index({
         handleDelete,
         queryParams: tableQueryParams
     } = useTableManagement({
-        table: 'tblContacts',
+        table: tableId,
         allColumnKeys: columns.map(col => col.key),
         entityName: 'contacts',
         indexRoute: slug + '.index',
         destroyRoute: 'users.destroy',
         filteredDataRoute: slug + '.filtered-data',
-        filteredDataKey: 'users',
         labelName: 'contactos',
         queryParams
     });
@@ -363,7 +364,7 @@ export default function Index({
 
                 {/* Tabla */}
                 <div className="table-responsive">
-                    <Table className="table table-nowrap table-striped align-middle mb-0" id="tblContacts">
+                    <Table className="table table-nowrap table-striped align-middle mb-0" id={tableId}>
                         <thead>
                             <tr>
                                 <th className="text-center first-column">
@@ -398,8 +399,8 @@ export default function Index({
                         />
 
                         <tbody>
-                            {contacts.data.map((contact) => (
-                                <tr key={contact.id}>
+                            {(rows?.data || []).map((contact) => (
+                                <tr key={"contact-"+contact.id}>
                                     {/* Columna "show" fija */}
                                     <td className="text-center">
                                         <ShowRegisterButton onClick={() => handleShowRegister(contact)} />
@@ -497,10 +498,10 @@ export default function Index({
                 />
 
                 <Pagination
-                    links={contacts.meta.links}
-                    totalRecords={contacts.meta.total}
-                    currentPage={contacts.meta.current_page}
-                    perPage={contacts.meta.per_page}
+                    links={rows?.meta?.links}
+                    totalRecords={rows?.meta?.total}
+                    currentPage={rows?.meta?.current_page}
+                    perPage={rows?.meta?.per_page}
                     onPageChange={(page) => {
                         router.get(route(indexRouteName, indexRouteParams), {
                             ...queryParams,

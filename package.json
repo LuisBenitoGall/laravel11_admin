@@ -41,6 +41,11 @@
         "react-select": "^5.10.1",
         "react-tooltip": "^5.28.0",
         "sweetalert2": "^11.17.2",
-        "xlsx": "^0.18.5"
+        "xlsx": "^0.18.5",
+        "@fullcalendar/react": "^6.1.15",
+        "@fullcalendar/daygrid": "^6.1.15",
+        "@fullcalendar/timegrid": "^6.1.15",
+        "@fullcalendar/list": "^6.1.15",
+        "@fullcalendar/interaction": "^6.1.15"
     }
 }

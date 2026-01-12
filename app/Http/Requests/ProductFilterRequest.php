@@ -21,13 +21,18 @@ class ProductFilterRequest extends FormRequest{
      */
     public function rules(): array{
         return [
-            'name'       => 'nullable|string|max:255',
-            //'date_from'  => 'nullable|date|before_or_equal:date_to',
-            //'date_to'    => 'nullable|date|after_or_equal:date_from',
-            'sort_field' => 'nullable|string|in:name,created_at',
+            'name'          => 'nullable|string|max:255',
+            'adhoc'         => 'nullable|array',
+            'adhoc.type'    => 'nullable',
+            'adhoc.on_sale' => 'nullable',
+            'adhoc.batch'   => 'nullable',
+            'adhoc.stock_management' => 'nullable',
+            //'date_from'   => 'nullable|date|before_or_equal:date_to',
+            //'date_to'     => 'nullable|date|after_or_equal:date_from',
+            'sort_field'    => 'nullable|string|in:name,created_at',
             'sort_direction' => 'nullable|string|in:asc,desc',
-            'per_page'   => 'nullable|integer|min:1|max:100',
-            'page'       => 'nullable|integer|min:1'
+            'per_page'      => 'nullable|integer|min:1|max:100',
+            'page'          => 'nullable|integer|min:1'
         ];
     }
 

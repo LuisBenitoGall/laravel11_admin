@@ -7,6 +7,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Hash;
@@ -48,27 +49,50 @@ class AuthenticatedSessionController extends Controller{
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): RedirectResponse{
-        // 1) Validación de campos (email, password, remember, etc.)
+    public function store(LoginRequest $request): RedirectResponse
+    {
         $data = $request->validated();
 
-        // 2) Buscar usuario por email
         $user = User::where('email', $data['email'])->first();
 
-        // 3) Comprobar credenciales manualmente
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => [trans('auth.failed')],
             ]);
         }
 
-        // 4) Limpiar cualquier intento pendiente anterior
+        //Verificación email:
+        if($user && !$user->email_verified_at){
+            $user->email_verified_at = Carbon::now();
+            $user->save();   
+        }
+
+        // ✅ ¿Alguna empresa vinculada exige 2FA?
+        // Ajusta nombres de tablas/pivot si difieren
+        $requires2fa = DB::table('user_companies') // o el pivot real
+            ->join('company_settings', function ($join) {
+                $join->on('company_settings.company_id', '=', 'user_companies.company_id')
+                     ->whereNull('company_settings.deleted_at');
+            })
+            ->where('user_companies.user_id', $user->id)
+            ->where('company_settings.require_2fa', 1)
+            ->exists();
+
+        // Si NO requiere 2FA -> login normal
+        if (! $requires2fa) {
+            Auth::login($user, !empty($data['remember']));
+            $request->session()->regenerate();
+
+            // aquí ya decides si mandas al selector de empresa, dashboard, intended, etc.
+            return redirect()->intended(route('dashboard.index'));
+            // o route('companies.select') si tu flujo obliga a seleccionar empresa
+        }
+
+        // Si SÍ requiere 2FA -> tu flujo actual
         $request->session()->forget('pending_login');
 
-        // 5) Generar código de verificación (6 dígitos, por ejemplo)
         $code = random_int(100000, 999999);
 
-        // 6) Guardar código en BD
         UserLoginCode::create([
             'user_id'    => $user->id,
             'code'       => $code,
@@ -77,58 +101,15 @@ class AuthenticatedSessionController extends Controller{
             'user_agent' => $request->userAgent(),
         ]);
 
-        // 7) Guardar estado de login pendiente en sesión
         $request->session()->put('pending_login', [
             'user_id'  => $user->id,
             'remember' => !empty($data['remember']),
             'email'    => $user->email,
         ]);
 
-        // 8) Enviar email con el código
         $user->notify(new LoginCodeNotification($code));
 
-        // 9) Redirigir a la pantalla de verificación de código
         return redirect()->route('login.verify.show');
-
-
-
-
-
-
-        // $request->authenticate();   //Va a app\Http\Requests\Auth\LoginRequest.php
-
-        // $request->session()->regenerate();
-
-        // // Nota: la inclusión del campo `avatar` para Inertia se gestiona en
-        // // HandleInertiaRequests::share(), por lo que no necesitamos mutar el
-        // // objeto Auth::user() aquí y evitamos llamadas a métodos no tipados
-        // // por el analizador.
-
-        // //Empresas vinculadas al usuario:
-        // $companies = UserCompany::userCompanies();
-
-        // //Empresa actual:
-        // //if($companies->count() == 1){
-        //     //session(['currentCompany' => $companies[0]->id]); 
-        //     session(['currentCompany' => 1]); 
-
-        //     //Módulos de la empresa:
-        //     $companyModules = CompanyModule::getCompanyModules($companies[0]->id);
-        //     session(['companyModules' => $companyModules]);
-
-        //     //Configuración de la empresa:
-        //     $settings = CompanySetting::companySettings($companies[0]->id);
-        //     session(['companySettings' => $settings]);
-
-        // }elseif($companies->count() == 0){
-        //     session()->flash('error', __('usuario_sin_empresa'));
-        //     $this->destroy($request);
-
-        // }else{
-            
-        // }
-
-        //return redirect()->intended(route('dashboard.index', absolute: false));
     }
 
     /**

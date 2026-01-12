@@ -80,6 +80,7 @@ use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\ExpenseController;
 // use App\Http\Controllers\Admin\FileController;
 use App\Http\Controllers\Admin\FunctionalityController;
+use App\Http\Controllers\Admin\GoogleCalendarController;
 use App\Http\Controllers\Admin\GroupController;
 // use App\Http\Controllers\Admin\GroupMemberController;
 // use App\Http\Controllers\Admin\HandbookController;
@@ -110,6 +111,7 @@ use App\Http\Controllers\Admin\PlanningController;
 use App\Http\Controllers\Admin\ProcedureController;
 use App\Http\Controllers\Admin\ProcedurePatternController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\ProductDocController;
 use App\Http\Controllers\Admin\ProductPatternController;
 use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\ProjectPatternController;
@@ -124,6 +126,7 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SatController;
 use App\Http\Controllers\Admin\SatPatternController;
 use App\Http\Controllers\Admin\ScheduleController;
+use App\Http\Controllers\Admin\ScheduleEventController;
 use App\Http\Controllers\Admin\ScheduleEventTypeController;
 use App\Http\Controllers\Admin\SeatController;
 use App\Http\Controllers\Admin\SecondaryMenuController;
@@ -139,6 +142,7 @@ use App\Http\Controllers\Admin\UnitController;
 use App\Http\Controllers\Admin\UserAddressController;
 use App\Http\Controllers\Admin\UserColumnPreferenceController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\UserEmailController;
 use App\Http\Controllers\Admin\UserNoteController;
 use App\Http\Controllers\Admin\UserPreferenceController;
 use App\Http\Controllers\Admin\VehicleController;
@@ -440,6 +444,7 @@ Route::middleware(['web', 'auth', 'company', 'current_company'])->prefix('admin'
     //Company Settings:
     Route::middleware('module_setted:companies')->group(function (){
         Route::get('/company-settings', [CompanySettingController::class, 'index'])->name('company-settings.index')->middleware('permission:company-settings.index');
+        Route::put('/company-settings', [CompanySettingController::class, 'update'])->name('company-settings.update');
     });
 
     //Concourse Patterns:
@@ -581,6 +586,12 @@ Route::middleware(['web', 'auth', 'company', 'current_company'])->prefix('admin'
         Route::put('/functionalities/{functionality}/update', [FunctionalityController::class, 'update'])->name('functionalities.update')->middleware('permission:functionalities.update');
         Route::delete('/functionalities/{functionality}', [FunctionalityController::class, 'destroy'])->name('functionalities.destroy')->middleware('permission:functionalities.destroy');
     });
+
+    //Google Calendar:
+    Route::get('integrations/google/connect', [GoogleCalendarController::class, 'redirect'])
+            ->name('integrations.google.connect');
+    Route::get('integrations/google/callback', [GoogleCalendarController::class, 'callback'])
+            ->name('integrations.google.callback');
 
     //Groups:
     Route::get('/groups', [GroupController::class, 'index'])->name('groups.index')->middleware('permission:groups.index');
@@ -727,12 +738,18 @@ Route::middleware(['web', 'auth', 'company', 'current_company'])->prefix('admin'
     Route::get('/procedures', [ProcedureController::class, 'index'])->name('procedures.index')->middleware('permission:procedures.index');
 
     //Product Categories:
-    Route::middleware('module_setted:accounting')->group(function (){
+    Route::middleware('module_setted:products')->group(function (){
         Route::get('/product-categories', [CategoryController::class, 'index'])->name('product-categories.index')->middleware('permission:product-categories.index');
     });
 
+    //Product Docs:
+    Route::middleware('module_setted:products')->group(function (){
+        Route::get('/product-docs', [ProductDocController::class, 'index'])->name('product-docs.index');
+        Route::get('/product-docs/{product}/show', [ProductDocController::class, 'show'])->name('product-docs.show');
+    });
+
     //Product Patterns:
-    Route::middleware('module_setted:accounting')->group(function (){
+    Route::middleware('module_setted:products')->group(function (){
         Route::get('/product-patterns', [ProductPatternController::class, 'index'])->name('product-patterns.index')->middleware('permission:product-patterns.index');
         Route::get('/product-patterns/filtered-data', [ProductPatternController::class, 'filteredData'])->name('product-patterns.filtered-data')->middleware('permission:product-patterns.index');
         Route::get('/product-patterns/create', [ProductPatternController::class, 'create'])->name('product-patterns.create')->middleware('permission:product-patterns.create');
@@ -744,11 +761,12 @@ Route::middleware(['web', 'auth', 'company', 'current_company'])->prefix('admin'
     });
 
     //Products:
-    Route::middleware('module_setted:accounting')->group(function (){
+    Route::middleware('module_setted:products')->group(function (){
         Route::get('/products', [ProductController::class, 'index'])->name('products.index')->middleware('permission:products.index');
         Route::get('/products/filtered-data', [ProductController::class, 'filteredData'])->name('products.filtered-data')->middleware('permission:products.index');
         Route::get('/products/create', [ProductController::class, 'create'])->name('products.create')->middleware('permission:products.create');
         Route::post('/products/store', [ProductController::class, 'store'])->name('products.store')->middleware('permission:products.create');
+        Route::get('/products/{product}/show', [ProductController::class, 'show'])->name('products.show');
         Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit')->middleware('permission:products.edit');
         Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy')->middleware('permission:products.destroy');
         Route::post('/products/status', [ProductController::class, 'status'])->name('products.status')->middleware('permission:products.edit');
@@ -832,7 +850,21 @@ Route::middleware(['web', 'auth', 'company', 'current_company'])->prefix('admin'
     Route::get('/schedule-event-types', [ScheduleEventTypeController::class, 'index'])->name('schedule-event-types.index');
 
     //Schedules:
-    Route::get('/schedules', [ScheduleController::class, 'index'])->name('schedules.index')->middleware('permission:schedules.index');
+    Route::middleware('module_setted:schedule')->group(function (){
+        Route::get('/schedules', [ScheduleController::class, 'index'])->name('schedules.index')->middleware('permission:schedules.index');
+        Route::post('/schedules', [ScheduleController::class, 'store'])->name('schedules.store')->middleware('permission:schedules.create');
+        Route::put('/schedules/{schedule}', [ScheduleController::class, 'update'])->name('schedules.update')->middleware('permission:schedules.update');
+        Route::delete('/schedules/{schedule}', [ScheduleController::class, 'destroy'])->name('schedules.destroy')->middleware('permission:schedules.destroy');
+        Route::put('/schedules/{schedule}/authorized-users', [ScheduleController::class, 'updateAuthorizedUsers'])->name('schedules.authorized-users.update')->middleware('permission:schedules.update');
+    });
+
+    //Schedule Events:
+    Route::middleware('module_setted:schedule')->group(function (){
+        Route::get('/schedule-events', [ScheduleEventController::class, 'index'])->name('schedule-events.index')->middleware('permission:schedule-events.index');
+        Route::post('/schedules/{schedule}/events', [ScheduleEventController::class, 'store'])->name('schedule-events.store')->middleware('permission:schedule-events.create');
+        Route::put('/schedule-events/{event}', [ScheduleEventController::class, 'update'])->name('schedule-events.update')->middleware('permission:schedule-events.update');
+        Route::delete('/schedule-events/{event}', [ScheduleEventController::class, 'destroy'])->name('schedule-events.destroy')->middleware('permission:schedule-events.destroy');
+    });
 
     //Seats:
     Route::middleware('module_setted:accounting')->group(function (){
@@ -910,6 +942,12 @@ Route::middleware(['web', 'auth', 'company', 'current_company'])->prefix('admin'
     //User Companies:
     Route::delete('/user-companies/{user}/signature', [UserCompanyController::class, 'deleteSignature'])->name('users.signature.delete')->middleware('permission:user-companies.edit');
 
+    //User Emails:
+    Route::get('user-emails/{user}', [UserEmailController::class, 'index'])->name('user-emails.get');
+    Route::post('user-emails', [UserEmailController::class, 'store'])->name('user-emails.store');
+    Route::put('user-emails/{email}', [UserEmailController::class, 'update'])->name('user-emails.update');
+    Route::delete('user-emails/{email}', [UserEmailController::class, 'destroy'])->name('user-emails.destroy');
+
     //User Images:
     Route::post('/user-images/store', [UserImageController::class, 'store'])->name('user-images.store');
     Route::delete('/user-images/{image}', [UserImageController::class, 'destroy'])->name('user-images.delete');
@@ -982,17 +1020,17 @@ Route::middleware(['web', 'auth', 'company', 'current_company'])->prefix('admin'
 });
 
 Route::middleware(['auth', 'verified'])
-    ->prefix('admin')
-    ->group(function () {
-        // ✅ zona de confort (sin middleware company)
-        Route::get('companies/refresh-session', [CompanyController::class, 'refreshSession'])
-            ->name('companies.refresh-session');
+->prefix('admin')
+->group(function () {
+    // ✅ zona de confort (sin middleware company)
+    Route::get('companies/refresh-session', [CompanyController::class, 'refreshSession'])
+        ->name('companies.refresh-session');
 
-        Route::get('companies/select', [CompanyController::class, 'select'])
-            ->name('companies.select');
+    Route::get('companies/select', [CompanyController::class, 'select'])
+        ->name('companies.select');
 
-        // ...también error.no-company si lo tienes
-    });
+    // ...también error.no-company si lo tienes
+});
 
 
 Route::middleware('auth')->group(function(){

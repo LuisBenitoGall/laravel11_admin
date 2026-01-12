@@ -56,9 +56,12 @@ En el archivo config/constants.php se definen constantes personalizadas.
 - Normalización y validación de número de teléfono:
 	- composer require giggsey/libphonenumber-for-php
 	
-
+- Socialite:
+  - composer require laravel/socialite
+  
 
 ## CACHE REDIS:
+- Instalación: composer require predis/predis
 - Comandos:
 	- Ver contenido de la caché del menú: 						redis-cli get secondary_menu_user_($user_id)_company_($company_id)
 	- Eliminar manualmente caché: 								redis-cli del secondary_menu_user_($user_id)_company_($company_id)
@@ -141,6 +144,13 @@ En el archivo config/constants.php se definen constantes personalizadas.
 	- Limpiar archivos para mergear en producción:
 		git reset --hard
 		git clean -fd
+
+
+## GOOGLE CLOUD:
+  - project: myERP
+  - ID del proyecto: myerp-483618
+  - Nº de proyecto: 465641513188
+  - API: Google Calendar
 
 
 

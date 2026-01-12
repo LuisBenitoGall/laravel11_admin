@@ -23,7 +23,7 @@ class ModuleSetted{
         }
 
         // Busca el módulo por slug
-        $associatedModule = Module::select('id', 'name')
+        $associatedModule = Module::select('id', 'name', 'slug')
             ->where('slug', $module)
             ->first();
 
@@ -32,11 +32,12 @@ class ModuleSetted{
         }
 
         // Valida que la sesión tenga la lista de módulos de la empresa actual
-        $activeModules = session('modules', []); // array de IDs
+        // companyModules contiene un array de slugs (no IDs)
+        $activeModules = session('companyModules', []); // array de slugs
 
-        if (!in_array($associatedModule->id, $activeModules, true)) {
+        if (!in_array($module, $activeModules, true)) {
             $alert = __('modulo_no_activo', ['module' => $associatedModule->name]);
-            return redirect()->route('dashboard')->with(compact('alert'));
+            return redirect()->route('dashboard.index')->with(compact('alert'));
         }
 
         return $next($request);

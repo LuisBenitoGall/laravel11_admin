@@ -5,29 +5,76 @@ import { OverlayTrigger, Table, Tooltip } from 'react-bootstrap';
 import axios from 'axios';
 
 //Components:
+import ActiveFiltersLegend from '@/Components/ActiveFiltersLegend';
+import AdHocFiltersDropdown from '@/Components/AdHocFiltersDropdown';
 import ColumnFilter from '@/Components/ColumnFilter';
 import FilterRow from '@/Components/FilterRow';
 import { Pagination } from '@/Components/Pagination';
 import RecordsPerPage from '@/Components/RecordsPerPage';
+import ShowRegister from '@/Components/ShowRegister/ShowRegister';
+import ShowRegisterButton from '@/Components/ShowRegister/ShowRegisterButton';
 import { SortControl } from '@/Components/SortControl';
+import SpinnerInline from '@/Components/SpinnerInline';
 import StatusButton from '@/Components/StatusButton';
 import TableExporter from '@/Components/TableExporter';
 
 //Hooks:
+import { useInertiaLoading } from '@/Hooks/useInertiaLoading';
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
 
+//Partials:
+import ProductShowView from '@/Pages/Admin/Product/Partials/ProductShowView';
+
 //Utils:
 import renderCellContent from '@/Utils/renderCellContent.jsx';
 
-export default function Index({ auth, session, title, subtitle, products, queryParams: rawQueryParams = {}, availableLocales }) {
-    const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
+const EMPTY = Object.freeze([]);
+const EMPTY_OBJ = Object.freeze({});
+
+export default function Index({ 
+    auth, 
+    session, 
+    title, 
+    subtitle, 
+    table = EMPTY_OBJ,
+    slug, 
+    queryParams: rawQueryParams = {}, 
+    availableLocales 
+}) {
     const __ = useTranslation();
+    const t = (table && typeof table === 'object') ? table : EMPTY_OBJ;
+    const { props } = usePage();
+    const tableId     = t.id ?? 'tblProducts';
+    const rows        = t.rows ?? EMPTY_OBJ;          // Resource collection (data/meta/links)
+    const queryParams = t.queryParams ?? EMPTY_OBJ;   // query state
+    const adhocFilters = t.adhocFilters ?? EMPTY;
+    const legendItems  = t.activeFiltersLegend ?? EMPTY;
+
+    const { loading } = useInertiaLoading();
+    const hasActiveFilters = legendItems.length > 0;
+    const { showConfirm } = useSweetAlert();
+
+    const indexRouteName = `${slug}.index`;
+    const indexRouteParams = {};
+
+    const [showId, setShowId] = useState(null);
+    const [showPanelOpen, setShowPanelOpen] = useState(false);
+
+    const handleShowRegister = (product) => {
+        setShowId(product.id);
+        setShowPanelOpen(true);
+    };
+
+    const handleCloseShowPanel = () => {
+        setShowPanelOpen(false);
+        setShowId(null);
+    };
 
     //Columnas:
     const columns = [
-        { key: 'name', label: __('producto'), sort: true, filter: 'text', type: 'link', link: 'products.edit', class_th: '', class_td: '', placeholder: __('producto_filtrar') },
+        { key: 'name', label: __('articulo'), sort: true, filter: 'text', type: 'link', link: 'products.edit', class_th: '', class_td: '', placeholder: __('articulo_filtrar') },
         { key: 'reference', label: __('referencia'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('referencia_filtrar') },
         { key: 'description', label: __('descripcion'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('descripcion_filtrar') },
         { key: 'price', label: __('precio'), sort: true, filter: 'text', class_th: 'text-center', class_td: 'text-end', placeholder: __('precio_filtrar') },
@@ -51,15 +98,16 @@ export default function Index({ auth, session, title, subtitle, products, queryP
         SearchFieldChanged,
         sortChanged,
         filteredData,
-        handleDelete
+        handleDelete,
+        queryParams: tableQueryParams
     } = useTableManagement({
-        table: 'tblProducts',
+        table: tableId,
         allColumnKeys: columns.map(col => col.key),
         entityName: 'products',
-        indexRoute: 'products.index',
+        indexRoute: slug + '.index',
         destroyRoute: 'products.destroy',
-        filteredDataRoute: 'products.filtered-data',
-        labelName: 'producto',
+        filteredDataRoute: slug + '.filtered-data',
+        labelName: 'productos',
         queryParams
     });
 
@@ -88,16 +136,43 @@ export default function Index({ auth, session, title, subtitle, products, queryP
                 <div className="row">
                     <div className="controls d-flex align-items-center">
                         <ColumnFilter columns={columns} visibleColumns={visibleColumns} toggleColumn={toggleColumnVisibility} />
+
+                        {/* Filtros de datos */}
+                        <AdHocFiltersDropdown
+                            filters={adhocFilters}
+                            routeName={indexRouteName}
+                            routeParams={indexRouteParams}
+                            queryParams={tableQueryParams} 
+                        />
+
                         <RecordsPerPage perPage={perPage} setPerPage={setPerPage} />
+                        
                         <TableExporter filename={ __('productos') } columns={columns} fetchData={filteredData}/>
                     </div>
                 </div>
 
+                <div className="d-flex justify-content-between align-items-center my-2">
+                    <ActiveFiltersLegend
+                        items={legendItems}
+                        routeName={indexRouteName}
+                        routeParams={indexRouteParams}
+                        queryParams={tableQueryParams}
+                    />
+
+                    {hasActiveFilters && loading ? (
+                        <SpinnerInline text={__('cargando') ?? 'Cargando…'} />
+                    ) : null}
+                </div>
+
                 {/* Tabla */}
                 <div className="table-responsive">
-                    <Table className="table table-nowrap table-striped align-middle mb-0" id="tblProducts">
+                    <Table className="table table-nowrap table-striped align-middle mb-0" id={tableId}>
                         <thead>
                             <tr>
+                                <th className="text-center first-column">
+                                    &nbsp;
+                                </th>
+
                                 {columns.map(col => (
                                     <th key={col.key} className={`${col.class_th ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}>
                                         {__(col.label)}
@@ -121,11 +196,17 @@ export default function Index({ auth, session, title, subtitle, products, queryP
                             queryParams={queryParams}
                             visibleColumns={visibleColumns}
                             SearchFieldChanged={SearchFieldChanged}
+                            PrependColumns={1}
                         />
 
                         <tbody>
-                            {products.data.map((product) => (
+                            {rows.data.map((product) => (
                                 <tr key={"product-"+product.id}>
+                                    {/* Columna "show" fija */}
+                                    <td className="text-center">
+                                        <ShowRegisterButton onClick={() => handleShowRegister(product)} />
+                                    </td>
+
                                     {columns.map(col => (
                                         <td key={col.key} className={`${col.class_td ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}>
                                             {renderCellContent(product[col.key], col, product)}
@@ -189,13 +270,22 @@ export default function Index({ auth, session, title, subtitle, products, queryP
                     </Table>
                 </div>
 
+                <ShowRegister
+                    id={showId}
+                    open={showPanelOpen}
+                    onClose={handleCloseShowPanel}
+                    routeName="products.show"        // tu ruta JSON
+                    title={__('articulo')}         
+                    ViewComponent={ProductShowView}
+                />
+
                 <Pagination 
-                    links={products.meta.links} 
-                    totalRecords={products.meta.total} 
-                    currentPage={products.meta.current_page} 
-                    perPage={products.meta.per_page}
+                    links={rows.meta.links} 
+                    totalRecords={rows.meta.total} 
+                    currentPage={rows.meta.current_page} 
+                    perPage={rows.meta.per_page}
                     onPageChange={(page) => {
-                        router.get(route("products.index"), {
+                        router.get(route(indexRouteName, indexRouteParams), {
                             ...queryParams,
                             page,
                             per_page: perPage,

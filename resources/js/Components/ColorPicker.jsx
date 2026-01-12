@@ -2,9 +2,10 @@ import { useState, useRef, useEffect } from 'react';
 import { SketchPicker } from 'react-color';
 import TextInput from '@/Components/TextInput';
 
-export default function ColorPicker({ value = '#000000', onChange, className = '', name = 'color' }) {
+export default function ColorPicker({ value, color: colorProp, onChange, className = '', name = 'color' }) {
     const [displayColorPicker, setDisplayColorPicker] = useState(false);
-    const [color, setColor] = useState(value || '#000000');
+    const initial = value ?? colorProp ?? '#000000';
+    const [color, setColor] = useState(initial);
     const pickerRef = useRef(null);
 
     useEffect(() => {
@@ -16,6 +17,12 @@ export default function ColorPicker({ value = '#000000', onChange, className = '
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // keep internal color state in sync when parent prop changes
+    useEffect(() => {
+        const next = value ?? colorProp ?? '#000000';
+        if (next !== color) setColor(next);
+    }, [value, colorProp]);
 
     const togglePicker = () => setDisplayColorPicker(!displayColorPicker);
 

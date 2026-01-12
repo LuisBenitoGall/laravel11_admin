@@ -30,9 +30,20 @@ export default function Index({ auth, session, title, subtitle, modules, company
             icon: 'warning',
             onConfirm: async () => {
                 try {
-                    await axios.post(route('company-modules.toggle', module.id));
-                    await axios.get(route('companies.refresh-session')); // 🔁 recargar la sesión
-                    window.location.reload();   // 🔃 recargar todo y actualizar el sidebar
+                    //await axios.post(route('company-modules.toggle', module.id));
+                    //await axios.get(route('companies.refresh-session')); // 🔁 recargar la sesión
+                    //window.location.reload();   // 🔃 recargar todo y actualizar el sidebar
+
+                    router.post(route('company-modules.toggle', module.id), {}, {
+                        preserveScroll: true,
+                        onSuccess: () => {
+                          router.reload(); // o window.location.reload si tu sidebar no se entera
+                        },
+                        onError: (errors) => {
+                          console.error(errors);
+                        }
+                    });
+                      
                 } catch (error) {
                     console.error('Error al cambiar el estado del módulo', error);
                 }

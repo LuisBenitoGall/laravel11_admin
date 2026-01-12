@@ -92,7 +92,6 @@ class CrmContactController extends Controller{
         $ctx = app(CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
         
-        // /admin/crm-leads → segment(2) = 'crm-leads'
         $leads = $request->segment(2) === 'crm-leads';
 
         $perPage = $request->input('per_page', config('constants.RECORDS_PER_PAGE_DEFAULT_'));
@@ -140,7 +139,19 @@ class CrmContactController extends Controller{
             "subtitle"            => $leads ? __('clientes_potenciales') : __('contactos'),
             "module"              => $this->module,
             "slug"                => $slug,
-            "contacts"            => UserResource::collection($contacts),
+            "table"               => [
+                'id'                    => 'tblContacts',
+                'rows'                  => UserResource::collection($contacts),
+                'meta'                  => $contacts->toArray()['meta'] ?? null, // o el meta que ya mandas
+                'queryParams'           => request()->query() ?: [],
+                'permissions'           => $this->permissions,
+                'columnPreferences'     => UserColumnPreference::forUserAndTables(
+                    Auth::id(),
+                    ['tblContacts']
+                ),
+                'adhocFilters'          => $this->adHocFilterUiConfig(),
+                'activeFiltersLegend'   => $this->activeFiltersLegend($request),   
+            ],
             "salutations"         => $salutations,
             "contact_types"       => $contact_types,
             "contact_types_combo" => $contact_types_combo,
@@ -149,15 +160,7 @@ class CrmContactController extends Controller{
             "countries" => Cache::remember('countries_select', now()->addDay(), function () {
                 return Country::query()->orderBy('name')->get(['id','name']);
             }),
-            "queryParams"         => request()->query() ?: null,
-            "adhocFilters"        => $this->adHocFilterUiConfig(),
-            "activeFiltersLegend" => $this->activeFiltersLegend($request),
             "availableLocales"    => LocaleTrait::availableLocales(),
-            "permissions"         => $this->permissions,
-            "columnPreferences"   => UserColumnPreference::forUserAndTables(
-                Auth::id(),
-                ['tblContacts']
-            ),
             "builderMode"         => $builderMode,
             "builderList"         => $builderList
         ]);
@@ -186,7 +189,7 @@ class CrmContactController extends Controller{
         });
 
         return response()->json([
-            'users' => UserResource::collection($users),
+            'rows' => UserResource::collection($users),
         ]);
     }
 
@@ -201,13 +204,6 @@ class CrmContactController extends Controller{
         $currentCompanyId = (int) $ctx->id();
 
         $company_id = (int) $request->input('company_id', $currentCompanyId);
-
-        Log::debug('CRM contacts dataQuery', [
-    'company_id_param'   => $request->input('company_id'),
-    'company_id_cast'    => $company_id,
-    'current_company_id' => $currentCompanyId,
-]);
-
 
         // leads: /admin/crm-leads o parámetro "leads"
         $leads = filter_var($request->input('leads', false), FILTER_VALIDATE_BOOLEAN);

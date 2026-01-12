@@ -21,7 +21,15 @@ import { useTranslation } from '@/Hooks/useTranslation';
 //Utils:
 import renderCellContent from '@/Utils/renderCellContent.jsx';
 
-export default function Index({ auth, session, title, subtitle, banks, queryParams: rawQueryParams = {}, availableLocales }) {
+export default function Index({ 
+    auth, 
+    session, 
+    title, 
+    subtitle, 
+    banks, 
+    queryParams: rawQueryParams = {}, 
+    availableLocales 
+}) {
     const queryParams = typeof rawQueryParams === 'object' && rawQueryParams !== null ? rawQueryParams : {};
     const __ = useTranslation();
 

@@ -29,6 +29,7 @@ trait LocaleTrait{
             'es' => ['es', 'es_ES', false, 'Castellano', 'd/m/Y', true, 'dd/MM/yyyy'],
             'ca' => ['ca', 'ca_CA', false, 'Català', 'd/m/Y', true, 'dd/MM/yyyy'],
             'en' => ['en', 'en_US', false, 'English', 'Y/m/d', true, 'yyyy/MM/dd'],
+            'it' => ['it', 'it_IT', false, 'Italiano', 'Y/m/d', true, 'yyyy/MM/dd'],
         ];
 
         return $lang ? ($languages[$lang] ?? null) : $languages;

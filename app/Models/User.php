@@ -244,4 +244,9 @@ class User extends Authenticatable implements MustVerifyEmail{
             && !empty($this->email);
     }
 
+    public function emails()
+    {
+        return $this->hasMany(\App\Models\UserEmail::class);
+    }
+
 }
