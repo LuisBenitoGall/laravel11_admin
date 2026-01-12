@@ -152,6 +152,7 @@ class CrmContactController extends Controller{
                 'adhocFilters'          => $this->adHocFilterUiConfig(),
                 'activeFiltersLegend'   => $this->activeFiltersLegend($request),   
             ],
+            "permissions"         => $this->permissions,
             "salutations"         => $salutations,
             "contact_types"       => $contact_types,
             "contact_types_combo" => $contact_types_combo,
