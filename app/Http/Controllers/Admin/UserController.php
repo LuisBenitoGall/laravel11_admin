@@ -595,8 +595,13 @@ class UserController extends Controller{
 
     /**
      * 3. Guardar nuevo usuario.
+     * Si llega user_id (autocomplete): vincula usuario existente a la cuenta CRM (user_companies + crm_contacts).
      */
     public function store(UserStoreRequest $request){
+        if ($request->filled('user_id')) {
+            return $this->storeLinkExistingUser($request);
+        }
+
         //Comprobamos si el rol dispone de permisos para declarar $isAdmin:
         $role = Role::find($request->input('role'));
         $permissions = false;
@@ -706,13 +711,8 @@ class UserController extends Controller{
         }elseif($request->side == 'providers'){
             return redirect()->route('providers.edit', [$companyId, 'users'])->with('msg', __('usuario_creado_msg'));
         }elseif($request->side == 'crm-accounts'){
-            $account = CrmAccount::select('id')
-            ->where('company_id', $companyId)
-            ->where('linked_company_id', session('currentCompany'))
-            ->first();
-
-            if($account){
-                return redirect()->route('crm-accounts.edit', [$account->id, 'users'])->with('msg', __('usuario_creado_msg'));     
+            if($request->crm_account_id){
+                return redirect()->route('crm-accounts.edit', [$request->crm_account_id, 'users'])->with('msg', __('usuario_creado_msg'));     
             }else{
                 return redirect()->route('users.contacts')->with('msg', __('usuario_creado_msg')); 
             }
@@ -720,6 +720,49 @@ class UserController extends Controller{
         }else{
             return redirect()->route('users.edit', $user)->with('msg', __('usuario_creado_msg'));
         }
+    }
+
+    /**
+     * Vincular usuario existente a la cuenta CRM (UserSearch): user_companies + crm_contacts.
+     * Comprueba que el usuario existe, que la cuenta existe y que el contacto no esté ya vinculado.
+     */
+    private function storeLinkExistingUser(Request $request)
+    {
+        $userId = (int) $request->input('user_id');
+        $crmAccountId = (int) $request->input('crm_account_id');
+
+        $user = User::find($userId);
+        if (!$user) {
+            return redirect()->back()->with('alert', __('usuario_no_encontrado'));
+        }
+
+        $crmAccount = CrmAccount::find($crmAccountId);
+        if (!$crmAccount || !$crmAccount->linked_company_id) {
+            return redirect()->back()->with('alert', __('cuenta_no_valida'));
+        }
+
+        $linkedCompanyId = (int) $crmAccount->linked_company_id;
+
+        if (CrmContact::where('crm_account_id', $crmAccountId)->where('user_id', $userId)->exists()) {
+            return redirect()->back()->with('alert', __('contacto_ya_vinculado_cuenta'));
+        }
+
+        UserCompany::firstOrCreate(
+            ['user_id' => $userId, 'company_id' => $linkedCompanyId],
+            ['position' => null, 'department' => null]
+        );
+
+        $cc = new CrmContact();
+        $cc->company_id = session('currentCompany');
+        $cc->user_id = $userId;
+        $cc->crm_account_id = $crmAccountId;
+        $cc->owner_id = Auth::id();
+        $cc->validated = Carbon::now();
+        $cc->save();
+
+        return redirect()
+            ->route('crm-accounts.edit', [$crmAccountId, 'users'])
+            ->with('msg', __('contacto_vinculado_msg'));
     }
 
     /**

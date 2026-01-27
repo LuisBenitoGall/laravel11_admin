@@ -21,11 +21,14 @@ class UserStoreRequest extends FormRequest{
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array {
+        $whenCreating = !$this->filled('user_id');
         return [
             'role' => 'nullable|integer',
-            'name' => 'required|string|max:255',
-            'surname' => 'required|string|max:255',
+            'name' => [Rule::requiredIf($whenCreating), 'string', 'max:255'],
+            'surname' => [Rule::requiredIf($whenCreating), 'string', 'max:255'],
             'email' => 'nullable|email|string|max:255|unique:users,email',
+            'user_id' => 'nullable|integer|exists:users,id',
+            'crm_account_id' => [Rule::requiredIf($this->filled('user_id')), 'nullable', 'integer', 'exists:crm_accounts,id'],
         ];
     }
 

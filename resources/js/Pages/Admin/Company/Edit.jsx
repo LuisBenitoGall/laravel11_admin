@@ -386,6 +386,7 @@ export default function Edit({
                         contact_types={contact_types}
                         contact_subtypes={contact_subtypes}
                         crm_account={crm_account}
+                        showUserSearch={true}
                     />
                 )}
 
