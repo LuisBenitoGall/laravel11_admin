@@ -74,6 +74,8 @@ Route::post('/wp/newsletter-en', [WpFormController::class, 'newsletter'])
 Route::post('/wp/felipao', [WpFormController::class, 'felipao'])
     ->name('wp.felipao');
 
+Route::post('/wp/newsletter-form', [WpFormController::class, 'newsletterForm'])->name('wp.newsletter-form')->defaults('lang', 'es');
+
 
 //Endpoints:
 // https://crm.realfabricadetapices.com/api/wp/contact-es

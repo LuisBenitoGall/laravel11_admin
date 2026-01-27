@@ -1,3 +1,22 @@
+hay que crear un nuevo endpoint en WPFormController que llamaremos newsletterForm. Los campos de este formulario son los siguientes: 
+- field_nombre
+- field_apellidos
+- field_email
+- field_producto (guardar valor de un selector)
+- field_servicio (guardar valor de un selector)
+
+Al igual que con los otros endpoints hay que comprobar si el email ya existe en la tabla users. De no existir se crea el usuario.
+
+Con user_id comprobamos que exista en la tabla crm_contacts. De no existir se crea.
+
+Con crm_contact_id llenamos la tabla crm_contact_messages.message y pasamos lo obtenido en los campos field_producto y field_servicio. Utiliza un array o un serialize pues el tipo de valor de este campo es text.
+
+Como último paso debemos guardar el contacto, si no existe como user_id, en la tabla marketing_list_users. Como marketing_list_users.marketing_list_id debes obtener marketing_lists.id donde marketing_lists.slug = 'newsletter-envio'
+
+Finalmente devuelve response.
+
+Te paso el WpFormController actual para que integres el nuevo método y conozcas la lógica que está siguiendo:
+
 <?php
 
 namespace App\Http\Controllers\Admin;
@@ -15,8 +34,6 @@ use Carbon\Carbon;
 //Models:
 use App\Models\CrmContact;
 use App\Models\CrmContactMessage;
-use App\Models\MarketingList;
-use App\Models\MarketingListUser;
 use App\Models\User;
 
 //Traits:
@@ -234,121 +251,4 @@ class WpFormController extends Controller
             'success' => true
         ], 200);
     }
-
-    /**
-     * 4. Nuevo formulario de newsletter (campos field_*).
-     */
-    public function newsletterForm(Request $request, string $lang = 'es')
-    {
-        $locale = $request->input('lang', $lang);
-        $contact_type = 'newl';
-
-        $name    = trim((string) $request->input('field_nombre'));
-        $surname = trim((string) $request->input('field_apellidos'));
-        $email   = trim((string) $request->input('field_email'));
-        $product = (string) $request->input('field_producto');
-        $service = (string) $request->input('field_servicio');
-
-        // Mínimos de cordura
-        if ($email === '') {
-            return response()->json([
-                'success' => false,
-                'error'   => 'Missing email',
-            ], 400);
-        }
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return response()->json([
-                'success' => false,
-                'error'   => 'Invalid email format',
-            ], 400);
-        }
-
-        // 1) Usuario: buscamos por email, si no existe, lo creamos
-        $user = User::where('email', $email)->first();
-
-        if (!$user) {
-            $random_password = Str::random(8);
-
-            $user = new User();
-            $user->name = $name;
-            $user->surname = $surname;
-            $user->email = $email;
-            $user->password = bcrypt($random_password);
-            $user->isAdmin = false;
-            $user->status = 0;
-            $user->save();
-        }
-
-        // 2) Contacto CRM: por company_id + user_id
-        $crm_contact = CrmContact::where('company_id', $this->currentCompanyId)
-            ->where('user_id', $user->id)
-            ->first();
-
-        if (!$crm_contact) {
-            $crm_contact = new CrmContact();
-            $crm_contact->company_id = $this->currentCompanyId;
-            $crm_contact->user_id = $user->id;
-            $crm_contact->contact_type = $contact_type;
-            $crm_contact->status = 1;
-            $crm_contact->acceptance = Carbon::now();
-            $crm_contact->save();
-        }
-
-        // 3) Guardamos el mensaje en formato serializable (usamos JSON sobre TEXT)
-        $messagePayload = [
-            'producto' => $product,
-            'servicio' => $service,
-        ];
-
-        $msg = new CrmContactMessage();
-        $msg->crm_contact_id = $crm_contact->id;
-        $msg->title = 'Newsletter form';
-        $msg->message = json_encode($messagePayload, JSON_UNESCAPED_UNICODE);
-        $msg->origin = 'Formulario newsletterForm '.$locale;
-        $msg->save();
-
-        // 4) Añadimos el contacto a la lista "newsletter-envio" si no estaba
-        $marketingList = MarketingList::where('slug', 'newsletter-envio')->first();
-
-        if ($marketingList) {
-            $alreadyInList = MarketingListUser::where('marketing_list_id', $marketingList->id)
-                ->where('user_id', $user->id)
-                ->exists();
-
-            if (!$alreadyInList) {
-                $mlu = new MarketingListUser();
-                $mlu->marketing_list_id = $marketingList->id;
-                $mlu->user_id = $user->id;
-                // Si la tabla tiene más campos obligatorios (status, company_id, etc.),
-                // aquí es donde los rellenarías.
-                $mlu->save();
-            }
-        } else {
-            Log::warning('Marketing list with slug "newsletter-envio" not found');
-        }
-
-        return response()->json([
-            'success' => true,
-        ], 200);
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
 }
