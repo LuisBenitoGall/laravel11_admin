@@ -1,1 +1,0 @@
-import{j as r}from"./app-BlyCgi7v.js";import a from"./Header-B9h7T9u5.js";import{u as o}from"./useTranslation-DbndYcWj.js";function n({children:s}){return o(),r.jsxs("div",{className:"layout-wrapper landing",children:[r.jsx(a,{}),s]})}export{n as G};

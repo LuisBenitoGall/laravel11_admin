@@ -1829,12 +1829,14 @@ class UserController extends Controller{
         $currentCompanyId = (int) $ctx->id();
 
         $request->validate([
-            'q'     => ['nullable', 'string', 'max:150'],
-            'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'q'            => ['nullable', 'string', 'max:150'],
+            'limit'        => ['nullable', 'integer', 'min:1', 'max:50'],
+            'for_crm_link' => ['nullable', 'boolean'],
         ]);
 
-        $q     = trim((string) $request->input('q', ''));
-        $limit = (int) $request->input('limit', 10);
+        $q           = trim((string) $request->input('q', ''));
+        $limit      = (int) $request->input('limit', 10);
+        $forCrmLink = $request->boolean('for_crm_link');
 
         $users = User::query()
             ->select('users.id', 'users.name', 'users.surname', 'users.email')
@@ -1846,13 +1848,11 @@ class UserController extends Controller{
                     ->orWhere('email', 'like', "%{$q}%");
                 });
             })
-            ->when($currentCompanyId > 0, function ($query) use ($currentCompanyId) {
+            ->when($currentCompanyId > 0 && !$forCrmLink, function ($query) use ($currentCompanyId) {
                 $query->whereHas('companies', function ($c) use ($currentCompanyId) {
                     $c->where('companies.id', $currentCompanyId);
                 });
             })
-            // TODO: si tienes relación user<->company, filtra aquí:
-            // ->whereHas('companies', fn ($c) => $c->where('companies.id', $companyId))
             ->limit($limit)
             ->get()
             ->map(function ($u) {

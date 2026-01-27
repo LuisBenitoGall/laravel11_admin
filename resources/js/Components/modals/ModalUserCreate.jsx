@@ -138,6 +138,7 @@ export default function ModalUserCreate({
                             value={selectedExistingUser}
                             onChange={(user) => setSelectedExistingUser(user ?? null)}
                             placeholder={__('usuario_buscar') ?? 'Buscar usuario...'}
+                            extraParams={{ for_crm_link: 1 }}
                         />
                         <hr/>
                     </div>
