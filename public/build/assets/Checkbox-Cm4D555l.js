@@ -1,1 +1,0 @@
-import{j as m}from"./app-DSZhWgLq.js";function x({className:c="",checked:t=!1,value:o="1",onChange:l,size:s=null,...i}){let e="";return s==="sm"?e="checkbox-sm":s==="lg"&&(e="checkbox-lg"),m.jsx("input",{...i,type:"checkbox",className:`form-check-input ${e} ${c}`.trim(),checked:t,value:o,onChange:l})}export{x as C};

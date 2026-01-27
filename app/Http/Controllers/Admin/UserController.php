@@ -1838,15 +1838,20 @@ class UserController extends Controller{
         $limit      = (int) $request->input('limit', 10);
         $forCrmLink = $request->boolean('for_crm_link');
 
+        $words = $q === '' ? [] : array_filter(preg_split('/\s+/u', $q, -1, PREG_SPLIT_NO_EMPTY));
+
         $users = User::query()
             ->select('users.id', 'users.name', 'users.surname', 'users.email')
             ->orderBy('users.name')
-            ->when($q !== '', function ($query) use ($q) {
-                $query->where(function ($sub) use ($q) {
-                    $sub->where('name', 'like', "%{$q}%")
-                    ->orWhere('users.surname', 'like', "%{$q}%")
-                    ->orWhere('email', 'like', "%{$q}%");
-                });
+            ->when(!empty($words), function ($query) use ($words) {
+                foreach ($words as $word) {
+                    $pattern = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $word) . '%';
+                    $query->where(function ($sub) use ($pattern) {
+                        $sub->where('name', 'like', $pattern)
+                            ->orWhere('users.surname', 'like', $pattern)
+                            ->orWhere('email', 'like', $pattern);
+                    });
+                }
             })
             ->when($currentCompanyId > 0 && !$forCrmLink, function ($query) use ($currentCompanyId) {
                 $query->whereHas('companies', function ($c) use ($currentCompanyId) {
