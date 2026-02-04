@@ -366,6 +366,8 @@
     "dias_su_aniversario": "días para su aniversario",
     "digitos_num": "Número de dígitos",
     "direccion": "Dirección",
+    "direccion_al_menos_uno": "Debe informar al menos uno: población, código postal o dirección.",
+    "direccion_creada": "La dirección se ha creado correctamente.",
     "direccion_eliminar": "Eliminar dirección",
     "direccion_eliminar_confirm": "Confirma que deseas eliminar esta dirección",
     "direccion_envio": "Dirección envío",

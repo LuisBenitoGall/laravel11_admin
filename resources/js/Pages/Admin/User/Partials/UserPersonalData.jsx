@@ -29,6 +29,8 @@ export default function UserPersonalData({
     contact_types = [],
     contact_subtypes = [],
     contact_subtype_id = null,
+    cost_centers = [],
+    user_cost_centers = [],
     crm_contact,
     pivot,                   // ya no lo usamos aquí, pero lo dejo en la firma por si otros tabs lo necesitan
     company_context = null,
@@ -71,6 +73,25 @@ export default function UserPersonalData({
 
     const contactTypeOptions = normalizeOptions(contact_types);
     const contactSubtypeOptions = normalizeOptions(contact_subtypes);
+    const costCenters = normalizeOptions(cost_centers);
+
+    const normalizeSelected = (input) => {
+        if (!input) return [];
+        if (Array.isArray(input)) {
+            if (input.length && typeof input[0] === 'object') {
+                return input.map((item) => String(item.id ?? item.value ?? item.key ?? item.name ?? item));
+            }
+            return input.map((item) => String(item));
+        }
+
+        if (typeof input === 'object') {
+            return Object.entries(input).map(([, value]) => String(value?.id ?? value?.value ?? value));
+        }
+
+        return [];
+    };
+
+    const initialCostCenters = normalizeSelected(user_cost_centers);
 
     const arrRoles = Object.entries(roles).map(([key, label]) => ({
         value: key,
@@ -153,6 +174,7 @@ export default function UserPersonalData({
 
         // campos dinámicos para empresas
         ...dynamicCompanyFields,
+        cost_centers: initialCostCenters,
     });
 
     const [submitting, setSubmitting] = useState(false);
@@ -188,6 +210,16 @@ export default function UserPersonalData({
                 if (ymd) {
                     formData.append(key, ymd);
                 }
+                return;
+            }
+
+            // Arrays (ej. cost_centers) -> append cada elemento con key[] para Laravel
+            if (Array.isArray(value)) {
+                value.forEach((v) => {
+                    if (v !== null && v !== undefined) {
+                        formData.append(`${key}[]`, v);
+                    }
+                });
                 return;
             }
 
@@ -438,6 +470,33 @@ export default function UserPersonalData({
                                 ))}
                             </SelectInput>
                             <InputError message={errors.contact_subtype} />
+                        </div>
+
+                        <div className="col-md-4">
+                            <label
+                                htmlFor="cost_centers"
+                                className="form-label"
+                            >
+                                {__('centro_coste')}
+                            </label>
+                            <SelectInput
+                                className="form-select"
+                                name="cost_centers"
+                                multiple={false}
+                                value={data.cost_centers}
+                                onChange={(e) => {
+                                    const selected = Array.from(e.target.selectedOptions).map((o) => o.value);
+                                    setData('cost_centers', selected);
+                                }}
+                            >
+                                <option value="">{__('opcion_selec')}</option>
+                                {costCenters.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </SelectInput>
+                            <InputError message={errors.cost_centers} />
                         </div>
                     </div>
                 )}

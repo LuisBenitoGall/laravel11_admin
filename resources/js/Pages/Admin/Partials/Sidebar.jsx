@@ -43,7 +43,18 @@ export default function Sidebar() {
     const txt_usuarios = __('usuarios');
     const txt_usuarios_listados = __('usuarios_listados');
 
-    const [isOpen, setIsOpen] = useState(true);
+    const STORAGE_KEY = 'admin_sidebar_collapsed';
+    const MD_BREAKPOINT = 768;
+
+    const [isCollapsed, setIsCollapsed] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        return window.localStorage.getItem(STORAGE_KEY) === '1';
+    });
+    const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        return !window.matchMedia(`(min-width: ${MD_BREAKPOINT}px)`).matches;
+    });
     const [modules, setModules] = useState([]);
 
     const props = useSafePage();
@@ -88,6 +99,102 @@ export default function Sidebar() {
     const visibleCompaniesItems = companiesItems.filter(i => can(i.route));
     const showCompaniesModule = visibleCompaniesItems.length > 0;
 
+    // Media query: desktop/tablet vs mobile; en mobile cerrar off-canvas al redimensionar
+    useEffect(() => {
+        const mql = window.matchMedia(`(min-width: ${MD_BREAKPOINT}px)`);
+        const handleChange = (e) => {
+            const desktop = e.matches;
+            setIsMobile(!desktop);
+            if (!desktop) setIsMobileOpen(false);
+        };
+        handleChange(mql);
+        mql.addEventListener('change', handleChange);
+        return () => mql.removeEventListener('change', handleChange);
+    }, []);
+
+    // Toggle sidebar: hamburger desde Topbar (CustomEvent)
+    useEffect(() => {
+        const handleToggle = () => {
+            if (isMobile) {
+                setIsMobileOpen((prev) => !prev);
+            } else {
+                setIsCollapsed((prev) => {
+                    const next = !prev;
+                    try {
+                        window.localStorage.setItem(STORAGE_KEY, next ? '1' : '0');
+                    } catch (_) {}
+                    return next;
+                });
+            }
+        };
+        window.addEventListener('admin-sidebar-toggle', handleToggle);
+        return () => window.removeEventListener('admin-sidebar-toggle', handleToggle);
+    }, [isMobile]);
+
+    // Flyout en modo colapsado: submenú solo por rollover (sin click), como demo Velzon; delay al salir para poder mover el ratón al panel
+    useEffect(() => {
+        if (isMobile || !isCollapsed) return;
+        const sidebar = document.querySelector('.navbar-menu.sidebar--collapsed');
+        if (!sidebar) return;
+        const navItems = Array.from(sidebar.querySelectorAll('.nav-item')).filter(
+            (el) => el.querySelector('.menu-dropdown')
+        );
+        const HIDE_DELAY_MS = 150;
+        let hideTimer = null;
+
+        const show = (dd) => {
+            if (!dd) return;
+            if (hideTimer) clearTimeout(hideTimer);
+            hideTimer = null;
+            dd.style.setProperty('display', 'block', 'important');
+            dd.style.setProperty('height', 'auto', 'important');
+            dd.style.setProperty('max-height', '80vh', 'important');
+        };
+        const hide = (dd) => {
+            if (!dd) return;
+            if (hideTimer) clearTimeout(hideTimer);
+            hideTimer = setTimeout(() => {
+                hideTimer = null;
+                dd.style.removeProperty('display');
+                dd.style.removeProperty('height');
+                dd.style.removeProperty('max-height');
+            }, HIDE_DELAY_MS);
+        };
+
+        const teardown = [];
+        navItems.forEach((el) => {
+            const dd = el.querySelector('.menu-dropdown');
+            if (!dd) return;
+            const link = el.querySelector('.nav-link[data-bs-toggle="collapse"]');
+            const onNavEnter = () => show(dd);
+            const onNavLeave = () => hide(dd);
+            const onDdEnter = () => show(dd);
+            const onDdLeave = () => hide(dd);
+            const onLinkClick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            };
+            el.addEventListener('mouseenter', onNavEnter);
+            el.addEventListener('mouseleave', onNavLeave);
+            dd.addEventListener('mouseenter', onDdEnter);
+            dd.addEventListener('mouseleave', onDdLeave);
+            if (link) {
+                link.addEventListener('click', onLinkClick);
+                teardown.push(() => link.removeEventListener('click', onLinkClick));
+            }
+            teardown.push(() => {
+                el.removeEventListener('mouseenter', onNavEnter);
+                el.removeEventListener('mouseleave', onNavLeave);
+                dd.removeEventListener('mouseenter', onDdEnter);
+                dd.removeEventListener('mouseleave', onDdLeave);
+            });
+        });
+        return () => {
+            if (hideTimer) clearTimeout(hideTimer);
+            teardown.forEach((fn) => fn());
+        };
+    }, [isCollapsed, isMobile]);
+
     useEffect(() => {
         document.querySelectorAll('.menu-link[data-bs-toggle="collapse"]').forEach((el) => {
             new bootstrap.Collapse(el, { toggle: false });
@@ -129,8 +236,28 @@ export default function Sidebar() {
         </ul>
     );
 
+    const rootClasses = [
+        'app-menu',
+        'navbar-menu',
+        'sidebar--scrollable',
+        isMobile
+            ? (isMobileOpen ? 'sidebar--mobile-open' : '')
+            : (isCollapsed ? 'hide sidebar--collapsed' : 'show'),
+    ].filter(Boolean).join(' ');
+
     return (
-        <div className={`app-menu navbar-menu ${isOpen ? 'show' : 'hide'}`}>
+        <>
+            {isMobile && isMobileOpen && (
+                <div
+                    className="sidebar-overlay"
+                    onClick={() => setIsMobileOpen(false)}
+                    onKeyDown={(e) => e.key === 'Escape' && setIsMobileOpen(false)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Cerrar menú"
+                />
+            )}
+            <div className={rootClasses}>
             <div className="navbar-brand-box">
                 <Link href={route('dashboard.index')} className="logo">
                     <span className="logo-sm">
@@ -173,7 +300,7 @@ export default function Sidebar() {
                 })()}
             </div> */}
 
-            <div id="scrollbar">
+            <div id="scrollbar" className="sidebar-scroll-area">
                 <div id="sidebar-menu">
                     <ul className="navbar-nav mt-3" id="navbar-nav">
                         {/* Dashboard */}
@@ -344,6 +471,7 @@ export default function Sidebar() {
                     </ul>
                 </div>
             </div>
-        </div>
+            </div>
+        </>
     );
 }

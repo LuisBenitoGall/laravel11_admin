@@ -30,6 +30,7 @@ use App\Concerns\HasSalutation;
 use App\Models\Categorizable;
 use App\Models\Category;
 use App\Models\Company;
+use App\Models\CostCenter;
 use App\Models\Country;
 use App\Models\CrmAccount;
 use App\Models\CrmContact;
@@ -42,6 +43,7 @@ use App\Models\User;
 use App\Models\UserAddress;
 use App\Models\UserColumnPreference;
 use App\Models\UserCompany;
+use App\Models\UserCostCenter;
 use App\Models\UserImage;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -1081,26 +1083,42 @@ class UserController extends Controller{
             'addresses.town.province.country',
         ]);
 
-        return \Inertia\Inertia::render('Admin/User/Edit', [
-            'title'            => __($this->option),
-            'subtitle'         => $crm_contact? __('contacto_editar'):__('usuario_editar'),
-            'module'           => $this->module,
-            'slug'             => $slug,
+        // Centros de coste:
+        $cost_centers = CostCenter::select('id', 'name', 'code')
+        ->where('company_id', $currentCompanyId)
+        ->where('status', 1)
+        ->orderBy('name', 'ASC')
+        ->get();
 
-            'user'             => $user,
-            'roles'            => $roles,
-            'user_roles'       => $user->roles,
-            'images'           => $images,
-            'salutations'      => $salutations,
-            'contact_types'    => $contact_types,
-            'contact_subtypes' => $contact_subtypes,
-            'contact_subtype_id' => $contact_subtype_id,
-            'crm_contact'      => $crm_contact,
-            'addresses'        => $user->addresses,
-            'countries'        => $countries,
-            'profile'          => $profile,
-            'availableLocales' => LocaleTrait::availableLocales(),
-            'permissions'      => $this->permissions,
+        // Centros de coste del usuario vinculados con la empresa actual:
+        $user_cost_centers = UserCostCenter::select('cost_center_id')
+        ->where('user_id', $user->id)
+        ->where('company_id', $currentCompanyId)
+        ->pluck('cost_center_id')
+        ->toArray();
+
+        return \Inertia\Inertia::render('Admin/User/Edit', [
+            'title'                 => __($this->option),
+            'subtitle'              => $crm_contact? __('contacto_editar'):__('usuario_editar'),
+            'module'                => $this->module,
+            'slug'                  => $slug,
+
+            'user'                  => $user,
+            'roles'                 => $roles,
+            'user_roles'            => $user->roles,
+            'images'                => $images,
+            'salutations'           => $salutations,
+            'contact_types'         => $contact_types,
+            'contact_subtypes'      => $contact_subtypes,
+            'contact_subtype_id'    => $contact_subtype_id,
+            'cost_centers'          => $cost_centers,
+            'user_cost_centers'     => $user_cost_centers,
+            'crm_contact'           => $crm_contact,
+            'addresses'             => $user->addresses,
+            'countries'             => $countries,
+            'profile'               => $profile,
+            'availableLocales'      => LocaleTrait::availableLocales(),
+            'permissions'           => $this->permissions,
 
             // Contexto respecto a la empresa en sesión
             'company'          => $company,
@@ -1234,6 +1252,29 @@ class UserController extends Controller{
             $relation->save();
         }
 
+        // 6) Centros de coste vinculados al usuario (user_cost_centers)
+        // Esperamos recibir `cost_centers` como array (incluso vacío) desde el frontend.
+        if ($request->has('cost_centers')) {
+            $selected = (array) $request->input('cost_centers', []);
+            $ids = array_filter(array_map('intval', $selected));
+
+            DB::transaction(function () use ($user, $currentCompanyId, $ids) {
+                // Eliminamos vinculaciones previas para esta empresa
+                UserCostCenter::where('user_id', $user->id)
+                    ->where('company_id', $currentCompanyId)
+                    ->delete();
+
+                // Creamos las nuevas vinculaciones
+                foreach ($ids as $ccId) {
+                    if ($ccId <= 0) continue;
+                    UserCostCenter::create([
+                        'user_id' => $user->id,
+                        'cost_center_id' => $ccId,
+                        'company_id' => $currentCompanyId,
+                    ]);
+                }
+            });
+        }
         // 6) Redirección: siempre al edit del usuario, el contexto ya lo pone CompanyContext
         return redirect()
             ->route('users.edit', $user)

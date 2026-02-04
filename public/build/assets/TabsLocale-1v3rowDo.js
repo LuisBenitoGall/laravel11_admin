@@ -1,0 +1,1 @@
+import{X as e,j as i}from"./app-CVzoQQY8.js";import{T as l}from"./Tabs-B4Zd4eDo.js";function p({children:r}){const{availableLocales:t=[],languages:s={}}=e().props,o=t.map(a=>({key:a,label:Array.isArray(s[a])?s[a][3]:a}));return i.jsx(l,{items:o,children:r})}export{p as T};

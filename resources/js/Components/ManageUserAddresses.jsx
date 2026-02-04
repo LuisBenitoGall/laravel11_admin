@@ -91,9 +91,21 @@ export default function ManageUserAddresses({
         handleChange(field, value);
     };
 
+    const hasAtLeastOneLocation = () => {
+        const townId = form.town_id != null && form.town_id !== '' ? String(form.town_id).trim() : '';
+        const cp = form.cp != null ? String(form.cp).trim() : '';
+        const address = form.address != null ? String(form.address).trim() : '';
+        return townId !== '' || cp !== '' || address !== '';
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
         if (processing) return;
+
+        if (!hasAtLeastOneLocation()) {
+            setErrors({ address: __('direccion_al_menos_uno') });
+            return;
+        }
 
         setProcessing(true);
         setErrors({});
@@ -125,6 +137,12 @@ export default function ManageUserAddresses({
     };
 
     const handleConfirm = () => {
+        if (!hasAtLeastOneLocation()) {
+            setErrors({ address: __('direccion_al_menos_uno') });
+            return;
+        }
+        setErrors((prev) => ({ ...prev, address: undefined }));
+
         // Validación HTML5
         if (formRef.current && typeof formRef.current.reportValidity === 'function') {
             const valid = formRef.current.reportValidity();
@@ -203,7 +221,7 @@ export default function ManageUserAddresses({
         <div className="card mb-3">
             <div className="card-header d-flex justify-content-between align-items-center">
                 <div className="d-flex align-items-center gap-2">
-                    <h6 className="mb-0">{__('Direcciones')}</h6>
+                    <h6 className="mb-0">{__('direcciones')}</h6>
                     <InfoPopover
                         content={__(
                             'Puedes añadir varias direcciones para el usuario y marcar una como principal.'
@@ -409,13 +427,12 @@ export default function ManageUserAddresses({
 
                         <div className="col-12">
                             <label className="form-label">
-                                {__('direccion')} <span className="text-danger">*</span>
+                                {__('direccion')} <span className="text-danger"></span>
                             </label>
                             <TextInput
                                 name="address"
                                 value={form.address}
                                 onChange={(e) => handleChange('address', e.target.value)}
-                                required
                                 maxLength={255}
                             />
                             <InputError message={errors.address} className="mt-1" />
@@ -423,7 +440,7 @@ export default function ManageUserAddresses({
 
                         <div className="col-md-6">
                             <label className="form-label">
-                                {__('Etiqueta')}
+                                {__('etiqueta')}
                                 <span className="text-muted small ms-1">
                                     ({__('ej: Casa, Oficina...')})
                                 </span>

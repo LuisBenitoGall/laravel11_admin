@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 // Models:
 use App\Models\UserAddress;
@@ -26,13 +27,15 @@ class UserAddressController extends Controller
         $validated = $request->validate([
             'user_id'        => ['required', 'integer'],
             'label'          => ['nullable', 'string', 'max:100'],
-            'address'        => ['required', 'string', 'max:255'],
+            'address'        => ['nullable', 'string', 'max:255'],
             'address_extra'  => ['nullable', 'string', 'max:255'],
             'cp'             => ['nullable', 'string', 'max:10'],
             'town_id'        => ['nullable', 'exists:towns,id'],
             'observations'   => ['nullable', 'string'],
             'is_main'        => ['nullable', 'boolean'],
         ]);
+
+        $this->validateAtLeastOneLocation($request);
 
         $validated['is_main'] = (bool) ($validated['is_main'] ?? false);
 
@@ -43,7 +46,7 @@ class UserAddressController extends Controller
 
         UserAddress::create($validated);
 
-        return back()->with('success', __('Dirección creada correctamente.'));
+        return back()->with('success', __('direccion_creada'));
     }
 
     /**
@@ -74,13 +77,15 @@ class UserAddressController extends Controller
         // Caso 2: edición completa desde el modal
         $validated = $request->validate([
             'label'          => ['nullable', 'string', 'max:100'],
-            'address'        => ['required', 'string', 'max:255'],
+            'address'        => ['nullable', 'string', 'max:255'],
             'address_extra'  => ['nullable', 'string', 'max:255'],
             'cp'             => ['nullable', 'string', 'max:10'],
             'town_id'        => ['nullable', 'exists:towns,id'],
             'observations'   => ['nullable', 'string'],
             'is_main'        => ['nullable', 'boolean'],
         ]);
+
+        $this->validateAtLeastOneLocation($request);
 
         $validated['is_main'] = (bool) ($validated['is_main'] ?? false);
 
@@ -145,5 +150,25 @@ class UserAddressController extends Controller
         }
 
         return back()->with('msg', __('direccion_principal_actualizada'));
+    }
+
+    /**
+     * Exige al menos uno de: población (town_id), código postal (cp) o dirección (address).
+     */
+    private function validateAtLeastOneLocation(Request $request): void
+    {
+        $townId = $request->input('town_id');
+        $cp     = trim((string) $request->input('cp', ''));
+        $address = trim((string) $request->input('address', ''));
+
+        $hasTown   = $townId !== null && $townId !== '';
+        $hasCp     = $cp !== '';
+        $hasAddress = $address !== '';
+
+        if (!$hasTown && !$hasCp && !$hasAddress) {
+            throw ValidationException::withMessages([
+                'address' => [__('direccion_al_menos_uno')],
+            ]);
+        }
     }
 }

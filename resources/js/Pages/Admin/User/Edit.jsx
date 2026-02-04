@@ -29,7 +29,7 @@ import UserPassword from './Partials/UserPassword.jsx';
 export default function Index({
     auth, session, title, subtitle,
     user, roles, user_roles, images,
-    salutations, contact_types, contact_subtypes, contact_subtype_id, 
+    salutations, contact_types, contact_subtypes, contact_subtype_id, cost_centers, user_cost_centers,
     crm_contact, addresses, countries, profile, company,
     company_context, pivot, user_companies        
 }) {
@@ -162,6 +162,8 @@ export default function Index({
                                         contact_types={contact_types}
                                         contact_subtypes={contact_subtypes}
                                         contact_subtype_id={contact_subtype_id}
+                                        cost_centers={cost_centers}
+                                        user_cost_centers={user_cost_centers}
                                         crm_contact={crm_contact}
                                         pivot={pivot}
                                         company_context={company_context}
@@ -177,10 +179,10 @@ export default function Index({
 
                             case 'user-addresses':
                                 return <ManageUserAddresses 
-                                        userId={user.id} 
-                                        addresses={addresses} 
-                                        countries={countries} 
-                                        />;
+                                    userId={user.id} 
+                                    addresses={addresses} 
+                                    countries={countries} 
+                                    />;
 
                             case 'user-categories':
                                 return <CategoryAssigner

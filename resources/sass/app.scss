@@ -691,6 +691,154 @@ iframe[title="LastPass"] {
 }
 
 // SIDEBAR MENU:
+.sidebar--scrollable {
+  	display: flex;
+  	flex-direction: column;
+  	height: 100vh;
+}
+
+.sidebar-scroll-area {
+  	flex: 1;
+  	overflow-x: hidden;
+  	overflow-y: auto;
+  	scroll-behavior: smooth;
+  	overscroll-behavior: contain;
+  	-webkit-overflow-scrolling: touch;
+}
+
+#scrollbar.sidebar-scroll-area {
+  	height: auto; // por si algún theme le pone height fijo absurdo
+}
+
+// --- Sidebar close/open (desktop colapsado + mobile off-canvas) ---
+$sidebar-width: 250px;
+$sidebar-width-collapsed: 70px;
+
+.navbar-menu {
+	transition: width 0.25s ease, transform 0.25s ease;
+}
+
+// Desktop/tablet: estado colapsado (solo clases propias; no usar data-sidebar-size="sm" del tema, genera overlay que tapa contenido)
+@media (min-width: 768px) {
+	.navbar-menu.sidebar--collapsed {
+		width: $sidebar-width-collapsed !important;
+		overflow: visible;
+
+		#scrollbar.sidebar-scroll-area,
+		#sidebar-menu,
+		#sidebar-menu .navbar-nav {
+			overflow-x: visible !important;
+		}
+
+		#sidebar-menu .navbar-nav .nav-item {
+			position: relative;
+			overflow: visible;
+		}
+
+		#sidebar-menu .navbar-nav .nav-link > span {
+			display: none;
+		}
+
+		// En minimizado no mostrar flecha a la derecha del icono (como en demo Velzon)
+		.nav-link[data-bs-toggle="collapse"]::after {
+			display: none !important;
+		}
+
+		// Flyout: mismo criterio que Velzon Galaxy (nav-item:hover > .menu-dropdown)
+		.menu-dropdown {
+			display: none !important; // por defecto oculto; Bootstrap .collapse también lo oculta
+			height: auto !important;
+			position: absolute;
+			left: $sidebar-width-collapsed;
+			top: 0;
+			width: 200px;
+			min-width: 180px;
+			background-color: $rd_grey_semi_dark;
+			box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+			border-radius: 0 4px 4px 0;
+			padding: 0.5rem 0;
+			z-index: 1050;
+			max-height: 80vh;
+			overflow-y: auto;
+		}
+
+		.nav-item:hover > .menu-dropdown {
+			display: block !important;
+			visibility: visible;
+			overflow: visible;
+		}
+
+		// Logo 80% del contenedor
+		.navbar-brand-box {
+			padding: 10%;
+			box-sizing: border-box;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.navbar-brand-box .logo {
+			width: 100%;
+			max-width: 100%;
+			.logo-lg { display: none; }
+			.logo-sm {
+				display: block !important;
+				width: 100%;
+				max-width: 100%;
+			}
+		}
+
+		.navbar-brand-box .logo .logo-sm img {
+			width: 100%;
+			height: auto;
+			object-fit: contain;
+			padding: 0 !important;
+		}
+	}
+
+	// Margen main-content y topbar los aplica el tema con [data-sidebar-size="sm"]; por si hidratación retrasa, mantener también por clase
+	#layout-wrapper:has(.navbar-menu.sidebar--collapsed) .main-content {
+		margin-left: $sidebar-width-collapsed;
+		transition: margin-left 0.25s ease;
+	}
+
+	#layout-wrapper:has(.navbar-menu.sidebar--collapsed) #page-topbar {
+		left: $sidebar-width-collapsed;
+		transition: left 0.25s ease;
+	}
+}
+
+// Mobile: off-canvas + overlay
+@media (max-width: 767.98px) {
+	.navbar-menu {
+		transform: translateX(-100%);
+		transition: transform 0.25s ease;
+
+		&.sidebar--mobile-open {
+			transform: translateX(0);
+		}
+	}
+
+	.sidebar-overlay {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.5);
+		z-index: 1000;
+		animation: sidebar-overlay-fade 0.2s ease;
+	}
+}
+
+@keyframes sidebar-overlay-fade {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+
+// Flecha (::after) del tema usa position: absolute; el sidebar es position: fixed, por eso la flecha no scrollaba
+.navbar-menu .navbar-nav .nav-link[data-bs-toggle="collapse"] {
+	position: relative;
+}
+
 #sidebar-menu{
 	#navbar-nav{
 		.nav-item{

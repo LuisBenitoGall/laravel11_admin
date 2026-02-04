@@ -84,6 +84,7 @@
     "cuentas_contables": "Cuentas contables",
     "dashboard": "Dashboard",
     "de": "de",
+    "direccion_al_menos_uno": "You must provide at least one: town, postal code or address.",
     "editar": "Editar",
     "eliminar": "Eliminar",
     "email": "Email",

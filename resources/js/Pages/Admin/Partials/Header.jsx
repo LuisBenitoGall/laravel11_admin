@@ -128,11 +128,13 @@ export default function Header({
                 {/* Left column */}
                 <div className="d-flex">
                     <div className="navbar-brand-box horizontal-logo" />
-                    {/* Open-Close Left Aside */}
+                    {/* Open-Close Left Aside: comunica con Sidebar vía CustomEvent */}
                     <button
                     type="button"
                     className="btn btn-sm px-3 fs-16 header-item vertical-menu-btn topnav-hamburger"
                     id="topnav-hamburger-icon"
+                    onClick={() => window.dispatchEvent(new CustomEvent('admin-sidebar-toggle'))}
+                    aria-label="Toggle sidebar"
                     >
                     <span className="hamburger-icon">
                         <span></span>
