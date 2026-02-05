@@ -30,7 +30,7 @@ export default function Index({
     auth, session, title, subtitle,
     user, roles, user_roles, images,
     salutations, contact_types, contact_subtypes, contact_subtype_id, cost_centers, user_cost_centers, business_types,
-    crm_contact, addresses, countries, profile, company,
+    crm_contact, crm_account, addresses, countries, profile, company,
     company_context, pivot, user_companies        
 }) {
     const __ = useTranslation();
@@ -78,6 +78,17 @@ export default function Index({
     } catch (e) {
         // Fallback sencillo en caso de problemas: volver a users.index
         actions.push({ text: __('usuarios_volver'), icon: 'la-angle-left', url: 'users.index', modal: false });
+    }
+
+    // Volver a la cuenta: solo si el contacto pertenece a una cuenta CRM
+    if (crm_account?.id && crm_account?.name) {
+        actions.push({
+            text: __('cuenta_volver')+` ${crm_account.name}`,
+            icon: 'la-angle-left',
+            url: 'crm-accounts.edit',
+            params: [crm_account.id, 'users'],
+            modal: false
+        });
     }
 
     // Nuevo usuario

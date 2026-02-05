@@ -1021,6 +1021,13 @@ class UserController extends Controller{
             ->where('user_id', $user->id)
             ->first();
 
+        // Cuenta CRM a la que pertenece el contacto (solo si tiene crm_account_id)
+        $crm_account = null;
+        if ($crm_contact?->crm_account_id) {
+            $crm_account = CrmAccount::select('id', 'name')
+                ->find($crm_contact->crm_account_id);
+        }
+
         // slug: si existe contacto CRM, estamos en contexto "contacts"
         $slug = $crm_contact ? 'contacts' : 'users';
 
@@ -1119,6 +1126,7 @@ class UserController extends Controller{
             'user_cost_centers'     => $user_cost_centers,
             'business_types'        => $business_types,
             'crm_contact'           => $crm_contact,
+            'crm_account'           => $crm_account,
             'addresses'             => $user->addresses,
             'countries'             => $countries,
             'profile'               => $profile,
