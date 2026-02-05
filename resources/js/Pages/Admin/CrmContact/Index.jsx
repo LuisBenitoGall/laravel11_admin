@@ -335,7 +335,7 @@ export default function Index({
                     <div className="controls d-flex align-items-center">
                         <ColumnFilter columns={columns} visibleColumns={visibleColumns} toggleColumn={toggleColumnVisibility} />
 
-                        {/* Filtros de datos */}
+                        {/* Filtros avanzados */}
                         <AdHocFiltersDropdown
                             filters={adhocFilters}
                             routeName={indexRouteName}

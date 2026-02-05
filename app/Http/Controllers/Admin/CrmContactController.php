@@ -23,12 +23,14 @@ use Carbon\Carbon;
 use File;
 
 //Concerns:
+use App\Concerns\HasBusinessTypes;
 use App\Concerns\HasContactTypes;
 use App\Concerns\HasSalutation;
 
 //Models:
 use App\Models\Category;
 use App\Models\Company;
+use App\Models\CostCenter;
 use App\Models\Country;
 use App\Models\CrmAccount;
 use App\Models\CrmContact;
@@ -149,7 +151,7 @@ class CrmContactController extends Controller{
                     Auth::id(),
                     ['tblContacts']
                 ),
-                'adhocFilters'          => $this->adHocFilterUiConfig(),
+                'adhocFilters'          => $this->adHocFilterUiConfig($currentCompanyId),
                 'activeFiltersLegend'   => $this->activeFiltersLegend($request),   
             ],
             "permissions"         => $this->permissions,
@@ -509,13 +511,40 @@ class CrmContactController extends Controller{
                     });
                 },
             ],
+
+            'business_type' => [
+                'rules' => ['nullable', 'integer'],
+                'apply' => function (Builder $q, $v) use ($company_id) {
+                    if (!$v) return;
+
+                    $q->whereExists(function ($sub) use ($v, $company_id) {
+                        $sub->select(DB::raw(1))
+                            ->from('crm_contacts as cc2')
+                            ->whereColumn('cc2.user_id', 'users.id')
+                            ->where('cc2.company_id', $company_id)
+                            ->where('cc2.business_type', $v);
+                    });
+                },
+            ],
+
+            'cost_center_id' => [
+                'rules' => ['nullable', 'integer'],
+                'apply' => function (Builder $q, $v) use ($company_id) {
+                    if (!$v) return;
+
+                    $q->whereHas('costCenters', function ($sub) use ($v, $company_id) {
+                        $sub->where('user_cost_centers.company_id', $company_id)
+                            ->where('user_cost_centers.cost_center_id', $v);
+                    });
+                },
+            ],
         ];
     }
 
     /**
      * 1.4. Configuración de filtros avanzados.
      */
-    private function adHocFilterUiConfig(): array
+    private function adHocFilterUiConfig(string|int $company_id): array
     {
         return [
             [
@@ -550,6 +579,21 @@ class CrmContactController extends Controller{
                 'type' => 'text',
             ],
             [
+                'key'   => 'business_type',
+                'label' => __('tipo_negocio'),
+                'type'  => 'select',
+                'multiple' => false,
+                'options'  => HasBusinessTypes::comboOptions(),
+            ],
+            [
+                'key'   => 'cost_center_id',
+                'label' => __('centro_coste'),
+                'type'  => 'select',
+                'multiple' => false,
+                'options'  => $this->costCenterOptionsForCompany($company_id),
+                'colClass' => 'col-12 col-md-6 col-xl-4',
+            ],
+            [
                 'key' => 'location',
                 'label' => __('ubicacion'),
                 'type' => 'location_selects',
@@ -560,6 +604,23 @@ class CrmContactController extends Controller{
                 'cpKey' => 'cp'
             ],
         ];
+    }
+
+    /**
+     * Centros de coste activos para la empresa (opciones de select).
+     */
+    private function costCenterOptionsForCompany(string|int $company_id): array
+    {
+        $list = CostCenter::query()
+            ->where('company_id', $company_id)
+            ->where('status', 1)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return $list->map(fn ($cc) => [
+            'value' => (int) $cc->id,
+            'label' => $cc->name,
+        ])->values()->all();
     }
 
     /**
@@ -663,6 +724,37 @@ class CrmContactController extends Controller{
 
         $addRange('created_between', __('alta'));
         $addRange('birthday_between', __('aniversario'));
+
+        // business_type
+        $businessTypeId = $adhoc['business_type'] ?? null;
+        $businessTypeId = is_numeric($businessTypeId) ? (int) $businessTypeId : null;
+        if ($businessTypeId) {
+            $label = HasBusinessTypes::typesOf((string) $businessTypeId) ?? (string) $businessTypeId;
+            $legend[] = [
+                'key'   => 'adhoc.business_type',
+                'scope' => 'adhoc',
+                'path'  => 'business_type',
+                'label' => __('tipo_negocio'),
+                'value' => $label,
+            ];
+        }
+
+        // cost_center_id
+        $costCenterId = $adhoc['cost_center_id'] ?? null;
+        $costCenterId = is_numeric($costCenterId) ? (int) $costCenterId : null;
+        if ($costCenterId) {
+            $name = Cache::remember("cost_center_name_{$costCenterId}", now()->addDays(7), function () use ($costCenterId) {
+                return CostCenter::whereKey($costCenterId)->value('name');
+            }) ?? (string) $costCenterId;
+
+            $legend[] = [
+                'key'   => 'adhoc.cost_center_id',
+                'scope' => 'adhoc',
+                'path'  => 'cost_center_id',
+                'label' => __('centro_coste'),
+                'value' => $name,
+            ];
+        }
 
         // Ubicación (cache por ID)
         $countryId  = $adhoc['country_id']  ?? null;

@@ -27,6 +27,9 @@ class UserFilterRequest extends FormRequest{
             'sort_direction' => 'nullable|string|in:asc,desc',
             'per_page'   => 'nullable|integer|min:1|max:100',
             'page'       => 'nullable|integer|min:1',
+            'adhoc'      => ['nullable', 'array'],
+            'adhoc.cost_center_id'  => ['nullable', 'integer'],
+            'adhoc.business_type'   => ['nullable', 'integer'],
         ];
     }
 

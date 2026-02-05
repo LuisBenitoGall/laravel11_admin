@@ -319,6 +319,19 @@ h5{
 	height: 38px;
 }
 
+select.form-control{
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%239F9F9F'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px; /* espacio para la flecha */
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
 textarea.form-control{
 	min-height: 100px;
 }

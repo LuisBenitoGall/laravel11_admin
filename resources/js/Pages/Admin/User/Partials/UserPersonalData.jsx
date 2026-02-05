@@ -31,6 +31,7 @@ export default function UserPersonalData({
     contact_subtype_id = null,
     cost_centers = [],
     user_cost_centers = [],
+    business_types = [],
     crm_contact,
     pivot,                   // ya no lo usamos aquí, pero lo dejo en la firma por si otros tabs lo necesitan
     company_context = null,
@@ -175,6 +176,8 @@ export default function UserPersonalData({
         // campos dinámicos para empresas
         ...dynamicCompanyFields,
         cost_centers: initialCostCenters,
+
+        business_type: crm_contact?.business_type ?? ''
     });
 
     const [submitting, setSubmitting] = useState(false);
@@ -292,7 +295,6 @@ export default function UserPersonalData({
                             {__('tratamiento')}
                         </label>
                         <SelectInput
-                            className="form-select"
                             name="salutation"
                             value={data.salutation}
                             onChange={(e) => setData('salutation', e.target.value)}
@@ -430,7 +432,6 @@ export default function UserPersonalData({
                                 {__('contacto_tipo')}
                             </label>
                             <SelectInput
-                                className="form-select"
                                 name="contact_type"
                                 value={data.contact_type}
                                 onChange={(e) =>
@@ -455,7 +456,6 @@ export default function UserPersonalData({
                                 {__('contacto_subtipo')}
                             </label>
                             <SelectInput
-                                className="form-select"
                                 name="contact_subtype"
                                 value={data.contact_subtype}
                                 onChange={(e) =>
@@ -480,7 +480,6 @@ export default function UserPersonalData({
                                 {__('centro_coste')}
                             </label>
                             <SelectInput
-                                className="form-select"
                                 name="cost_centers"
                                 multiple={false}
                                 value={data.cost_centers}
@@ -497,6 +496,27 @@ export default function UserPersonalData({
                                 ))}
                             </SelectInput>
                             <InputError message={errors.cost_centers} />
+                        </div>
+
+                        <div className="col-md-4">
+                            <div>
+                                <label htmlFor="business_type" className="form-label">
+                                    { __('negocio_tipo') }
+                                </label>
+                                <SelectInput
+                                    name="business_type"
+                                    value={data.business_type}
+                                    onChange={(e) => setData('business_type', e.target.value)}
+                                >
+                                    <option value="">{ __('opcion_selec') }</option>
+                                    {business_types.map((bt, idx) => (
+                                        <option key={bt?.id ?? bt?.value ?? bt?.slug ?? idx} value={bt?.id ?? bt?.value ?? bt?.slug ?? idx}>
+                                            {bt?.name ?? bt?.title ?? bt?.label ?? String(bt)}
+                                        </option>
+                                    ))}
+                                </SelectInput>
+                                <InputError message={errors.business_type} />
+                            </div>
                         </div>
                     </div>
                 )}
@@ -541,7 +561,7 @@ export default function UserPersonalData({
 
                 {/* EMPRESAS VINCULADAS: EDICIÓN POR FILA (MISMO FORM) */}
                 {companiesArray.length > 0 && (
-                    <div className="my-4">
+                    <div className="my-5">
                         <h6 className="mb-2">{__('empresas')}</h6>
                         <div className="table-responsive" style={{ minHeight: '0px' }}>
                             <table className="table table-sm table-striped mb-0">

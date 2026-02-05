@@ -18,6 +18,7 @@ class CrmContact extends Model
         'user_id',
         'crm_account_id',
         'contact_type',
+        'business_type',
         'position',
         'department',
         'cost_center',

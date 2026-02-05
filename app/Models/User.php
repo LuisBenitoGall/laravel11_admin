@@ -214,6 +214,15 @@ class User extends Authenticatable implements MustVerifyEmail{
     }
 
     /**
+     * Centros de coste vinculados (vía user_cost_centers).
+     */
+    public function costCenters()
+    {
+        return $this->belongsToMany(\App\Models\CostCenter::class, 'user_cost_centers')
+            ->withPivot('company_id');
+    }
+
+    /**
      * 12. Filtros avanzados.
      */
     public function scopeApplyAdhocFilters(Builder $query, Request $request, array $definitions): Builder

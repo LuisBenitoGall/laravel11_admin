@@ -23,6 +23,7 @@ use Inertia\Response;
 use Carbon\Carbon;
 
 //Concerns:
+use App\Concerns\HasBusinessTypes;
 use App\Concerns\HasContactTypes;
 use App\Concerns\HasSalutation;
 
@@ -1097,6 +1098,9 @@ class UserController extends Controller{
         ->pluck('cost_center_id')
         ->toArray();
 
+        //Tipos de negocio:
+        $business_types = HasBusinessTypes::comboOptions();
+
         return \Inertia\Inertia::render('Admin/User/Edit', [
             'title'                 => __($this->option),
             'subtitle'              => $crm_contact? __('contacto_editar'):__('usuario_editar'),
@@ -1113,6 +1117,7 @@ class UserController extends Controller{
             'contact_subtype_id'    => $contact_subtype_id,
             'cost_centers'          => $cost_centers,
             'user_cost_centers'     => $user_cost_centers,
+            'business_types'        => $business_types,
             'crm_contact'           => $crm_contact,
             'addresses'             => $user->addresses,
             'countries'             => $countries,
@@ -1187,13 +1192,14 @@ class UserController extends Controller{
 
         // 3) Relación CRM con la empresa en sesión (crm_contacts)
         //    contact_type es propiedad de (empresa_en_sesión, user)
-        if ($request->filled('contact_type')) {
+        if ($request->filled('contact_type') || $request->input('business_type')) {
             $crmContact = CrmContact::firstOrNew([
                 'company_id' => $currentCompanyId,
                 'user_id'    => $user->id,
             ]);
 
             $crmContact->contact_type = $request->input('contact_type');
+            $crmContact->business_type = $request->input('business_type');
 
             // si quieres guardar observaciones más adelante, aquí
             // $crmContact->observations = $request->input('observations', $crmContact->observations);
