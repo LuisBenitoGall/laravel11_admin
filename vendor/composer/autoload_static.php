@@ -485,8 +485,8 @@ class ComposerStaticInit7e8c3c14ff33b199b4a0838993eb8423
         ),
         'League\\Uri\\' => 
         array (
-            0 => __DIR__ . '/..' . '/league/uri-interfaces',
-            1 => __DIR__ . '/..' . '/league/uri',
+            0 => __DIR__ . '/..' . '/league/uri',
+            1 => __DIR__ . '/..' . '/league/uri-interfaces',
         ),
         'League\\OAuth1\\Client\\' => 
         array (
@@ -783,6 +783,7 @@ class ComposerStaticInit7e8c3c14ff33b199b4a0838993eb8423
         'App\\Console\\Commands\\ImportCrmCampaigns' => __DIR__ . '/../..' . '/app/Console/Commands/ImportCrmCampaigns.php',
         'App\\Console\\Commands\\ImportCrmCampaignsExpress' => __DIR__ . '/../..' . '/app/Console/Commands/ImportCrmCampaignsExpress.php',
         'App\\Console\\Commands\\ImportCrmContacts' => __DIR__ . '/../..' . '/app/Console/Commands/ImportCrmContacts.php',
+        'App\\Console\\Commands\\ImportCrmContactsExtra' => __DIR__ . '/../..' . '/app/Console/Commands/ImportCrmContactsExtra.php',
         'App\\Console\\Commands\\ImportCrmMarketingLists' => __DIR__ . '/../..' . '/app/Console/Commands/ImportCrmMarketingLists.php',
         'App\\Console\\Commands\\ImportCrmPotentialCustomers' => __DIR__ . '/../..' . '/app/Console/Commands/ImportCrmPotentialCustomers.php',
         'App\\Console\\Commands\\ImportCrmPreview' => __DIR__ . '/../..' . '/app/Console/Commands/ImportCrmPreview.php',
@@ -793,6 +794,7 @@ class ComposerStaticInit7e8c3c14ff33b199b4a0838993eb8423
         'App\\Console\\Commands\\PromoteCrmCampaigns' => __DIR__ . '/../..' . '/app/Console/Commands/PromoteCrmCampaigns.php',
         'App\\Console\\Commands\\PromoteCrmCampaignsExpress' => __DIR__ . '/../..' . '/app/Console/Commands/PromoteCrmCampaignsExpress.php',
         'App\\Console\\Commands\\PromoteCrmContacts' => __DIR__ . '/../..' . '/app/Console/Commands/PromoteCrmContacts.php',
+        'App\\Console\\Commands\\PromoteCrmContactsExtra' => __DIR__ . '/../..' . '/app/Console/Commands/PromoteCrmContactsExtra.php',
         'App\\Console\\Commands\\PromoteCrmMarketingListMembers' => __DIR__ . '/../..' . '/app/Console/Commands/PromoteCrmMarketingListMembers.php',
         'App\\Console\\Commands\\PromoteCrmMarketingLists' => __DIR__ . '/../..' . '/app/Console/Commands/PromoteCrmMarketingLists.php',
         'App\\Console\\Commands\\PromoteCrmPotentialCustomers' => __DIR__ . '/../..' . '/app/Console/Commands/PromoteCrmPotentialCustomers.php',
@@ -1094,6 +1096,7 @@ class ComposerStaticInit7e8c3c14ff33b199b4a0838993eb8423
         'App\\Models\\CrmAccount' => __DIR__ . '/../..' . '/app/Models/CrmAccount.php',
         'App\\Models\\CrmAccountTmp' => __DIR__ . '/../..' . '/app/Models/CrmAccountTmp.php',
         'App\\Models\\CrmContact' => __DIR__ . '/../..' . '/app/Models/CrmContact.php',
+        'App\\Models\\CrmContactExtraTmp' => __DIR__ . '/../..' . '/app/Models/CrmContactExtraTmp.php',
         'App\\Models\\CrmContactMessage' => __DIR__ . '/../..' . '/app/Models/CrmContactMessage.php',
         'App\\Models\\CrmContactTmp' => __DIR__ . '/../..' . '/app/Models/CrmContactTmp.php',
         'App\\Models\\CrmMarketingCampaignsExpressTmp' => __DIR__ . '/../..' . '/app/Models/CrmMarketingCampaignsExpressTmp.php',
@@ -1149,6 +1152,7 @@ class ComposerStaticInit7e8c3c14ff33b199b4a0838993eb8423
         'App\\Providers\\AuthServiceProvider' => __DIR__ . '/../..' . '/app/Providers/AuthServiceProvider.php',
         'App\\Providers\\EventServiceProvider' => __DIR__ . '/../..' . '/app/Providers/EventServiceProvider.php',
         'App\\Services\\Brevo\\BrevoMarketingService' => __DIR__ . '/../..' . '/app/Services/Brevo/BrevoMarketingService.php',
+        'App\\Services\\CrmContactImportSampleGenerator' => __DIR__ . '/../..' . '/app/Services/CrmContactImportSampleGenerator.php',
         'App\\Services\\RecaptchaService' => __DIR__ . '/../..' . '/app/Services/RecaptchaService.php',
         'App\\Services\\SlugService' => __DIR__ . '/../..' . '/app/Services/SlugService.php',
         'App\\Support\\AccountingUsages' => __DIR__ . '/../..' . '/app/Support/AccountingUsages.php',
@@ -1156,6 +1160,7 @@ class ComposerStaticInit7e8c3c14ff33b199b4a0838993eb8423
         'App\\Support\\Filters\\AdHocFilterApplier' => __DIR__ . '/../..' . '/app/Support/Filters/AdHocFilterApplier.php',
         'App\\Support\\Iban' => __DIR__ . '/../..' . '/app/Support/Iban.php',
         'App\\Support\\ImportContactRowNormalizer' => __DIR__ . '/../..' . '/app/Support/ImportContactRowNormalizer.php',
+        'App\\Support\\ImportStringNormalizer' => __DIR__ . '/../..' . '/app/Support/ImportStringNormalizer.php',
         'App\\Support\\ToBool' => __DIR__ . '/../..' . '/app/Support/ToBool.php',
         'App\\Traits\\AccountingAccountTypeTrait' => __DIR__ . '/../..' . '/app/Traits/AccountingAccountTypeTrait.php',
         'App\\Traits\\ConvertDateTrait' => __DIR__ . '/../..' . '/app/Traits/ConvertDateTrait.php',
