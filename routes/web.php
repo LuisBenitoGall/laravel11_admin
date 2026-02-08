@@ -513,6 +513,10 @@ Route::middleware(['web', 'auth', 'company', 'current_company'])->prefix('admin'
         Route::get('/crm-contacts/filtered-data', [CrmContactController::class, 'filteredData'])->name('crm-contacts.filtered-data')->middleware('permission:crm-contacts.index');
         // Nuevos contactos para widgets/consumos AJAX
         Route::get('/crm-contacts/new-contacts', [CrmContactController::class, 'newContacts'])->name('crm-contacts.new');
+        Route::get('/crm-contacts/import', [CrmContactController::class, 'import'])->name('crm-contacts.import')->middleware('permission:crm-contacts.create');
+        Route::post('/crm-contacts/import', [CrmContactController::class, 'importStore'])->name('crm-contacts.import.store')->middleware('permission:crm-contacts.create');
+        Route::get('/crm-contacts/import/template', [CrmContactController::class, 'importTemplate'])->name('crm-contacts.import.template')->middleware('permission:crm-contacts.create');
+        Route::get('/crm-contacts/import/sample', [CrmContactController::class, 'importSample'])->name('crm-contacts.import.sample')->middleware('permission:crm-contacts.create');
         Route::delete('/crm-contacts/{contact}', [CrmContactController::class, 'destroy'])->name('crm-contacts.destroy')->middleware('permission:crm-contacts.destroy');
     });
 

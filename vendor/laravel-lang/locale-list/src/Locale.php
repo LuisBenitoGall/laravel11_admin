@@ -31,6 +31,7 @@ enum Locale: string
     case Bhojpuri           = 'bho';
     case Bosnian            = 'bs';
     case Bulgarian          = 'bg';
+    case Canada             = 'en_CA';
     case Catalan            = 'ca';
     case Cebuano            = 'ceb';
     case CentralKhmer       = 'km';
@@ -52,9 +53,11 @@ enum Locale: string
     case Galician           = 'gl';
     case Georgian           = 'ka';
     case German             = 'de';
+    case GermanAustria      = 'de_AT';
     case GermanSwitzerland  = 'de_CH';
     case Greek              = 'el';
     case Gujarati           = 'gu';
+    case HaitianCreole      = 'ht';
     case Hausa              = 'ha';
     case Hawaiian           = 'haw';
     case Hebrew             = 'he';

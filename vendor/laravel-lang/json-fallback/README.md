@@ -10,15 +10,19 @@
 
 ## Documentation
 
-See the [documentation](https://laravel-lang.com) for detailed installation.
+See the [documentation](https://laravel-lang.com/packages-json-fallback.html) for detailed installation.
 
 ## Contributing
 
 Please see [CONTRIBUTING](https://laravel-lang.com/contributions.html) for details.
 
+## Support Us
+
+❤️ Laravel Lang? Please consider supporting our collective on [Boosty](https://boosty.to/laravel-lang).
+
 ## License
 
-This package is licensed under the [MIT License][link_license].
+This package is licensed under the [MIT License](https://laravel-lang.com/license.html).
 
 
 [badge_build]:          https://img.shields.io/github/actions/workflow/status/laravel-lang/json-fallback/tests.yml?style=flat-square

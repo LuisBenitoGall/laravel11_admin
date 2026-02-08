@@ -15,6 +15,8 @@ use LaravelLang\Config\Data\Shared\ModelsData;
 use LaravelLang\Config\Data\Shared\ModelsFilterData;
 use LaravelLang\Config\Data\Shared\RouteNameData;
 use LaravelLang\Config\Data\Shared\RoutesData;
+use LaravelLang\Config\Data\Shared\RoutesGroup;
+use LaravelLang\Config\Data\Shared\RoutesGroupMiddleware;
 use LaravelLang\Config\Data\Shared\SmartPunctuationData;
 use LaravelLang\Config\Data\Shared\Translators\TranslatorChannelsData;
 use LaravelLang\Config\Data\Shared\Translators\TranslatorData;
@@ -67,7 +69,6 @@ class Config
         return new SmartPunctuationData(
             enabled: $this->value(Name::Shared, 'smart_punctuation.enable', fallback: false),
             common : $this->value(Name::Shared, 'smart_punctuation.common', fallback: []),
-
             locales: $this->value(
                 Name::Shared,
                 'smart_punctuation.locales',
@@ -89,6 +90,10 @@ class Config
             ),
             namePrefix: $this->value(Name::Shared, 'routes.name_prefix', fallback: 'localized.'),
             redirect  : $this->value(Name::Shared, 'routes.redirect_default', fallback: false),
+            hide      : $this->value(Name::Shared, 'routes.hide_default', fallback: false),
+            group     : new RoutesGroup(
+                middleware: $this->routesGroupMiddleware()
+            ),
         );
     }
 
@@ -105,6 +110,14 @@ class Config
     {
         return new ModelsFilterData(
             enabled: (bool) $this->value(Name::Shared, 'models.filter.enabled'),
+        );
+    }
+
+    protected function routesGroupMiddleware(): RoutesGroupMiddleware
+    {
+        return new RoutesGroupMiddleware(
+            default: $this->value(Name::Shared, 'routes.group.middlewares.default'),
+            prefix : $this->value(Name::Shared, 'routes.group.middlewares.prefix'),
         );
     }
 

@@ -38,11 +38,11 @@ export default function Edit({ auth, session, title, subtitle, costCenter, compa
         formData.append('code', data.code);
         formData.append('status', data.status);
         router.post(route('cost-centers.update', costCenter.id), formData, {
-            forceFormData: true, 
+            forceFormData: true,
             preserveScroll: true,
-            nSuccess: () => console.log('Centro actualizado'),
+            onSuccess: () => {},
             onError: (errors) => console.error('Errores:', errors),
-            onFinish: () => console.log('Petición finalizada')
+            onFinish: () => {}
         });
     }
 

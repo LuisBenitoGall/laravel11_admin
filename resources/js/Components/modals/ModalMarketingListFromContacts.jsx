@@ -8,7 +8,7 @@ import InputError from '@/Components/InputError';
 // Hooks
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function ModalMarketingListFromContacts({ show, onClose, filters = {} }) {
+export default function ModalMarketingListFromContacts({ show, onClose, filters = {}, getFiltersForRedirect }) {
     const __ = useTranslation();
 
     const [form, setForm] = useState({
@@ -48,12 +48,15 @@ export default function ModalMarketingListFromContacts({ show, onClose, filters 
 
         setProcessing(true);
 
+        const filtersToSend = typeof getFiltersForRedirect === 'function'
+            ? getFiltersForRedirect()
+            : (filters || {});
         router.post(
             route('marketing-lists.store-from-contacts'),
             {
                 name: form.name,
                 observations: form.observations || null,
-                redirect_filters: filters || {},   // 👈 aquí viajan los filtros
+                redirect_filters: filtersToSend,
             },
             {
                 preserveScroll: true,

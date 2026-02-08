@@ -3,6 +3,7 @@
 use App\Models\Company;
 use App\Models\CrmAccount;
 use App\Models\CrmAccountTmp;
+use App\Models\CrmContactExtraTmp;
 use App\Models\CrmContactTmp;
 use App\Models\CrmMarketingCampaignsTmp;
 use App\Models\CrmMarketingCampaignsExpressTmp;
@@ -43,6 +44,27 @@ return [
             'currency'             => 'currency',
             'created_date'         => 'created_date',
             'owner'                => 'owner'
+        ],
+    ],
+
+    'contacts_extra' => [
+        'file'   => storage_path('app/import/contacts_all.csv'),
+        'model'  => CrmContactExtraTmp::class,
+        'mapping' => [
+            'email'         => 'email',
+            'name'          => 'name',
+            'surname'       => 'surname',
+            'cost_center'   => 'cost_center',
+            'department'   => 'department',
+            'email2'        => 'email2',
+            'email3'        => 'email3',
+            'nif'           => 'nif',
+            'position'      => 'position',
+            'phone1'        => 'phone1',
+            'phone2'        => 'phone2',
+            'phone3'        => 'phone3',
+            'contact_type'  => 'contact_type',
+            'business_type' => 'business_type',
         ],
     ],
 

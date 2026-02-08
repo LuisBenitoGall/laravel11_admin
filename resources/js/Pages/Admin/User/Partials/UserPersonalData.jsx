@@ -632,15 +632,15 @@ export default function UserPersonalData({
                 </div>
             </form>
 
+            {/* Emails extra */}
+            <ManageExtraEmails userId={user.id} addNewEmail={true} />
+
             {/* Teléfonos fuera del form, como ya tenías */}
             <ManagePhones
                 phoneableType="User"
                 phoneableId={user.id}
                 defaultWaMessage={__('whatsapp_mensaje')}
             />
-
-            {/* Emails extra */}
-            <ManageExtraEmails userId={user.id} addNewEmail={true} />
         </div>
     );
 }

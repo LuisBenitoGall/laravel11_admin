@@ -204,9 +204,14 @@ class UserController extends Controller{
                     ->orWhere('surname', 'like', "%$v%");
             }),
             'email' => fn($q, $v) => $q->where('email', 'like', "%$v%"),
-            'phones' => fn($q, $v) => $q->whereHas('phones', fn($sub) =>
-                $sub->where('phone_number', 'like', "%$v%")
-            ),
+            'phones' => function ($q, $v) {
+                $v = trim((string) $v);
+                if ($v === '') {
+                    return;
+                }
+                $like = '%' . str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $v) . '%';
+                $q->whereHas('phones', fn ($sub) => $sub->where('e164', 'like', $like));
+            },
             'categories' => fn($q, $v) => $q->whereHas('categories', function ($sub) use ($company_id, $v) {
                 if ($company_id !== 'all') {
                     $sub->where('categories.company_id', $company_id);
@@ -714,11 +719,11 @@ class UserController extends Controller{
         }elseif($request->side == 'providers'){
             return redirect()->route('providers.edit', [$companyId, 'users'])->with('msg', __('usuario_creado_msg'));
         }elseif($request->side == 'crm-accounts'){
-            if($request->crm_account_id){
-                return redirect()->route('crm-accounts.edit', [$request->crm_account_id, 'users'])->with('msg', __('usuario_creado_msg'));     
-            }else{
+            // if($request->crm_account_id){
+            //     return redirect()->route('crm-accounts.edit', [$request->crm_account_id, 'users'])->with('msg', __('usuario_creado_msg'));     
+            // }else{
                 return redirect()->route('users.contacts')->with('msg', __('usuario_creado_msg')); 
-            }
+            //}
 
         }else{
             return redirect()->route('users.edit', $user)->with('msg', __('usuario_creado_msg'));
@@ -1551,7 +1556,12 @@ class UserController extends Controller{
             },
             'email' => fn ($q, $v) => $q->where('users.email', 'like', "%$v%"),
             'phones' => function ($q, $v) {
-                $q->whereHas('phones', fn ($sub) => $sub->where('phone_number', 'like', "%$v%"));
+                $v = trim((string) $v);
+                if ($v === '') {
+                    return;
+                }
+                $like = '%' . str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $v) . '%';
+                $q->whereHas('phones', fn ($sub) => $sub->where('e164', 'like', $like));
             },
             'categories' => function ($q, $v) use ($company_id) {
                 $q->whereHas('categories', function ($sub) use ($company_id, $v) {
@@ -1665,7 +1675,12 @@ class UserController extends Controller{
             },
             'email' => fn ($q, $v) => $q->where('users.email', 'like', "%$v%"),
             'phones' => function ($q, $v) {
-                $q->whereHas('phones', fn ($sub) => $sub->where('phone_number', 'like', "%$v%"));
+                $v = trim((string) $v);
+                if ($v === '') {
+                    return;
+                }
+                $like = '%' . str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $v) . '%';
+                $q->whereHas('phones', fn ($sub) => $sub->where('e164', 'like', $like));
             },
             'categories' => function ($q, $v) use ($company_id) {
                 $q->whereHas('categories', function ($sub) use ($company_id, $v) {

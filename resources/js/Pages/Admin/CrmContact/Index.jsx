@@ -1,6 +1,6 @@
 import AdminAuthenticatedLayout from '@/Layouts/Admin/AdminAuthenticatedLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { OverlayTrigger, Table, Tooltip } from 'react-bootstrap';
 import 'react-datepicker/dist/react-datepicker.css';
 
@@ -213,7 +213,7 @@ export default function Index({
         { key: 'full_name',       label: __('nombre'),      sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_filtrar') },
         // { key: 'created_at', label: __('fecha_alta'),  sort: true,  filter: 'date', class_th: 'text-center', class_td: 'text-end', placeholder: __('fecha_alta'), dateKeys: ['date_from', 'date_to'] },
         { key: 'email',      label: __('email'),       sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('email_filtrar') },
-        { key: 'phones',     label: __('telefonos'),   sort: false, filter: '', class_th: '', class_td: '', placeholder: __('telefonos_filtrar') },
+        { key: 'phones',     label: __('telefonos'),   sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('telefonos_filtrar') },
         { key: 'position',   label: __('cargo'),       sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('cargo_filtrar') },
         contactTypeColumn,
         contactSubTypeColumn,
@@ -242,8 +242,20 @@ export default function Index({
         destroyRoute: 'users.destroy',
         filteredDataRoute: slug + '.filtered-data',
         labelName: 'contactos',
-        queryParams
+        queryParams,
+        preserveParams: isBuildingList && builderList
+            ? { marketing_list_id: builderList.id, build_marketing_list: 1 }
+            : {},
     });
+
+    // Params para navegación: en modo builder incluir siempre marketing_list_id y build_marketing_list
+    const queryParamsForNav = isBuildingList && builderList
+        ? { ...tableQueryParams, marketing_list_id: builderList.id, build_marketing_list: 1 }
+        : tableQueryParams;
+
+    // Ref para que el modal de "Nueva Lista" envíe siempre los filtros actuales en el submit (flujo filtros → lista)
+    const tableQueryParamsRef = useRef(tableQueryParams);
+    tableQueryParamsRef.current = tableQueryParams;
 
     const actions = [];
     if (permissions?.['crm-contacts.create']) {
@@ -253,6 +265,12 @@ export default function Index({
             url: '',
             modal: true,
             onClick: handleOpenModalUserCreate
+        });
+        actions.push({
+            text: __('contactos_importar'),
+            icon: 'la-file-import',
+            url: 'crm-contacts.import',
+            modal: false,
         });
     }
 
@@ -340,7 +358,7 @@ export default function Index({
                             filters={adhocFilters}
                             routeName={indexRouteName}
                             routeParams={indexRouteParams}
-                            queryParams={tableQueryParams} 
+                            queryParams={queryParamsForNav}
                         />
 
                         <RecordsPerPage perPage={perPage} setPerPage={setPerPage} />
@@ -354,7 +372,7 @@ export default function Index({
                         items={legendItems}
                         routeName={indexRouteName}
                         routeParams={indexRouteParams}
-                        queryParams={tableQueryParams}
+                        queryParams={queryParamsForNav}
                     />
 
                     {hasActiveFilters && loading ? (
@@ -392,7 +410,7 @@ export default function Index({
 
                         <FilterRow
                             columns={columns}
-                            queryParams={tableQueryParams}
+                            queryParams={queryParamsForNav}
                             visibleColumns={visibleColumns}
                             SearchFieldChanged={SearchFieldChanged}
                             PrependColumns={1}
@@ -503,13 +521,17 @@ export default function Index({
                     currentPage={rows?.meta?.current_page}
                     perPage={rows?.meta?.per_page}
                     onPageChange={(page) => {
-                        router.get(route(indexRouteName, indexRouteParams), {
+                        const baseParams = {
                             ...queryParams,
                             page,
                             per_page: perPage,
                             sort_field: sortParams.sort_field,
                             sort_direction: sortParams.sort_direction,
-                        }, { preserveState: true });
+                        };
+                        const params = isBuildingList && builderList
+                            ? { ...baseParams, marketing_list_id: builderList.id, build_marketing_list: 1 }
+                            : baseParams;
+                        router.get(route(indexRouteName, indexRouteParams), params, { preserveState: true });
                     }}
                 />
 
@@ -529,6 +551,7 @@ export default function Index({
                     show={showModalListFromContacts}
                     onClose={handleCloseModalListFromContacts}
                     filters={tableQueryParams}
+                    getFiltersForRedirect={() => ({ ...tableQueryParamsRef.current })}
                 />
             </div>
         </AdminAuthenticatedLayout>

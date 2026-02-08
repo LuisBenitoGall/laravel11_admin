@@ -16,8 +16,11 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use App\Services\CrmContactImportSampleGenerator;
 use App\Support\CompanyContext;
+use App\Support\ImportContactRowNormalizer;
 use Inertia\Inertia;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Inertia\Response;
 use Carbon\Carbon;
 use File;
@@ -62,6 +65,9 @@ class CrmContactController extends Controller{
      * 1.5. Leyenda de filtros aplicados.
      * 2. Nuevos contactos.
      * 3. Eliminar un contacto CRM.
+     * 4. Formulario importación de contactos.
+     * 5. Template .xls para importación de contactos.
+     * 6. Importar contactos.
      */
     
     use HasUserPermissionsTrait;
@@ -349,6 +355,18 @@ class CrmContactController extends Controller{
                         })
                         ->where('categories.module', 'users')
                         ->where('categories.name', 'like', "%{$v}%");
+                });
+            },
+
+            // Filtro por teléfono (columna "Teléfonos" en la tabla)
+            'phones' => function ($q, $v) {
+                $v = trim((string) $v);
+                if ($v === '') {
+                    return;
+                }
+                $like = '%' . str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $v) . '%';
+                $q->whereHas('phones', function ($sub) use ($like) {
+                    $sub->where('e164', 'like', $like);
                 });
             },
         ];
@@ -847,6 +865,14 @@ class CrmContactController extends Controller{
     }
 
     /**
+     * Descarga archivo de prueba para importación (600 registros, misma estructura que la plantilla).
+     */
+    public function importSample(Request $request, CrmContactImportSampleGenerator $generator)
+    {
+        return $generator->downloadResponse(600, 'contactos-import-muestra-600.xlsx');
+    }
+
+    /**
      * 3. Eliminar un contacto CRM.
      */
     public function destroy($contact)
@@ -862,5 +888,202 @@ class CrmContactController extends Controller{
         } catch (\Exception $e) {
             return response()->json(['message' => 'Error deleting'], 500);
         }
+    }
+
+    /**
+     * 4. Formulario importación de contactos.
+     */
+    public function import(Request $request)
+    {
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if ($currentCompanyId <= 0) {
+            return redirect()->route('companies.refresh-session')
+                ->with('alert', __('empresa_no_activa'));
+        }
+
+        $leads = $request->segment(2) === 'crm-leads';
+        // importante para el front (rutas)
+        $slug = $leads ? 'crm-leads' : 'crm-contacts';
+
+        return Inertia::render('Admin/CrmContact/Import', [
+            'title'         => __($this->option),
+            'subtitle'      => __('contactos_importar'),
+            'module'        => $this->module,
+            'slug'          => $slug,
+            'permissions'   => $this->permissions,
+            'templateUrl'   => route('crm-contacts.import.template'),
+            'import_result' => session('import_result'),
+        ]);
+    }
+
+    /**
+     * 5. Template .xls para importación de contactos.
+     */
+    public function importTemplate(Request $request)
+    {
+        $path = 'templates/contactos-import.xls';
+        if (!Storage::disk('local')->exists($path)) {
+            abort(404, __('plantilla_no_encontrada'));
+        }
+        return Storage::disk('local')->download($path, 'contactos-import.xls', [
+            'Content-Type' => 'application/vnd.ms-excel',
+        ]);
+    }
+
+    /**
+     * 6. Importar contactos.
+     */
+    public function importStore(Request $request)
+    {
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if ($currentCompanyId <= 0) {
+            if ($request->header('X-Inertia')) {
+                return Inertia::location(route('companies.refresh-session'));
+            }
+            return redirect()->route('companies.refresh-session')->with('alert', __('empresa_no_activa'));
+        }
+
+        $validated = $request->validate([
+            'file' => ['required', 'file', 'mimes:xls,xlsx', 'max:2048'],
+        ], [
+            'file.required' => __('import_archivo_requerido'),
+            'file.mimes'    => __('import_formato_invalido'),
+            'file.max'     => __('import_tamano_maximo'),
+        ]);
+
+        $file = $request->file('file');
+        $totalProcessed = 0;
+        $totalFailed = 0;
+        $failedRows = [];
+
+        try {
+            $spreadsheet = IOFactory::load($file->getRealPath());
+            $sheet = $spreadsheet->getActiveSheet();
+            $rows = $sheet->toArray();
+        } catch (\Throwable $e) {
+            return redirect()->back()->withErrors(['file' => __('import_error_lectura') . ' ' . $e->getMessage()]);
+        }
+
+        if (count($rows) < 2) {
+            return redirect()->back()->withErrors(['file' => __('import_archivo_vacio')]);
+        }
+
+        $headerRow = array_map(function ($c) {
+            return trim(is_string($c) ? $c : '');
+        }, $rows[0]);
+        $dataRows = array_slice($rows, 1);
+        if (count($dataRows) > 1000) {
+            return redirect()->back()->withErrors(['file' => __('import_max_filas')]);
+        }
+
+        $colIndex = array_flip($headerRow);
+        $expectedCols = ['name', 'surname', 'user_email', 'user_nif', 'position', 'department', 'observations', 'company', 'company_nif', 'company_city', 'company_postal_code', 'company_street', 'company_phone', 'company_email'];
+        foreach ($expectedCols as $col) {
+            if (!isset($colIndex[$col])) {
+                $colIndex[$col] = null;
+            }
+        }
+
+        $userId = Auth::id();
+
+        foreach ($dataRows as $rowIndex => $row) {
+            $excelRowNum = $rowIndex + 2;
+            $assoc = [];
+            foreach ($colIndex as $colName => $idx) {
+                if ($idx === null) {
+                    $assoc[$colName] = '';
+                } else {
+                    $assoc[$colName] = isset($row[$idx]) ? $row[$idx] : '';
+                }
+            }
+            $row = ImportContactRowNormalizer::normalizeRow($assoc);
+
+            $name = $row['name'] ?? '';
+            if ($name === '') {
+                $failedRows[] = ['row' => $excelRowNum, 'reason' => __('import_sin_nombre'), 'data' => $assoc];
+                $totalFailed++;
+                continue;
+            }
+
+            try {
+                DB::beginTransaction();
+
+                $user = null;
+                $email = $row['user_email'] ?? '';
+                $nif = $row['user_nif'] ?? '';
+                if ($email !== '') {
+                    $user = User::where('email', $email)->first();
+                }
+                if ($user === null && $nif !== '') {
+                    $user = User::where('nif', $nif)->first();
+                }
+                if ($user === null) {
+                    $user = new User();
+                    $user->name = $name;
+                    $user->surname = $row['surname'] ?? '';
+                    $user->email = $email ?: null;
+                    $user->nif = $nif ?: null;
+                    $user->isAdmin = false;
+                    $user->status = true;
+                    $user->save();
+                }
+
+                $crmAccount = null;
+                $companyName = $row['company'] ?? '';
+                $taxId = $row['company_nif'] ?? '';
+                if ($companyName !== '' || $taxId !== '') {
+                    if ($taxId !== '') {
+                        $crmAccount = CrmAccount::where('company_id', $currentCompanyId)->where('tax_id', $taxId)->first();
+                    }
+                    if ($crmAccount === null && $companyName !== '') {
+                        $crmAccount = new CrmAccount();
+                        $crmAccount->company_id = $currentCompanyId;
+                        $crmAccount->name = $companyName;
+                        $crmAccount->normalized_name = Str::slug($companyName) ?: 'cuenta-' . $user->id;
+                        $crmAccount->tax_id = $taxId ?: null;
+                        $crmAccount->billing_city = $row['company_city'] ?? null;
+                        $crmAccount->billing_postal_code = $row['company_postal_code'] ?? null;
+                        $crmAccount->billing_street = $row['company_street'] ?? null;
+                        $crmAccount->main_phone = $row['company_phone'] ?? null;
+                        $crmAccount->main_email = $row['company_email'] ?? null;
+                        $crmAccount->owner_id = $userId;
+                        $crmAccount->created_by = $userId;
+                        $crmAccount->updated_by = $userId;
+                        $crmAccount->status = 1;
+                        $crmAccount->save();
+                    }
+                }
+
+                $contact = CrmContact::where('company_id', $currentCompanyId)->where('user_id', $user->id)->first();
+                if ($contact === null) {
+                    $contact = new CrmContact();
+                    $contact->company_id = $currentCompanyId;
+                    $contact->user_id = $user->id;
+                    $contact->crm_account_id = $crmAccount?->id;
+                    $contact->position = $row['position'] ?? null;
+                    $contact->department = $row['department'] ?? null;
+                    $contact->observations = $row['observations'] ?? null;
+                    $contact->save();
+                }
+
+                DB::commit();
+                $totalProcessed++;
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                $failedRows[] = ['row' => $excelRowNum, 'reason' => $e->getMessage(), 'data' => $assoc];
+                $totalFailed++;
+            }
+        }
+
+        return redirect()->route('crm-contacts.import')->with([
+            'import_result' => [
+                'success'         => $totalFailed === 0,
+                'total_processed' => $totalProcessed,
+                'total_failed'    => $totalFailed,
+                'failed_rows'     => $failedRows,
+            ],
+        ]);
     }
 }

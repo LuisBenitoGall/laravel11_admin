@@ -44,6 +44,8 @@ class CrmAccount extends Model{
         'billing_street','billing_city','billing_state','billing_postal_code','billing_country_code',
         'shipping_street','shipping_city','shipping_state','shipping_postal_code','shipping_country_code',
         'external_id',
+        'main_phone',
+        'main_email',
         'status',
     ];
 

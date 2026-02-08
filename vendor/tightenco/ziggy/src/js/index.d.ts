@@ -1,5 +1,3 @@
-import { ParsedQs } from 'qs';
-
 /**
  * A list of routes and their parameters and bindings.
  *
@@ -20,12 +18,20 @@ type KnownRouteName = keyof RouteList;
 /**
  * A route name, or any string.
  */
-type RouteName = TypeConfig extends { strictRouteNames: true }
-    ? KnownRouteName
-    : KnownRouteName | (string & {});
+type RouteName = KnownRouteName | (string & {});
 // `(string & {})` prevents TypeScript from reducing this type to just `string`,
 // which would prevent intellisense from autocompleting known route names.
 // See https://stackoverflow.com/a/61048124/6484459.
+
+/**
+ * A generated route URL string.
+ */
+export type RouteUrl = string;
+
+/**
+ * A valid route name to pass to `route()` to generate a URL.
+ */
+type ValidRouteName = TypeConfig extends { strictRouteNames: true } ? KnownRouteName : RouteName;
 
 /**
  * Information about a single route parameter.
@@ -51,12 +57,15 @@ type ParameterValue = RawParameterValue | DefaultRoutable;
 /**
  * A parseable route parameter, either plain or nested inside an object under its binding key.
  */
-type Routable<I extends ParameterInfo> = I extends { binding: string }
-    ? ({ [K in I['binding']]: RawParameterValue } & Record<keyof any, unknown>) | RawParameterValue
+type Routable<I extends ParameterInfo> = I extends { binding: infer B extends string }
+    ?
+          | { [K in B]: RawParameterValue }
+          | ({ [K in B]: RawParameterValue } & Record<keyof any, unknown>)
+          | RawParameterValue
     : ParameterValue;
 
 // Uncomment to test:
-// type A = Routable<{ name: 'foo', required: true, binding: 'bar' }>;
+// type A = Routable<{ name: 'foo'; required: true; binding: 'bar' }>;
 // = RawParameterValue | { bar: RawParameterValue }
 // type B = Routable<{ name: 'foo', required: true, }>;
 // = RawParameterValue | DefaultRoutable
@@ -160,16 +169,21 @@ interface Config {
     };
 }
 
+// qs's parsed query params type, so we don't have to have qs as a dependency
+interface ParsedQs {
+    [key: string]: undefined | string | string[] | ParsedQs | ParsedQs[];
+}
+
 /**
  * Ziggy's Router class.
  */
 interface Router {
-    current(): RouteName | undefined;
+    current(): ValidRouteName | undefined;
     current<T extends RouteName>(name: T, params?: ParameterValue | RouteParams<T>): boolean;
     get params(): Record<string, string>;
     get routeParams(): Record<string, string>;
     get queryParams(): ParsedQs;
-    has<T extends RouteName>(name: T): boolean;
+    has<T extends ValidRouteName>(name: T): boolean;
 }
 
 /**
@@ -187,19 +201,19 @@ export function route(
 ): Router;
 
 // Called with a route name and optional additional arguments - returns a URL string
-export function route<T extends RouteName>(
+export function route<T extends ValidRouteName>(
     name: T,
     params?: RouteParams<T> | undefined,
     absolute?: boolean,
     config?: Config,
-): string;
+): RouteUrl;
 
-export function route<T extends RouteName>(
+export function route<T extends ValidRouteName>(
     name: T,
     params?: ParameterValue | undefined,
     absolute?: boolean,
     config?: Config,
-): string;
+): RouteUrl;
 
 /**
  * Ziggy's Vue plugin.

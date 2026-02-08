@@ -17,7 +17,8 @@ use League\CommonMark\Delimiter\DelimiterInterface;
 use League\CommonMark\Delimiter\Processor\CacheableDelimiterProcessorInterface;
 use League\CommonMark\Node\Inline\AbstractStringContainer;
 
-final class StrikethroughDelimiterProcessor implements CacheableDelimiterProcessorInterface {
+final class StrikethroughDelimiterProcessor implements CacheableDelimiterProcessorInterface
+{
     public function getOpeningCharacter(): string
     {
         return '~';

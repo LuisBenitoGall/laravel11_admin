@@ -18,6 +18,7 @@ export function useTableManagement({
   defaultSortField = 'name',
   queryParams: initialQueryParams,
   routeParams = [],
+  preserveParams = {},
   onDeleted,
   manualFiltering = false,
   onManualFilter = null
@@ -69,6 +70,18 @@ export function useTableManagement({
 
     const [localQueryParams, setLocalQueryParams] = useState({ ...queryParams });
 
+    // Sincronizar con los queryParams que llegan por props (p. ej. tras una visita Inertia o carga con filtros en URL)
+    const queryParamsSignature = JSON.stringify(queryParams);
+    useEffect(() => {
+        if (queryParams && typeof queryParams === 'object') {
+            setLocalQueryParams(prev => {
+                const next = { ...queryParams };
+                if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
+                return next;
+            });
+        }
+    }, [queryParamsSignature]);
+
     const hasSyncedPerPageRef = useRef(false);
 
     const SearchFieldChanged = (name, value) => {
@@ -86,9 +99,10 @@ export function useTableManagement({
         if (manualFiltering && typeof onManualFilter === 'function') {
             onManualFilter(updatedParams);
         } else if (indexRoute) {
+            const params = { ...preserveParams, ...updatedParams };
             router.get(
                 route(getRouteName(indexRoute), getRouteParams(indexRoute)),
-                updatedParams,
+                params,
                 { preserveState: true, replace: true }
             );
         }
@@ -108,15 +122,17 @@ export function useTableManagement({
             };
             onManualFilter(updatedParams);
         } else if (indexRoute) {
+            const baseParams = {
+                ...localQueryParams,
+                sort_field: name,
+                sort_direction: newDirection,
+                page: 1,
+                per_page: perPage
+            };
+            const params = { ...preserveParams, ...baseParams };
             router.get(
                 route(getRouteName(indexRoute), getRouteParams(indexRoute)),
-                {
-                  ...queryParams,
-                  sort_field: name,
-                  sort_direction: newDirection,
-                  page: 1,
-                  per_page: perPage
-                },
+                params,
                 { preserveState: true }
             );
         }

@@ -82,7 +82,7 @@ export default function Index({
 		{ key: 'name', label: __('nombre'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_filtrar') },
 		{ key: 'created_at', label: __('fecha_alta'), sort: true, filter: 'date', class_th: 'text-center', class_td: 'text-end', placeholder: __('fecha_alta'), dateKeys: ['date_from', 'date_to'] },
 		{ key: 'email', label: __('email'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('email_filtrar') },
-		{ key: 'phones', label: __('telefonos'), sort: true, filter: '', class_th: '', class_td: '' },
+		{ key: 'phones', label: __('telefonos'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('telefonos_filtrar') },
 		{ key: 'categories', label: __('categoria'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('categorias_filtrar') },
 		{ key: 'avatar', label: __('imagen'), sort: false, filter: '', type: 'image', icon: 'user-tie', class_th: 'text-center', class_td: 'text-center', placeholder: '' }
 	]; 

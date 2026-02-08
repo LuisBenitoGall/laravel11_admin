@@ -99,6 +99,8 @@ En el archivo config/constants.php se definen constantes personalizadas.
 - php artisan crm:import-campaigns-express --dry-run
 - php artisan crm:import-campaigns-express
 
+- php artisan crm:import-contacts-extra --dry-run
+- php artisan crm:import-contacts-extra
 
 ## COMANDOS PROMOCIÓN DYNAMICS 35 --> BD:
 - php artisan crm:promote-accounts      !!Asegurarse que se ha hecho la importación de currencies.
@@ -113,6 +115,9 @@ En el archivo config/constants.php se definen constantes personalizadas.
 - php artisan crm:import-marketing-list-members
 
 - php artisan crm:promote-marketing-list-members
+
+- php artisan crm:promote-contacts-extra --company=1
+- php artisan crm:promote-contacts-extra --company=1 --dry-run
 
 
 ## IA CHAT GPT. Indicaciones para la réplica de elementos en el proyecto.

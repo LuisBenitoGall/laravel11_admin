@@ -26,6 +26,8 @@ abstract class Plugin
 
     protected string $version = '*';
 
+    protected bool $with_project_name = false;
+
     abstract public function files(): array;
 
     public function vendor(): ?string
@@ -35,6 +37,10 @@ abstract class Plugin
 
     public function has(): bool
     {
+        if ($this->hasProjectName()) {
+            return true;
+        }
+
         return $this->hasVendor() && $this->hasVersion();
     }
 
@@ -50,9 +56,18 @@ abstract class Plugin
     private function hasVersion(): bool
     {
         if ($vendor = $this->vendor()) {
-            return InstalledVersions::satisfies(new VersionParser(), $vendor, $this->version);
+            return InstalledVersions::satisfies(new VersionParser, $vendor, $this->version);
         }
 
         return true;
+    }
+
+    private function hasProjectName(): bool
+    {
+        if (! $this->with_project_name || ! $this->vendor()) {
+            return false;
+        }
+
+        return $this->vendor === (InstalledVersions::getRootPackage()['name'] ?? false);
     }
 }

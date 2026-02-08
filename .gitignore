@@ -25,6 +25,8 @@ package-lock.json
 /storage/*
 !storage/.gitignore
 /public/storage
+/public/build
+/public/hot
 
 .env
 .env.*
@@ -43,6 +45,9 @@ Thumbs.db
 # --------------------------------
 *.log
 *.cache
+
+/.amazonq
+/.cursor
 
 laravel11_admin.sublime-project
 laravel11_admin.sublime-workspace

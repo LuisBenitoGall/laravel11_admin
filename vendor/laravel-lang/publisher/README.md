@@ -1,6 +1,9 @@
 # Laravel Lang Publisher
 
-![laravel-lang locale publisher](https://preview.dragon-code.pro/laravel-lang/locales-publisher.svg?brand=laravel&mode=dark)
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://banners.beyondco.de/Publisher.png?theme=dark&pattern=topography&style=style_2&fontSize=100px&images=https%3A%2F%2Flaravel.com%2Fimg%2Flogomark.min.svg&packageManager=composer+require+--dev&packageName=laravel-lang%2Fpublisher&description=by+Laravel+Lang&md=1&showWatermark=1">
+    <img src="https://banners.beyondco.de/Publisher.png?theme=light&pattern=topography&style=style_2&fontSize=100px&images=https%3A%2F%2Flaravel.com%2Fimg%2Flogomark.min.svg&packageManager=composer+require+--dev&packageName=laravel-lang%2Fpublisher&description=by+Laravel+Lang&md=1&showWatermark=1" alt="Publisher">
+</picture>
 
 [![Stable Version][badge_stable]][link_packagist]
 [![Total Downloads][badge_downloads]][link_packagist]
@@ -10,10 +13,6 @@
 ## Documentation
 
 See the [documentation](https://laravel-lang.com/packages-publisher.html) for detailed installation.
-
-## Communication
-
-We also have official [chats](https://t.me/addlist/l0XGtvEIBiljMTMy) in Telegram.
 
 ## Contributing
 

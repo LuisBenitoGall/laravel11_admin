@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from '@inertiajs/react';
 import { parseISO, format as formatDate } from 'date-fns';
+import PhonesCell from '@/Components/PhonesCell';
 
 export default function renderCellContent(value, column, rowData = {}) {
 	if (column.render && typeof column.render === 'function') {
@@ -73,32 +74,9 @@ export default function renderCellContent(value, column, rowData = {}) {
 		);
 	}
 
-	// Teléfonos: array de objetos { e164, type, label, is_primary, is_whatsapp }
+	// Teléfonos: delegado a PhonesCell (primer teléfono + badge con popover del resto)
 	if (column.key === 'phones') {
-		const phones = Array.isArray(value) ? value : [];
-
-		if (!phones.length) {
-			return '—';
-		}
-
-		const primary = phones.find(p => p && p.is_primary) || phones[0];
-		const moreCount = phones.length - 1;
-
-		return (
-			<>
-				{primary?.e164 || ''}
-
-				{primary?.is_whatsapp && (
-					<i className="lab la-whatsapp ms-2" />
-				)}
-
-				{moreCount > 0 && (
-					<span className="badge bg-secondary ms-2">
-						{moreCount === 1 ? '1 más' : `${moreCount} más`}
-					</span>
-				)}
-			</>
-		);
+		return <PhonesCell phones={value} />;
 	}
 
 	// Enlaces

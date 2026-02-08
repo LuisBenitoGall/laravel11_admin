@@ -33,10 +33,13 @@ export default function ActiveFiltersLegend({
     items = [],
     routeName,
     routeParams = {},
+    queryParams: queryParamsProp,
 }) {
     const __ = useTranslation();
     const { props } = usePage();
-    const queryParams = props.queryParams || {};
+    const queryParams = (typeof queryParamsProp === 'object' && queryParamsProp !== null)
+        ? queryParamsProp
+        : (props.queryParams || {});
 
     if (!Array.isArray(items) || items.length === 0) return null;
 

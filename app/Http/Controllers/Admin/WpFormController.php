@@ -8,6 +8,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
@@ -237,6 +238,8 @@ class WpFormController extends Controller
 
     /**
      * 4. Nuevo formulario de newsletter (campos field_*).
+     * Flujo: usuario (crear si no existe) → contacto CRM → mensaje → lista marketing.
+     * En error se registra en log, se notifica al admin si está configurado y se responde 500.
      */
     public function newsletterForm(Request $request, string $lang = 'es')
     {
@@ -249,7 +252,7 @@ class WpFormController extends Controller
         $product = (string) $request->input('field_producto');
         $service = (string) $request->input('field_servicio');
 
-        // Mínimos de cordura
+        // Validación: respuestas 400 fuera del try (no son "error del proceso")
         if ($email === '') {
             return response()->json([
                 'success' => false,
@@ -264,91 +267,109 @@ class WpFormController extends Controller
             ], 400);
         }
 
-        // 1) Usuario: buscamos por email, si no existe, lo creamos
-        $user = User::where('email', $email)->first();
+        try {
+            // 1) Usuario: buscamos por email, si no existe, lo creamos
+            $user = User::where('email', $email)->first();
 
-        if (!$user) {
-            $random_password = Str::random(8);
+            if (!$user) {
+                $random_password = Str::random(8);
 
-            $user = new User();
-            $user->name = $name;
-            $user->surname = $surname;
-            $user->email = $email;
-            $user->password = bcrypt($random_password);
-            $user->isAdmin = false;
-            $user->status = 0;
-            $user->save();
-        }
-
-        // 2) Contacto CRM: por company_id + user_id
-        $crm_contact = CrmContact::where('company_id', $this->currentCompanyId)
-            ->where('user_id', $user->id)
-            ->first();
-
-        if (!$crm_contact) {
-            $crm_contact = new CrmContact();
-            $crm_contact->company_id = $this->currentCompanyId;
-            $crm_contact->user_id = $user->id;
-            $crm_contact->contact_type = $contact_type;
-            $crm_contact->status = 1;
-            $crm_contact->acceptance = Carbon::now();
-            $crm_contact->save();
-        }
-
-        // 3) Guardamos el mensaje en formato serializable (usamos JSON sobre TEXT)
-        $messagePayload = [
-            'producto' => $product,
-            'servicio' => $service,
-        ];
-
-        $msg = new CrmContactMessage();
-        $msg->crm_contact_id = $crm_contact->id;
-        $msg->title = 'Newsletter form';
-        $msg->message = json_encode($messagePayload, JSON_UNESCAPED_UNICODE);
-        $msg->origin = 'Formulario newsletterForm '.$locale;
-        $msg->save();
-
-        // 4) Añadimos el contacto a la lista "newsletter-envio" si no estaba
-        $marketingList = MarketingList::where('slug', 'newsletter-envio')->first();
-
-        if ($marketingList) {
-            $alreadyInList = MarketingListUser::where('marketing_list_id', $marketingList->id)
-                ->where('user_id', $user->id)
-                ->exists();
-
-            if (!$alreadyInList) {
-                $mlu = new MarketingListUser();
-                $mlu->marketing_list_id = $marketingList->id;
-                $mlu->user_id = $user->id;
-                // Si la tabla tiene más campos obligatorios (status, company_id, etc.),
-                // aquí es donde los rellenarías.
-                $mlu->save();
+                $user = new User();
+                $user->name = $name;
+                $user->surname = $surname;
+                $user->email = $email;
+                $user->password = bcrypt($random_password);
+                $user->isAdmin = false;
+                $user->status = 0;
+                $user->save();
             }
-        } else {
-            Log::warning('Marketing list with slug "newsletter-envio" not found');
+
+            // 2) Contacto CRM: por company_id + user_id
+            $crm_contact = CrmContact::where('company_id', $this->currentCompanyId)
+                ->where('user_id', $user->id)
+                ->first();
+
+            if (!$crm_contact) {
+                $crm_contact = new CrmContact();
+                $crm_contact->company_id = $this->currentCompanyId;
+                $crm_contact->user_id = $user->id;
+                $crm_contact->contact_type = $contact_type;
+                $crm_contact->status = 1;
+                $crm_contact->acceptance = Carbon::now();
+                $crm_contact->save();
+            }
+
+            // 3) Guardamos el mensaje en formato serializable (usamos JSON sobre TEXT)
+            $messagePayload = [
+                'producto' => $product,
+                'servicio' => $service,
+            ];
+
+            $msg = new CrmContactMessage();
+            $msg->crm_contact_id = $crm_contact->id;
+            $msg->title = 'Newsletter form';
+            $msg->message = json_encode($messagePayload, JSON_UNESCAPED_UNICODE);
+            $msg->origin = 'Formulario newsletterForm '.$locale;
+            $msg->save();
+
+            // 4) Añadimos el contacto a la lista "newsletter-envio" si no estaba
+            $marketingList = MarketingList::where('slug', 'newsletter-envio')->first();
+
+            if ($marketingList) {
+                $alreadyInList = MarketingListUser::where('marketing_list_id', $marketingList->id)
+                    ->where('user_id', $user->id)
+                    ->exists();
+
+                if (!$alreadyInList) {
+                    $mlu = new MarketingListUser();
+                    $mlu->marketing_list_id = $marketingList->id;
+                    $mlu->user_id = $user->id;
+                    $mlu->save();
+                }
+            } else {
+                Log::warning('Marketing list with slug "newsletter-envio" not found');
+            }
+
+            return response()->json([
+                'success' => true,
+            ], 200);
+        } catch (\Throwable $e) {
+            $context = [
+                'endpoint' => 'wp.newsletter-form',
+                'lang'     => $locale,
+                'message'  => $e->getMessage(),
+                'code'     => $e->getCode(),
+                'trace'    => $e->getTraceAsString(),
+            ];
+            Log::error('WpFormController::newsletterForm failed', $context);
+
+            $notifyEmail = config('wp_forms.error_notify_email');
+            if (!empty($notifyEmail)) {
+                try {
+                    Mail::raw(
+                        'Error en formulario WP newsletter-form.' . "\n" .
+                        'Fecha: ' . now()->toIso8601String() . "\n" .
+                        'Mensaje: ' . $e->getMessage() . "\n" .
+                        'Código: ' . $e->getCode() . "\n" .
+                        'Revisar el log de la aplicación para más detalle.',
+                        function ($message) use ($notifyEmail) {
+                            $message->to($notifyEmail)
+                                ->subject('[' . config('app.name') . '] Error en formulario WP newsletter-form');
+                        }
+                    );
+                } catch (\Throwable $mailEx) {
+                    Log::warning('Could not send WP form error notification email', [
+                        'reason' => $mailEx->getMessage(),
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'success' => false,
+                'error'   => 'An error occurred',
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-        ], 200);
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     
 }
