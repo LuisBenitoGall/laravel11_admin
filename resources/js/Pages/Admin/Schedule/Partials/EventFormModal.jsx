@@ -19,6 +19,7 @@ export default function EventFormModal({ show, onClose, event, scheduleId, sched
     const [startsAt, setStartsAt] = useState(event?.starts_at ? new Date(event.starts_at) : new Date());
     const [endsAt, setEndsAt] = useState(event?.ends_at ? new Date(event.ends_at) : new Date());
     const [allDay, setAllDay] = useState(event?.all_day || false);
+    const [localErrors, setLocalErrors] = useState({});
 
     const { data, setData, post, put, processing, errors, reset } = useForm({
         title: event?.title || '',
@@ -70,9 +71,34 @@ export default function EventFormModal({ show, onClose, event, scheduleId, sched
     const handleSubmit = (e) => {
         e.preventDefault();
 
+        setLocalErrors({});
+
         if (!selectedScheduleId) {
             alert(__('agenda_selec'));
             return;
+        }
+
+        // Validación frontend de coherencia fecha/hora e intervalo mínimo de 15 minutos
+        if (startsAt && endsAt) {
+            const startTime = startsAt.getTime();
+            const endTime = endsAt.getTime();
+
+            if (endTime < startTime) {
+                setLocalErrors({
+                    ends_at: __('fecha_fin_debe_ser_posterior') || 'La fecha/hora de fin no puede ser anterior a la de inicio.',
+                });
+                return;
+            }
+
+            if (!allDay) {
+                const minMs = 15 * 60 * 1000;
+                if ((endTime - startTime) < minMs) {
+                    setLocalErrors({
+                        ends_at: __('evento_duracion_minima_15') || 'La hora de fin debe ser al menos 15 minutos posterior a la de inicio.',
+                    });
+                    return;
+                }
+            }
         }
 
         // Los eventos se guardan vía axios porque el backend devuelve JSON
@@ -197,7 +223,7 @@ export default function EventFormModal({ show, onClose, event, scheduleId, sched
                             className="form-control"
                             required
                         />
-                        <InputError message={errors.ends_at} />
+                        <InputError message={localErrors.ends_at || errors.ends_at} />
                     </div>
                 </div>
             </form>

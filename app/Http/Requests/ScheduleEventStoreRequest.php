@@ -15,7 +15,7 @@ class ScheduleEventStoreRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        $rules = [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'location' => ['nullable', 'string', 'max:255'],
@@ -24,6 +24,43 @@ class ScheduleEventStoreRequest extends FormRequest
             'all_day' => ['nullable', 'boolean'],
             'status' => ['nullable', 'string', 'max:50'],
         ];
+
+        // Regla adicional: para eventos con hora (no all_day), exigir al menos 15 minutos
+        // entre starts_at y ends_at.
+        $rules['ends_at'][] = function (string $attribute, $value, \Closure $fail) {
+            // Si es evento de todo el día, la validación estándar de fecha es suficiente.
+            if ($this->boolean('all_day')) {
+                return;
+            }
+
+            $start = $this->input('starts_at');
+            if (! $start || ! $value) {
+                return;
+            }
+
+            $startTs = strtotime($start);
+            $endTs = strtotime($value);
+
+            if (! $startTs || ! $endTs) {
+                return;
+            }
+
+            // Si la fecha/hora de fin es anterior, lo gestionará la regla after_or_equal.
+            if ($endTs <= $startTs) {
+                return;
+            }
+
+            $minIntervalSeconds = 15 * 60;
+            if (($endTs - $startTs) < $minIntervalSeconds) {
+                $message = __('evento_duracion_minima_15');
+                if ($message === 'evento_duracion_minima_15') {
+                    $message = 'La hora de fin debe ser al menos 15 minutos posterior a la de inicio.';
+                }
+                $fail($message);
+            }
+        };
+
+        return $rules;
     }
 
     public function messages(): array

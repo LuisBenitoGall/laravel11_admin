@@ -20,6 +20,7 @@ class Schedule extends Model
         'description',
         'color',
         'status',
+        'google_calendar_id',
     ];
 
     protected $casts = [

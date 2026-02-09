@@ -23,6 +23,8 @@ class ScheduleEvent extends Model
         'ends_at',
         'all_day',
         'status',
+        'google_event_id',
+        'google_calendar_id',
     ];
 
     protected $casts = [

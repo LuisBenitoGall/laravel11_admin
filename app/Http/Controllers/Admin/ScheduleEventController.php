@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ScheduleEventStoreRequest;
 use App\Http\Requests\ScheduleEventUpdateRequest;
+use App\Models\GoogleCalendarIntegration;
 use App\Models\Schedule;
 use App\Models\ScheduleEvent;
+use App\Services\GoogleCalendarService;
 use App\Support\CompanyContext;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -153,13 +155,35 @@ class ScheduleEventController extends Controller
     }
 
     /**
-     * Eliminar evento (soft delete)
+     * Eliminar evento (soft delete).
+     * Si el evento tiene google_event_id, se elimina también en Google Calendar.
      */
     public function destroy(Request $request, ScheduleEvent $event)
     {
         $this->authorize('delete', $event);
 
+        $companyId = $event->company_id;
+        $googleCalendarId = $event->google_calendar_id;
+        $googleEventId = $event->google_event_id;
+
         $event->delete();
+
+        if ($googleEventId && $googleCalendarId) {
+            $integration = GoogleCalendarIntegration::query()
+                ->where('user_id', $request->user()->id)
+                ->where('company_id', $companyId)
+                ->where('is_enabled', true)
+                ->first();
+            if ($integration) {
+                try {
+                    $calendarService = new GoogleCalendarService($integration);
+                    $calendarService->deleteEvent($googleCalendarId, $googleEventId);
+                } catch (\Throwable $e) {
+                    report($e);
+                    // El evento ya está borrado localmente; el fallo en Google se registra pero no se propaga
+                }
+            }
+        }
 
         return response()->json([
             'success' => true,

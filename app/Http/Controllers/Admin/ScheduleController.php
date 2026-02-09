@@ -80,6 +80,7 @@ class ScheduleController extends Controller
                     'description' => $schedule->description,
                     'color' => $schedule->color,
                     'status' => $schedule->status,
+                    'google_calendar_id' => $schedule->google_calendar_id,
                     'owner_id' => $schedule->owner_id,
                     'owner_name' => $schedule->owner->name . ' ' . $schedule->owner->surname,
                     'authorizedUsers' => $schedule->authorizedUsers->map(function ($user) {
@@ -130,6 +131,7 @@ class ScheduleController extends Controller
             'description' => $request->description,
             'color' => $request->color,
             'status' => $request->boolean('status', true),
+            'google_calendar_id' => $request->filled('google_calendar_id') ? $request->google_calendar_id : null,
         ]);
 
         // Nota: el owner NO se añade al pivot, solo los usuarios compartidos
@@ -145,7 +147,7 @@ class ScheduleController extends Controller
     {
         $this->authorize('update', $schedule);
 
-        $schedule->fill($request->only(['name', 'description', 'color', 'status']));
+        $schedule->fill($request->only(['name', 'description', 'color', 'status', 'google_calendar_id']));
         $schedule->save();
 
         return redirect()->route('schedules.index')

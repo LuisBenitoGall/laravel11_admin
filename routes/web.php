@@ -591,11 +591,17 @@ Route::middleware(['web', 'auth', 'company', 'current_company'])->prefix('admin'
         Route::delete('/functionalities/{functionality}', [FunctionalityController::class, 'destroy'])->name('functionalities.destroy')->middleware('permission:functionalities.destroy');
     });
 
-    //Google Calendar:
+    //Google Calendar (nombres admin.integrations.google.* para el frontend):
+    Route::get('integrations/google/status', [GoogleCalendarController::class, 'status'])
+        ->name('admin.integrations.google.status');
     Route::get('integrations/google/connect', [GoogleCalendarController::class, 'redirect'])
-            ->name('integrations.google.connect');
+        ->name('admin.integrations.google.connect');
     Route::get('integrations/google/callback', [GoogleCalendarController::class, 'callback'])
-            ->name('integrations.google.callback');
+        ->name('admin.integrations.google.callback');
+    Route::post('integrations/google/disconnect', [GoogleCalendarController::class, 'disconnect'])
+        ->name('admin.integrations.google.disconnect');
+    Route::post('integrations/google/sync', [GoogleCalendarController::class, 'sync'])
+        ->name('admin.integrations.google.sync');
 
     //Groups:
     Route::get('/groups', [GroupController::class, 'index'])->name('groups.index')->middleware('permission:groups.index');

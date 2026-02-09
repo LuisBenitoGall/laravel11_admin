@@ -23,6 +23,7 @@ class ScheduleUpdateRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'color' => ['nullable', 'string', 'regex:/^#([0-9a-fA-F]{6})$/'],
             'status' => ['nullable', 'boolean'],
+            'google_calendar_id' => ['nullable', 'string', 'max:255'],
         ];
     }
 

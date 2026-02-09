@@ -147,6 +147,7 @@ export default function Index({
     // --- Google Calendar Integration (modal + toggle) ---
     const [showGoogleCalendarModal, setShowGoogleCalendarModal] = useState(false);
     const [googleCalendarLoading, setGoogleCalendarLoading] = useState(false);
+    const [googleCalendarSyncLoading, setGoogleCalendarSyncLoading] = useState(false);
     const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false);
     const [googleCalendarEmail, setGoogleCalendarEmail] = useState('');
     const [googleCalendarLastSync, setGoogleCalendarLastSync] = useState(null);
@@ -211,6 +212,17 @@ export default function Index({
 
     // Abrir modal de nuevo evento
     const handleNewEvent = (arg) => {
+        // Regla: no permitir crear eventos si no existe ninguna agenda
+        if (!schedules || schedules.length === 0) {
+            showConfirm({
+                title: __('error'),
+                text: __('debes_crear_agenda_antes_eventos') || 'Debes crear una agenda antes de guardar eventos.',
+                icon: 'warning',
+                onConfirm: () => {},
+            });
+            return;
+        }
+
         // Bloquear creación de eventos en fechas pasadas
         const start = arg?.start;
         if (start) {
@@ -222,7 +234,7 @@ export default function Index({
             if (startDate < now) {
                 showConfirm({
                     title: __('error'),
-                    text: __('evento_no_puede_crearse_en_fecha_pasada') || __('no_se_pueden_crear_eventos_en_fechas_pasadas'),
+                    text: __('evento_prohibido_fecha_pasada') || __('No se pueden crear eventos en fechas pasadas'),
                     icon: 'error',
                     onConfirm: () => {},
                 });
@@ -314,6 +326,26 @@ export default function Index({
         }
     };
 
+    // Sincronizar ahora con Google Calendar
+    const doGoogleSync = useCallback(async () => {
+        if (!googleCalendarConnected) return;
+        const url = (typeof route === 'function')
+            ? route('admin.integrations.google.sync')
+            : '/admin/integrations/google/sync';
+        setGoogleCalendarSyncLoading(true);
+        try {
+            await axios.post(url);
+            await fetchGoogleCalendarStatus();
+            if (calendarApi?.view?.activeStart && calendarApi?.view?.activeEnd) {
+                fetchEvents(calendarApi.view.activeStart, calendarApi.view.activeEnd);
+            }
+        } catch (e) {
+            console.error('Error sincronizando con Google Calendar:', e);
+        } finally {
+            setGoogleCalendarSyncLoading(false);
+        }
+    }, [googleCalendarConnected, calendarApi, fetchGoogleCalendarStatus, fetchEvents]);
+
     // Cerrar modales
     const closeScheduleModal = () => {
         setShowScheduleModal(false);
@@ -366,6 +398,12 @@ export default function Index({
         }
     };
 
+    // Capitalizar primera letra (p. ej. "febrero" → "Febrero")
+    const capitalizeFirst = (str) => {
+        if (!str || typeof str !== 'string') return str;
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    };
+
     // Formatear fecha según la vista actual
     const formatCurrentDate = () => {
         if (!currentDateRange.start || !currentDateRange.end) {
@@ -384,12 +422,16 @@ export default function Index({
         };
         const dateLocale = localeMap[locale] || 'es-ES';
 
-        // Mes: mostrar "Enero 2026"
+        // Mes: mostrar "Febrero de 2026". En vista mes, start/end incluyen días de meses adyacentes;
+        // usamos el punto medio del rango para obtener el mes principal mostrado.
         if (currentView === 'dayGridMonth') {
-            return start.toLocaleDateString(dateLocale, {
+            const midTime = (start.getTime() + end.getTime()) / 2;
+            const midDate = new Date(midTime);
+            const formatted = midDate.toLocaleDateString(dateLocale, {
                 month: 'long',
                 year: 'numeric'
             });
+            return capitalizeFirst(formatted);
         }
 
         // Día: mostrar "dd/mm/yyyy"
@@ -485,6 +527,7 @@ export default function Index({
                                                     />
                                                     <span className="flex-grow-1">{schedule.name}</span>
                                                 </div>
+
                                                 {/* Controles en línea: editar, usuarios, eliminar */}
                                                 {(schedule.can?.update || 
                                                   (schedule.can?.manageAuthorizedUsers) || 
@@ -709,6 +752,35 @@ export default function Index({
                 show={showGoogleCalendarModal}
                 onClose={closeGoogleCalendarModal}
                 title={__('google_calendar') || 'Google Calendar'}
+                cancelText={__('cancelar') || 'Cancelar'}
+                onConfirm={toggleGoogleCalendarConnection}
+                confirmText={googleCalendarConnected
+                    ? (__('google_desconectar') || 'Desconectar')
+                    : (__('google_conectar') || 'Conectar a Google')}
+                confirmIcon={googleCalendarConnected ? 'la-unlink' : 'la-google'}
+                confirmClassName={googleCalendarConnected ? 'btn-danger' : 'btn-primary'}
+                confirmLoading={googleCalendarLoading}
+                confirmDisabled={googleCalendarSyncLoading}
+                footerLeft={googleCalendarConnected ? (
+                    <button
+                        type="button"
+                        className="btn btn-outline-primary btn-sm"
+                        onClick={doGoogleSync}
+                        disabled={googleCalendarLoading || googleCalendarSyncLoading}
+                    >
+                        {googleCalendarSyncLoading ? (
+                            <>
+                                <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" />
+                                {__('procesando') || 'Procesando'}
+                            </>
+                        ) : (
+                            <>
+                                <i className="la la-sync me-1" />
+                                {__('sincronizar_ahora') || 'Sincronizar ahora'}
+                            </>
+                        )}
+                    </button>
+                ) : null}
             >
                 <div className="mb-3">
                     <div className={`alert ${googleCalendarConnected ? 'alert-success' : 'alert-secondary'} mb-2 mx-0`}>
@@ -740,40 +812,8 @@ export default function Index({
                     <div className="form-text">
                         {isGmailAddress(auth?.user?.email)
                             ? (__('email_autocompletado_gmail') || 'Se usa el email Gmail de tu usuario.')
-                            : (__('email_info_google') || 'Este campo es informativo: Google te pedirá iniciar sesión para autorizar la conexión.')}
+                            : (__('email_google_info') || 'Este campo es informativo: Google te pedirá iniciar sesión para autorizar la conexión.')}
                     </div>
-                </div>
-
-                <div className="d-flex justify-content-end gap-2">
-                    <button
-                        type="button"
-                        className="btn btn-outline-secondary"
-                        onClick={closeGoogleCalendarModal}
-                        disabled={googleCalendarLoading}
-                    >
-                        {__('cerrar') || 'Cerrar'}
-                    </button>
-
-                    <button
-                        type="button"
-                        className={`btn ${googleCalendarConnected ? 'btn-danger' : 'btn-primary'}`}
-                        onClick={toggleGoogleCalendarConnection}
-                        disabled={googleCalendarLoading}
-                    >
-                        {googleCalendarLoading ? (
-                            <>
-                                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                {__('procesando') || 'Procesando'}
-                            </>
-                        ) : (
-                            <>
-                                <i className={`la ${googleCalendarConnected ? 'la-unlink' : 'la-google'} me-1`}></i>
-                                {googleCalendarConnected
-                                    ? (__('google_desconectar') || 'Desconectar')
-                                    : (__('google_conectar') || 'Conectar')}
-                            </>
-                        )}
-                    </button>
                 </div>
             </ReusableModal>
         </AdminAuthenticatedLayout>

@@ -7,11 +7,13 @@ const ReusableModal = ({
     children,
     onConfirm,
     confirmText = 'Confirmar',
+    confirmIcon = null,
+    confirmClassName = 'btn-primary',
     cancelText = 'Cancelar',
     dialogClassName = '',
     confirmDisabled = false,
     confirmLoading = false,
-    footerLeft = null, 
+    footerLeft = null,
 }) => {
     return (
         <>
@@ -62,7 +64,7 @@ const ReusableModal = ({
 
                                     <button
                                         type="button"
-                                        className="btn btn-primary d-inline-flex align-items-center"
+                                        className={`btn ${confirmClassName} d-inline-flex align-items-center`}
                                         onClick={onConfirm}
                                         disabled={confirmDisabled || confirmLoading}
                                     >
@@ -72,6 +74,9 @@ const ReusableModal = ({
                                                 role="status"
                                                 aria-hidden="true"
                                             />
+                                        )}
+                                        {!confirmLoading && confirmIcon && (
+                                            <i className={`la ${confirmIcon} me-1`} aria-hidden="true" />
                                         )}
                                         {confirmText}
                                     </button>

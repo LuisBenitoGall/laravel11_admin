@@ -17,6 +17,7 @@ export default function ScheduleFormModal({ show, onClose, schedule, onSaved }) 
         description: schedule?.description || '',
         color: schedule?.color || '#3788d8',
         status: schedule?.status !== undefined ? schedule.status : true,
+        google_calendar_id: schedule?.google_calendar_id || '',
     });
 
     useEffect(() => {
@@ -26,6 +27,7 @@ export default function ScheduleFormModal({ show, onClose, schedule, onSaved }) 
                 description: schedule.description || '',
                 color: schedule.color || '#3788d8',
                 status: schedule.status !== undefined ? schedule.status : true,
+                google_calendar_id: schedule.google_calendar_id || '',
             });
         } else {
             reset();
@@ -94,6 +96,17 @@ export default function ScheduleFormModal({ show, onClose, schedule, onSaved }) 
                         onChange={(e) => setData('color', e.target.value)}
                     />
                     <InputError message={errors.color} />
+                </div>
+
+                <div className="mb-3">
+                    <label className="form-label">{__('google_calendar_id') || 'ID calendario Google'}</label>
+                    <TextInput
+                        name="google_calendar_id"
+                        value={data.google_calendar_id}
+                        onChange={(e) => setData('google_calendar_id', e.target.value)}
+                        placeholder="primary o email@group.calendar.google.com"
+                    />
+                    <InputError message={errors.google_calendar_id} />
                 </div>
 
                 <div className="mb-3">

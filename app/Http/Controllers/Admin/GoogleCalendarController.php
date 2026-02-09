@@ -4,12 +4,99 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\GoogleCalendarIntegration;
+use App\Services\GoogleCalendarSyncService;
+use App\Support\CompanyContext;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Laravel\Socialite\Facades\Socialite;
 
 class GoogleCalendarController extends Controller
 {
+    /**
+     * GET status: devuelve connected, email, last_synced_at para la integración del usuario y empresa actual.
+     */
+    public function status(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $companyId = session('currentCompany') ?? app(CompanyContext::class)->id();
+
+        $integration = GoogleCalendarIntegration::query()
+            ->where('user_id', $user->id)
+            ->where('company_id', $companyId)
+            ->where('is_enabled', true)
+            ->first();
+
+        if (! $integration) {
+            return response()->json([
+                'connected' => false,
+                'email' => null,
+                'last_synced_at' => null,
+            ]);
+        }
+
+        return response()->json([
+            'connected' => true,
+            'email' => $integration->google_email,
+            'last_synced_at' => $integration->last_synced_at?->toIso8601String(),
+        ]);
+    }
+
+    /**
+     * POST disconnect: desactiva la integración del usuario/empresa actual. Idempotente.
+     */
+    public function disconnect(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $companyId = session('currentCompany') ?? app(CompanyContext::class)->id();
+
+        GoogleCalendarIntegration::query()
+            ->where('user_id', $user->id)
+            ->where('company_id', $companyId)
+            ->update(['is_enabled' => false]);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * POST sync: sincronización bidireccional con Google Calendar.
+     * Requiere integración activa. Rango por defecto: 1 mes atrás hasta 1 año adelante.
+     */
+    public function sync(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $companyId = (int) (session('currentCompany') ?? app(CompanyContext::class)->id());
+        if ($companyId <= 0) {
+            return response()->json(['error' => __('company_required')], 422);
+        }
+
+        $integration = GoogleCalendarIntegration::query()
+            ->where('user_id', $user->id)
+            ->where('company_id', $companyId)
+            ->where('is_enabled', true)
+            ->first();
+
+        if (! $integration) {
+            return response()->json(['error' => 'No hay conexión activa con Google Calendar.'], 403);
+        }
+
+        $timeMin = Carbon::now()->subMonth();
+        $timeMax = Carbon::now()->addYear();
+        try {
+            $syncService = new GoogleCalendarSyncService($integration);
+            $syncService->sync($companyId, $user->id, $timeMin, $timeMax);
+        } catch (\Throwable $e) {
+            report($e);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'last_synced_at' => $integration->fresh()->last_synced_at?->toIso8601String(),
+        ]);
+    }
+
     public function redirect()
     {
         return Socialite::driver('google')
