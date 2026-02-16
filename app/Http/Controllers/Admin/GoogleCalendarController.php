@@ -97,8 +97,20 @@ class GoogleCalendarController extends Controller
         ]);
     }
 
-    public function redirect()
+    /**
+     * Redirige al flujo OAuth de Google. Comprueba que las credenciales estén configuradas.
+     */
+    public function redirect(Request $request)
     {
+        $clientId = config('services.google.client_id');
+        $clientSecret = config('services.google.client_secret');
+
+        if (empty($clientId) || empty($clientSecret)) {
+            return redirect()
+                ->back()
+                ->with('alert', __('google_credenciales_no_configuradas') ?: 'Google Calendar: faltan GOOGLE_CLIENT_ID o GOOGLE_CLIENT_SECRET en la configuración del servidor. Configúralos en el .env y, si usas caché, ejecuta php artisan config:clear.');
+        }
+
         return Socialite::driver('google')
             ->scopes([
                 'https://www.googleapis.com/auth/calendar',

@@ -19,7 +19,8 @@ function ModalUserCreate({
   contact_subtypes,
   crm_account = false,
   linkCompany = true,
-  showUserSearch = false
+  showUserSearch = false,
+  redirectTo = null
 }) {
   var _a;
   const __ = useTranslation();
@@ -69,12 +70,17 @@ function ModalUserCreate({
   const handleConfirm = () => {
     if (selectedExistingUser) {
       setIsLinking(true);
-      router.post(route("users.store"), {
+      const linkPayload = {
         user_id: selectedExistingUser.id,
         crm_account_id: data.crm_account_id ?? ((crm_account == null ? void 0 : crm_account.id) ?? null),
         company_id: data.company_id ?? companyId ?? null,
         link_company: data.link_company
-      }, {
+      };
+      if (redirectTo == null ? void 0 : redirectTo.route) {
+        linkPayload.redirect_to = redirectTo.route;
+        if (Array.isArray(redirectTo.params)) linkPayload.redirect_params = redirectTo.params;
+      }
+      router.post(route("users.store"), linkPayload, {
         preserveScroll: true,
         onSuccess: (resp) => {
           reset();
@@ -90,8 +96,14 @@ function ModalUserCreate({
       const valid = formRef.current.reportValidity();
       if (!valid) return;
     }
-    post(route("users.store"), {
+    const payload = { ...data };
+    if (redirectTo == null ? void 0 : redirectTo.route) {
+      payload.redirect_to = redirectTo.route;
+      if (Array.isArray(redirectTo.params)) payload.redirect_params = redirectTo.params;
+    }
+    router.post(route("users.store"), payload, {
       preserveScroll: true,
+      preserveState: true,
       onSuccess: (resp) => {
         reset();
         onClose == null ? void 0 : onClose();

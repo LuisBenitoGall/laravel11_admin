@@ -41,7 +41,7 @@
     "/build/assets/CompanyFormSearch-B58zbhM0.js"
   ],
   "resources/js/Components/CompanyNoteForm.jsx": [
-    "/build/assets/Edit-4jLI3Da-.js",
+    "/build/assets/Edit-CMYFPX-D.js",
     "/build/assets/react-datepicker-Do_pkREf.css",
     "/build/assets/react-draft-wysiwyg-B0OUxWBp.css"
   ],
@@ -209,12 +209,12 @@
     "/build/assets/ProductShowView-CVZdA3z-.js"
   ],
   "resources/js/Components/modals/ModalCompanyNoteCreate.jsx": [
-    "/build/assets/Edit-4jLI3Da-.js",
+    "/build/assets/Edit-CMYFPX-D.js",
     "/build/assets/react-datepicker-Do_pkREf.css",
     "/build/assets/react-draft-wysiwyg-B0OUxWBp.css"
   ],
   "resources/js/Components/modals/ModalConvertCrmAccount.jsx": [
-    "/build/assets/Edit-4jLI3Da-.js",
+    "/build/assets/Edit-CMYFPX-D.js",
     "/build/assets/react-datepicker-Do_pkREf.css",
     "/build/assets/react-draft-wysiwyg-B0OUxWBp.css"
   ],
@@ -232,14 +232,14 @@
     "/build/assets/Edit-QrxtHBDb.js"
   ],
   "resources/js/Components/modals/ModalMarketingListFromContacts.jsx": [
-    "/build/assets/Index-RmQIiCh0.js",
+    "/build/assets/Index-DTMYrHDT.js",
     "/build/assets/react-datepicker-Do_pkREf.css"
   ],
   "resources/js/Components/modals/ModalTemplate.jsx": [
     "/build/assets/ModalTemplate-BnjBXi9G.js"
   ],
   "resources/js/Components/modals/ModalUserCreate.jsx": [
-    "/build/assets/ModalUserCreate-D1vjhvl_.js"
+    "/build/assets/ModalUserCreate-BbvapXWa.js"
   ],
   "resources/js/Components/modals/ModalUserNoteCreate.jsx": [
     "/build/assets/Edit-D9oP4q-D.js",
@@ -367,7 +367,7 @@
     "/build/assets/Create-B0wjK4ST.js"
   ],
   "resources/js/Pages/Admin/Company/Edit.jsx": [
-    "/build/assets/Edit-4jLI3Da-.js",
+    "/build/assets/Edit-CMYFPX-D.js",
     "/build/assets/react-datepicker-Do_pkREf.css",
     "/build/assets/react-draft-wysiwyg-B0OUxWBp.css"
   ],
@@ -462,7 +462,7 @@
     "/build/assets/Import-CbeE7TqT.js"
   ],
   "resources/js/Pages/Admin/CrmContact/Index.jsx": [
-    "/build/assets/Index-RmQIiCh0.js",
+    "/build/assets/Index-DTMYrHDT.js",
     "/build/assets/react-datepicker-Do_pkREf.css"
   ],
   "resources/js/Pages/Admin/CrmOpportunity/Create.jsx": [
@@ -493,7 +493,7 @@
     "/build/assets/Create-DRi9A2jh.js"
   ],
   "resources/js/Pages/Admin/Customer/Edit.jsx": [
-    "/build/assets/Edit-vf-k4hyB.js",
+    "/build/assets/Edit-DzUbrggg.js",
     "/build/assets/react-datepicker-Do_pkREf.css"
   ],
   "resources/js/Pages/Admin/Customer/Index.jsx": [
@@ -661,7 +661,7 @@
     "/build/assets/Create-Cftkh4P5.js"
   ],
   "resources/js/Pages/Admin/Provider/Edit.jsx": [
-    "/build/assets/Edit-BgSxRJqN.js",
+    "/build/assets/Edit-DHI8kQos.js",
     "/build/assets/react-datepicker-Do_pkREf.css"
   ],
   "resources/js/Pages/Admin/Provider/Index.jsx": [
@@ -754,7 +754,7 @@
     "/build/assets/react-datepicker-Do_pkREf.css"
   ],
   "resources/js/Pages/Admin/User/Index.jsx": [
-    "/build/assets/Index-RyB279o5.js",
+    "/build/assets/Index-CyH9zS5J.js",
     "/build/assets/react-datepicker-Do_pkREf.css"
   ],
   "resources/js/Pages/Admin/User/Partials/UserCompaniesData.jsx": [

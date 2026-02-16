@@ -13,7 +13,7 @@ import { T as TextInput } from "./TextInput-CzxrbIpp.js";
 import { T as Textarea } from "./Textarea-nvTyMSx8.js";
 import { I as InputError } from "./InputError-DME5vguS.js";
 import { P as PrimaryButton } from "./PrimaryButton-CIbKPOjQ.js";
-import { M as ModalUserCreate } from "./ModalUserCreate-D1vjhvl_.js";
+import { M as ModalUserCreate } from "./ModalUserCreate-BbvapXWa.js";
 import { C as Checkbox } from "./Checkbox-C9HPJULq.js";
 import CompanyNotes from "./CompanyNotes-BGq9K4xA.js";
 import CompanyInfoTab from "./CompanyInfoTab-BDtYKjWE.js";
@@ -656,7 +656,8 @@ function Edit({
           contact_types,
           contact_subtypes,
           crm_account,
-          showUserSearch: true
+          showUserSearch: true,
+          redirectTo: { route: "crm-accounts.edit", params: [crm_account.id, "users"] }
         }
       ),
       isCrmAccount && /* @__PURE__ */ jsx(

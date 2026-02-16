@@ -265,19 +265,26 @@ export default function Index({
 										</OverlayTrigger>
 
 										{/* Eliminar */}
-										<OverlayTrigger
-											key={"delete-"+user.id}
-											placement="top"
-											overlay={
-												<Tooltip className="ttp-top">
-													{ __('eliminar') }
-												</Tooltip>
-											}
-										>
-											<Link href={route('users.destroy', user.id)} className="btn btn-sm btn-danger ms-1" title={ __('eliminar') }>
-												<i className="la la-trash"></i>
-											</Link>
-										</OverlayTrigger>
+										{permissions?.['users.destroy'] && (
+											<OverlayTrigger
+												key={"delete-"+user.id}
+												placement="top"
+												overlay={
+													<Tooltip className="ttp-top">
+														{ __('eliminar') }
+													</Tooltip>
+												}
+											>
+												<button
+													type="button"
+													className="btn btn-sm btn-danger ms-1"
+													title={ __('eliminar') }
+													onClick={() => handleDelete(user.id)}
+												>
+													<i className="la la-trash"></i>
+												</button>
+											</OverlayTrigger>
+										)}
 									</td>
 								</tr>
 							))}

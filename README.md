@@ -73,6 +73,12 @@ En el archivo config/constants.php se definen constantes personalizadas.
 - Compilación: npm run dev
 - Limpieza de caché: composer run dev:reset
 
+Comandos para producción y asegurar que se actualiza public/build
+- npm run build
+- git add public/build
+- git commit -m "Build actualizado"
+- git push
+
 
 ## CRONS:
 - Ejecutar en local con consola abierta: php artisan schedule:work
@@ -157,6 +163,30 @@ En el archivo config/constants.php se definen constantes personalizadas.
   - Nº de proyecto: 465641513188
   - API: Google Calendar
 
+
+## QUERIES:
+- listado de contactos por cuentas:
+SELECT 
+    u.name,
+    u.surname,
+    u.email AS main_email,
+    u.nif,
+    cc.position,
+    cc.department,
+    ca.name AS account,
+    GROUP_CONCAT(ue.email SEPARATOR ', ') AS secondary_emails
+FROM crm_contacts AS cc
+JOIN users u
+    ON cc.user_id = u.id
+LEFT JOIN user_emails ue
+    ON u.id = ue.user_id
+LEFT JOIN crm_accounts ca
+    ON cc.crm_account_id = ca.id
+GROUP BY 
+    u.id, u.name, u.surname, u.email,
+    cc.position, cc.department,
+    ca.name
+ORDER BY u.name ASC;
 
 
 

@@ -13,6 +13,12 @@ import UserSearch from '@/Components/UserSearch';
 // Hooks
 import { useTranslation } from '@/Hooks/useTranslation';
 
+/**
+ * @param {Object} [redirectTo] - Redirección tras crear/vincular usuario.
+ *   - route: nombre de ruta (ej. 'crm-accounts.edit')
+ *   - params: array de parámetros (ej. [accountId, 'users'])
+ * Si no se pasa, el backend decide según side (customers, providers, etc.).
+ */
 export default function ModalUserCreate({ 
     show, 
     onClose, 
@@ -24,7 +30,8 @@ export default function ModalUserCreate({
     contact_subtypes, 
     crm_account = false,
     linkCompany = true,
-    showUserSearch = false
+    showUserSearch = false,
+    redirectTo = null
 }){
     const __ = useTranslation();
     const pageProps = usePage()?.props || {};
@@ -82,12 +89,17 @@ export default function ModalUserCreate({
     const handleConfirm = () => {
         if (selectedExistingUser) {
             setIsLinking(true);
-            router.post(route('users.store'), {
+            const linkPayload = {
                 user_id: selectedExistingUser.id,
                 crm_account_id: data.crm_account_id ?? (crm_account?.id ?? null),
                 company_id: data.company_id ?? companyId ?? null,
                 link_company: data.link_company,
-            }, {
+            };
+            if (redirectTo?.route) {
+                linkPayload.redirect_to = redirectTo.route;
+                if (Array.isArray(redirectTo.params)) linkPayload.redirect_params = redirectTo.params;
+            }
+            router.post(route('users.store'), linkPayload, {
                 preserveScroll: true,
                 onSuccess: (resp) => {
                     reset();
@@ -105,13 +117,19 @@ export default function ModalUserCreate({
             if (!valid) return;
         }
 
-        post(route('users.store'), {
+        const payload = { ...data };
+        if (redirectTo?.route) {
+            payload.redirect_to = redirectTo.route;
+            if (Array.isArray(redirectTo.params)) payload.redirect_params = redirectTo.params;
+        }
+        router.post(route('users.store'), payload, {
             preserveScroll: true,
+            preserveState: true,
             onSuccess: (resp) => {
                 reset();
                 onClose?.();
                 if (typeof onCreate === 'function') onCreate(resp);
-            }
+            },
         });
     };
 

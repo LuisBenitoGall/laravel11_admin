@@ -15,7 +15,7 @@ import { u as useSweetAlert } from "./useSweetAlert-D4PAsWYN.js";
 import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
 import { R as ReusableModal } from "./ModalTemplate-BnjBXi9G.js";
 import { I as InputError } from "./InputError-DME5vguS.js";
-import { M as ModalUserCreate } from "./ModalUserCreate-D1vjhvl_.js";
+import { M as ModalUserCreate } from "./ModalUserCreate-BbvapXWa.js";
 import UserShowView from "./UserShowView-BriFAEee.js";
 import { r as renderCellContent } from "./renderCellContent-DkxoXe9S.js";
 import "@inertiajs/inertia";
@@ -301,6 +301,7 @@ function Index({
     SearchFieldChanged,
     sortChanged,
     filteredData,
+    handleDelete,
     queryParams: tableQueryParams
   } = useTableManagement({
     table: tableId,
@@ -511,17 +512,18 @@ function Index({
                   },
                   "edit-" + contact.id
                 ),
-                /* @__PURE__ */ jsx(
+                (permissions == null ? void 0 : permissions["crm-contacts.destroy"]) && /* @__PURE__ */ jsx(
                   OverlayTrigger,
                   {
                     placement: "top",
                     overlay: /* @__PURE__ */ jsx(Tooltip, { className: "ttp-top", children: __("eliminar") }),
                     children: /* @__PURE__ */ jsx(
-                      Link,
+                      "button",
                       {
-                        href: route("users.destroy", contact.id),
+                        type: "button",
                         className: "btn btn-sm btn-danger ms-1",
                         title: __("eliminar"),
+                        onClick: () => handleDelete(contact.id),
                         children: /* @__PURE__ */ jsx("i", { className: "la la-trash" })
                       }
                     )

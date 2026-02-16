@@ -482,23 +482,26 @@ export default function Index({
                                             </Link>
                                         </OverlayTrigger>
 
-                                        <OverlayTrigger
-                                            key={"delete-"+contact.id}
-                                            placement="top"
-                                            overlay={
-                                                <Tooltip className="ttp-top">
-                                                    { __('eliminar') }
-                                                </Tooltip>
-                                            }
-                                        >
-                                            <Link
-                                                href={route('users.destroy', contact.id)}
-                                                className="btn btn-sm btn-danger ms-1"
-                                                title={ __('eliminar') }
+                                        {permissions?.['crm-contacts.destroy'] && (
+                                            <OverlayTrigger
+                                                key={"delete-"+contact.id}
+                                                placement="top"
+                                                overlay={
+                                                    <Tooltip className="ttp-top">
+                                                        { __('eliminar') }
+                                                    </Tooltip>
+                                                }
                                             >
-                                                <i className="la la-trash"></i>
-                                            </Link>
-                                        </OverlayTrigger>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-sm btn-danger ms-1"
+                                                    title={ __('eliminar') }
+                                                    onClick={() => handleDelete(contact.id)}
+                                                >
+                                                    <i className="la la-trash"></i>
+                                                </button>
+                                            </OverlayTrigger>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

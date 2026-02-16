@@ -714,20 +714,26 @@ class UserController extends Controller{
             }
         }
 
-        if($request->side == 'customers'){
-            return redirect()->route('customers.edit', [$companyId, 'users'])->with('msg', __('usuario_creado_msg'));    
-        }elseif($request->side == 'providers'){
-            return redirect()->route('providers.edit', [$companyId, 'users'])->with('msg', __('usuario_creado_msg'));
-        }elseif($request->side == 'crm-accounts'){
-            // if($request->crm_account_id){
-            //     return redirect()->route('crm-accounts.edit', [$request->crm_account_id, 'users'])->with('msg', __('usuario_creado_msg'));     
-            // }else{
-                return redirect()->route('users.contacts')->with('msg', __('usuario_creado_msg')); 
-            //}
-
-        }else{
-            return redirect()->route('users.edit', $user)->with('msg', __('usuario_creado_msg'));
+        // Redirección explícita indicada por el cliente (p. ej. desde ModalUserCreate en Company/Edit → CrmAccount)
+        if ($request->filled('redirect_to')) {
+            $params = $request->input('redirect_params');
+            if (is_string($params)) {
+                $params = json_decode($params, true) ?: [];
+            }
+            return redirect()->route($request->redirect_to, $params ?? [])->with('msg', __('usuario_creado_msg'));
         }
+
+        if ($request->side == 'customers') {
+            return redirect()->route('customers.edit', [$companyId, 'users'])->with('msg', __('usuario_creado_msg'));
+        }
+        if ($request->side == 'providers') {
+            return redirect()->route('providers.edit', [$companyId, 'users'])->with('msg', __('usuario_creado_msg'));
+        }
+        if ($request->side == 'crm-accounts') {
+            return redirect()->route(['users.contacts', 'users'])->with('msg', __('usuario_creado_msg'));
+        }
+
+        return redirect()->route('users.edit', $user)->with('msg', __('usuario_creado_msg'));
     }
 
     /**
@@ -767,6 +773,14 @@ class UserController extends Controller{
         $cc->owner_id = Auth::id();
         $cc->validated = Carbon::now();
         $cc->save();
+
+        if ($request->filled('redirect_to')) {
+            $params = $request->input('redirect_params');
+            if (is_string($params)) {
+                $params = json_decode($params, true) ?: [];
+            }
+            return redirect()->route($request->redirect_to, $params ?? [])->with('msg', __('contacto_vinculado_msg'));
+        }
 
         return redirect()
             ->route('crm-accounts.edit', [$crmAccountId, 'users'])
@@ -1302,13 +1316,17 @@ class UserController extends Controller{
 
     /**
      * 7. Eliminar usuario.
+     * Si el usuario es contacto CRM, se eliminan también sus registros en crm_contacts (users y crm_contacts).
      */
-    public function destroy(User $user){
+    public function destroy(User $user)
+    {
+        // Eliminar contactos CRM asociados a este usuario (tabla crm_contacts)
+        CrmContact::where('user_id', $user->id)->delete();
+
         $user->delete();
 
-        //REVISAR TODAS LAS VINCULACIONES DEL USUARIO QUE DEBAN ELIMINARSE. POR EJEMPLO: FOTOS DEL USUARIO.
-
-        return redirect()->route('users.index')->with('msg', __('usuario_eliminado'));
+        // Redirigir a la vista anterior (p. ej. índice de contactos CRM o de usuarios)
+        return redirect()->back()->with('msg', __('usuario_eliminado'));
     }
 
     /**

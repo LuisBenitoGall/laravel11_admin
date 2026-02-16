@@ -387,6 +387,7 @@ export default function Edit({
                         contact_subtypes={contact_subtypes}
                         crm_account={crm_account}
                         showUserSearch={true}
+                        redirectTo={{ route: 'crm-accounts.edit', params: [crm_account.id, 'users'] }}
                     />
                 )}
 

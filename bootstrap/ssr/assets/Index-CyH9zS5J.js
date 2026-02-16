@@ -93,7 +93,8 @@ function Index({
     toggleColumnVisibility,
     SearchFieldChanged,
     sortChanged,
-    filteredData
+    filteredData,
+    handleDelete
   } = useTableManagement({
     table: "tblUsers",
     allColumnKeys: columns.map((col) => col.key),
@@ -209,12 +210,21 @@ function Index({
                   },
                   "edit-" + user.id
                 ),
-                /* @__PURE__ */ jsx(
+                (permissions == null ? void 0 : permissions["users.destroy"]) && /* @__PURE__ */ jsx(
                   OverlayTrigger,
                   {
                     placement: "top",
                     overlay: /* @__PURE__ */ jsx(Tooltip, { className: "ttp-top", children: __("eliminar") }),
-                    children: /* @__PURE__ */ jsx(Link, { href: route("users.destroy", user.id), className: "btn btn-sm btn-danger ms-1", title: __("eliminar"), children: /* @__PURE__ */ jsx("i", { className: "la la-trash" }) })
+                    children: /* @__PURE__ */ jsx(
+                      "button",
+                      {
+                        type: "button",
+                        className: "btn btn-sm btn-danger ms-1",
+                        title: __("eliminar"),
+                        onClick: () => handleDelete(user.id),
+                        children: /* @__PURE__ */ jsx("i", { className: "la la-trash" })
+                      }
+                    )
                   },
                   "delete-" + user.id
                 )
