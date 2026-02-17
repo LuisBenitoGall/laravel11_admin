@@ -4,7 +4,7 @@ import { router, usePage, Head, Link } from "@inertiajs/react";
 import { useState, useEffect, useRef } from "react";
 import { Table, OverlayTrigger, Tooltip } from "react-bootstrap";
 /* empty css                          */
-import { u as useInertiaLoading, A as AdHocFiltersDropdown, a as ActiveFiltersLegend, S as SpinnerInline } from "./useInertiaLoading-B2dLlwmV.js";
+import { u as useInertiaLoading, A as AdHocFiltersDropdown, a as ActiveFiltersLegend, S as SpinnerInline } from "./useInertiaLoading-DFtOZ2ck.js";
 import { C as Checkbox } from "./Checkbox-C9HPJULq.js";
 import { u as useTableManagement, C as ColumnFilter, R as RecordsPerPage, S as SortControl, F as FilterRow, P as Pagination } from "./useTableManagement-_Ugox1d5.js";
 import { S as ShowRegister } from "./ShowRegister-ChxyE8YT.js";
@@ -35,8 +35,9 @@ import "./LocationSelects-B4vI2QcJ.js";
 import "./SelectSearch-x7o6yKJV.js";
 import "react-select";
 import "./UserSearch-Bn5gVs5d.js";
-import "date-fns";
+import "./YearSelect-BnIqrNoW.js";
 import "./SelectInput-DrqFt-OA.js";
+import "date-fns";
 import "prop-types";
 import "./ManagePhones-LdkmCbcO.js";
 function ModalMarketingListFromContacts({ show, onClose, filters = {}, getFiltersForRedirect }) {

@@ -1,17 +1,16 @@
 import { jsxs, jsx } from "react/jsx-runtime";
 import { A as AdminAuthenticated } from "./AdminAuthenticatedLayout-BAKikn-7.js";
 import { usePage, Head, Link, router } from "@inertiajs/react";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Table, OverlayTrigger, Tooltip } from "react-bootstrap";
-/* empty css                          */
-import { u as useInertiaLoading, A as AdHocFiltersDropdown, a as ActiveFiltersLegend, S as SpinnerInline } from "./useInertiaLoading-B2dLlwmV.js";
+import { u as useInertiaLoading, A as AdHocFiltersDropdown, a as ActiveFiltersLegend, S as SpinnerInline } from "./useInertiaLoading-DFtOZ2ck.js";
 import { u as useTableManagement, C as ColumnFilter, R as RecordsPerPage, S as SortControl, F as FilterRow, P as Pagination } from "./useTableManagement-_Ugox1d5.js";
 import { S as ShowRegister } from "./ShowRegister-ChxyE8YT.js";
 import { S as ShowRegisterButton } from "./ShowRegisterButton-CPwJtUP3.js";
 import { S as StatusButton } from "./StatusButton-DfO41WfJ.js";
 import { T as TableExporter } from "./TableExporter-RjBSwz2t.js";
 import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
-import UserShowView from "./UserShowView-BriFAEee.js";
+import CrmAccountShowView from "./CrmAccountShowView-ChM5a15M.js";
 import { r as renderCellContent } from "./renderCellContent-DkxoXe9S.js";
 import "@inertiajs/inertia";
 import "./Header-BVvoXjVe.js";
@@ -26,6 +25,7 @@ import "@headlessui/react";
 import "./TextInput-CzxrbIpp.js";
 import "./DatePickerToForm-DlY2BJGL.js";
 import "react-datepicker";
+/* empty css                          */
 import "date-fns/locale";
 import "./Checkbox-C9HPJULq.js";
 import "./LocationSelects-B4vI2QcJ.js";
@@ -33,8 +33,9 @@ import "./ModalTemplate-BnjBXi9G.js";
 import "./SelectSearch-x7o6yKJV.js";
 import "react-select";
 import "./UserSearch-Bn5gVs5d.js";
-import "date-fns";
+import "./YearSelect-BnIqrNoW.js";
 import "./SelectInput-DrqFt-OA.js";
+import "date-fns";
 import "prop-types";
 import "./ManagePhones-LdkmCbcO.js";
 const EMPTY = Object.freeze([]);
@@ -44,8 +45,7 @@ function Index({
   session,
   title,
   subtitle,
-  contacts,
-  contact_types,
+  accounts,
   queryParams: rawQueryParams = {},
   availableLocales
 }) {
@@ -53,48 +53,27 @@ function Index({
   const { props } = usePage();
   const queryParams = rawQueryParams && typeof rawQueryParams === "object" ? rawQueryParams : EMPTY_OBJ;
   const adhocFilters = props.adhocFilters ?? EMPTY;
-  const indexRouteName = "users.contacts";
-  const indexRouteParams = {};
-  const { loading } = useInertiaLoading();
   const legendItems = props.activeFiltersLegend || [];
   const hasActiveFilters = legendItems.length > 0;
+  const indexRouteName = "crm-accounts.index";
+  const indexRouteParams = {};
+  const { loading } = useInertiaLoading();
   const [showId, setShowId] = useState(null);
   const [showPanelOpen, setShowPanelOpen] = useState(false);
-  const handleShowRegister = (user) => {
-    setShowId(user.id);
+  const handleShowRegister = (row) => {
+    setShowId(row.id);
     setShowPanelOpen(true);
   };
   const handleCloseShowPanel = () => {
     setShowPanelOpen(false);
     setShowId(null);
   };
-  const contactTypesArray = useMemo(() => {
-    return Object.entries(contact_types || {}).map(([key, value]) => ({
-      value: key,
-      label: value
-    }));
-  }, [contact_types]);
-  const columns = useMemo(() => [
-    { key: "name", label: __("nombre"), sort: true, filter: "text", class_th: "", class_td: "", placeholder: __("nombre_filtrar") },
-    { key: "created_at", label: __("fecha_alta"), sort: true, filter: "date", class_th: "text-center", class_td: "text-end", placeholder: __("fecha_alta"), dateKeys: ["date_from", "date_to"] },
-    { key: "email", label: __("email"), sort: true, filter: "text", class_th: "", class_td: "", placeholder: __("email_filtrar") },
-    { key: "phones", label: __("telefonos"), sort: false, filter: "text", class_th: "", class_td: "", placeholder: __("telefonos_filtrar") },
-    { key: "position", label: __("cargo"), sort: false, filter: "text", class_th: "", class_td: "", placeholder: __("cargo_filtrar") },
-    { key: "contact_type", label: __("contacto_tipo"), sort: false, filter: "select", options: contactTypesArray, class_th: "", class_td: "", placeholder: __("contacto_tipo_filtrar") },
-    { key: "companies", label: __("empresa"), sort: false, filter: "text", class_th: "", class_td: "", placeholder: __("empresa_filtrar") },
-    { key: "avatar", label: __("imagen"), sort: false, filter: "", type: "image", icon: "user-tie", class_th: "text-center", class_td: "text-center", placeholder: "" }
-  ], [__, contactTypesArray]);
-  const allColumnKeys = useMemo(() => columns.map((c) => c.key), [columns]);
-  const tableConfig = useMemo(() => ({
-    table: "tblContacts",
-    allColumnKeys,
-    entityName: "contacts",
-    indexRoute: "users.contacts",
-    destroyRoute: "users.destroy",
-    filteredDataRoute: "users.contacts-filtered-data",
-    labelName: "contactos",
-    queryParams
-  }), [allColumnKeys, queryParams]);
+  const columns = [
+    { key: "name", label: __("razon_social"), sort: true, filter: "text", type: "link", link: "crm-accounts.edit", class_th: "", class_td: "", placeholder: __("razon_social_filtrar") },
+    { key: "tradename", label: __("nombre_comercial"), sort: true, filter: "text", class_th: "", class_td: "", placeholder: __("nombre_comercial_filtrar") },
+    { key: "owner", label: __("propietario"), sort: true, filter: "text", class_th: "", class_td: "", placeholder: __("propietario_filtrar") },
+    { key: "created_at", label: __("fecha_alta"), sort: true, filter: "date", class_th: "text-center", class_td: "text-end", placeholder: __("fecha_alta"), dateKeys: ["date_from", "date_to"] }
+  ];
   const {
     permissions,
     sortParams,
@@ -104,14 +83,27 @@ function Index({
     toggleColumnVisibility,
     SearchFieldChanged,
     sortChanged,
-    filteredData
-  } = useTableManagement(tableConfig);
+    filteredData,
+    handleDelete
+  } = useTableManagement({
+    table: "tblCrmAccounts",
+    allColumnKeys: columns.map((col) => col.key),
+    // 👉 Puedes dejar entityName como quieras, pero para exportar necesitamos esto sí o sí:
+    entityName: "crm-accounts",
+    indexRoute: "crm-accounts.index",
+    destroyRoute: "crm-accounts.destroy",
+    filteredDataRoute: "crm-accounts.filtered-data",
+    // ✅ CRÍTICO: tu endpoint devuelve { accounts: ... }
+    filteredDataKey: "accounts",
+    labelName: "cuenta",
+    queryParams
+  });
   const actions = [];
-  if (permissions == null ? void 0 : permissions["users.create"]) {
+  if (permissions == null ? void 0 : permissions["crm-accounts.create"]) {
     actions.push({
-      text: __("contacto_nuevo"),
+      text: __("cuenta_nueva"),
       icon: "la-plus",
-      url: "users.create",
+      url: "crm-accounts.create",
       modal: false
     });
   }
@@ -137,7 +129,7 @@ function Index({
               }
             ),
             /* @__PURE__ */ jsx(RecordsPerPage, { perPage, setPerPage }),
-            /* @__PURE__ */ jsx(TableExporter, { filename: __("contactos"), columns, fetchData: filteredData })
+            /* @__PURE__ */ jsx(TableExporter, { filename: __("empresas"), columns, fetchData: filteredData })
           ] }) }),
           /* @__PURE__ */ jsxs("div", { className: "d-flex justify-content-between align-items-center my-2", children: [
             /* @__PURE__ */ jsx(
@@ -145,27 +137,35 @@ function Index({
               {
                 items: legendItems,
                 routeName: indexRouteName,
-                routeParams: indexRouteParams
+                routeParams: indexRouteParams,
+                queryParams
               }
             ),
             hasActiveFilters && loading ? /* @__PURE__ */ jsx(SpinnerInline, { text: __("cargando") ?? "Cargando…" }) : null
           ] }),
-          /* @__PURE__ */ jsx("div", { className: "table-responsive", children: /* @__PURE__ */ jsxs(Table, { className: "table table-nowrap table-striped align-middle mb-0", id: "tblContacts", children: [
+          /* @__PURE__ */ jsx("div", { className: "table-responsive", children: /* @__PURE__ */ jsxs(Table, { className: "table table-nowrap table-striped align-middle mb-0", id: "tblCrmAccounts", children: [
             /* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", { children: [
               /* @__PURE__ */ jsx("th", { className: "text-center first-column", children: " " }),
-              columns.map((col) => /* @__PURE__ */ jsxs("th", { className: `${col.class_th ?? ""} ${visibleColumns.includes(col.key) ? "" : "d-none"}`.trim(), children: [
-                __(col.label),
-                col.sort && /* @__PURE__ */ jsx(
-                  SortControl,
-                  {
-                    name: col.key,
-                    sortable: true,
-                    sort_field: queryParams.sort_field,
-                    sort_direction: queryParams.sort_direction,
-                    sortChanged
-                  }
-                )
-              ] }, col.key)),
+              columns.map((col) => /* @__PURE__ */ jsxs(
+                "th",
+                {
+                  className: `${col.class_th ?? ""} ${visibleColumns.includes(col.key) ? "" : "d-none"}`.trim(),
+                  children: [
+                    col.label,
+                    col.sort && /* @__PURE__ */ jsx(
+                      SortControl,
+                      {
+                        name: col.key,
+                        sortable: true,
+                        sort_field: queryParams.sort_field,
+                        sort_direction: queryParams.sort_direction,
+                        sortChanged
+                      }
+                    )
+                  ]
+                },
+                col.key
+              )),
               /* @__PURE__ */ jsx("th", { className: "text-center", children: __("acciones") })
             ] }) }),
             /* @__PURE__ */ jsx(
@@ -178,66 +178,63 @@ function Index({
                 PrependColumns: 1
               }
             ),
-            /* @__PURE__ */ jsx("tbody", { children: contacts.data.map((contact) => /* @__PURE__ */ jsxs("tr", { children: [
-              /* @__PURE__ */ jsx("td", { className: "text-center", children: /* @__PURE__ */ jsx(ShowRegisterButton, { onClick: () => handleShowRegister(contact) }) }),
-              columns.map((col) => /* @__PURE__ */ jsx("td", { className: `${col.class_td ?? ""} ${visibleColumns.includes(col.key) ? "" : "d-none"}`.trim(), children: renderCellContent(contact[col.key], col, contact) }, col.key)),
+            /* @__PURE__ */ jsx("tbody", { children: accounts.data.map((account) => /* @__PURE__ */ jsxs("tr", { children: [
+              /* @__PURE__ */ jsx("td", { className: "text-center", children: /* @__PURE__ */ jsx(ShowRegisterButton, { onClick: () => handleShowRegister(account) }) }),
+              columns.map((col) => /* @__PURE__ */ jsx(
+                "td",
+                {
+                  className: `${col.class_td ?? ""} ${visibleColumns.includes(col.key) ? "" : "d-none"}`.trim(),
+                  children: renderCellContent(account[col.key], col, account)
+                },
+                col.key
+              )),
               /* @__PURE__ */ jsxs("td", { className: "text-end", children: [
-                typeof contact.status !== "undefined" && /* @__PURE__ */ jsx(
+                (permissions == null ? void 0 : permissions["crm-accounts.edit"]) && /* @__PURE__ */ jsx(
                   OverlayTrigger,
                   {
                     placement: "top",
-                    overlay: /* @__PURE__ */ jsx(Tooltip, { className: "ttp-top", children: contact.status == 1 ? __("contacto_activo") : __("contacto_inactivo") }),
+                    overlay: /* @__PURE__ */ jsx(Tooltip, { className: "ttp-top", children: account.status == 1 ? __("empresa_activa") : __("empresa_inactiva") }),
                     children: /* @__PURE__ */ jsx(
                       StatusButton,
                       {
-                        status: contact.status,
-                        id: contact.id,
-                        updateRoute: "users.status",
-                        reloadUrl: route(indexRouteName, indexRouteParams),
-                        reloadResource: "contacts"
+                        status: account.status,
+                        id: account.id,
+                        updateRoute: "crm-accounts.status",
+                        reloadUrl: route("crm-accounts.index"),
+                        reloadResource: "crm-accounts"
                       }
                     )
                   },
-                  "status-" + contact.id
+                  `status-${account.id}`
                 ),
-                /* @__PURE__ */ jsx(
+                (permissions == null ? void 0 : permissions["crm-accounts.edit"]) && /* @__PURE__ */ jsx(
                   OverlayTrigger,
                   {
                     placement: "top",
                     overlay: /* @__PURE__ */ jsx(Tooltip, { className: "ttp-top", children: __("editar") }),
-                    children: /* @__PURE__ */ jsx(
-                      Link,
-                      {
-                        href: route(
-                          "users.edit",
-                          contact.edit_company_id ? [contact.id, contact.edit_company_id] : [contact.id]
-                        ),
-                        className: "btn btn-sm btn-info ms-1",
-                        children: /* @__PURE__ */ jsx("i", { className: "la la-edit" })
-                      }
-                    )
+                    children: /* @__PURE__ */ jsx(Link, { href: route("crm-accounts.edit", account.id), className: "btn btn-sm btn-info ms-1", children: /* @__PURE__ */ jsx("i", { className: "la la-edit" }) })
                   },
-                  "edit-" + contact.id
+                  `edit-${account.id}`
                 ),
-                /* @__PURE__ */ jsx(
+                (permissions == null ? void 0 : permissions["crm-accounts.destroy"]) && /* @__PURE__ */ jsx(
                   OverlayTrigger,
                   {
                     placement: "top",
                     overlay: /* @__PURE__ */ jsx(Tooltip, { className: "ttp-top", children: __("eliminar") }),
-                    children: /* @__PURE__ */ jsx(
-                      Link,
+                    children: /* @__PURE__ */ jsx("span", { children: /* @__PURE__ */ jsx(
+                      "button",
                       {
-                        href: route("users.destroy", contact.id),
+                        type: "button",
                         className: "btn btn-sm btn-danger ms-1",
-                        title: __("eliminar"),
+                        onClick: () => handleDelete(account.id),
                         children: /* @__PURE__ */ jsx("i", { className: "la la-trash" })
                       }
-                    )
+                    ) })
                   },
-                  "delete-" + contact.id
+                  `delete-${account.id}`
                 )
               ] })
-            ] }, contact.id)) })
+            ] }, `account-${account.id}`)) })
           ] }) }),
           /* @__PURE__ */ jsx(
             ShowRegister,
@@ -245,20 +242,20 @@ function Index({
               id: showId,
               open: showPanelOpen,
               onClose: handleCloseShowPanel,
-              routeName: "users.show",
-              title: __("usuario"),
-              ViewComponent: UserShowView
+              routeName: "crm-accounts.show",
+              title: __("cuenta"),
+              ViewComponent: CrmAccountShowView
             }
           ),
           /* @__PURE__ */ jsx(
             Pagination,
             {
-              links: contacts.meta.links,
-              totalRecords: contacts.meta.total,
-              currentPage: contacts.meta.current_page,
-              perPage: contacts.meta.per_page,
+              links: accounts.meta.links,
+              totalRecords: accounts.meta.total,
+              currentPage: accounts.meta.current_page,
+              perPage: accounts.meta.per_page,
               onPageChange: (page) => {
-                router.get(route(indexRouteName, indexRouteParams), {
+                router.get(route("crm-accounts.index"), {
                   ...queryParams,
                   page,
                   per_page: perPage,

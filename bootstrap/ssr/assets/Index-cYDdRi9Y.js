@@ -1,15 +1,17 @@
 import { jsxs, jsx } from "react/jsx-runtime";
 import { A as AdminAuthenticated } from "./AdminAuthenticatedLayout-BAKikn-7.js";
 import { usePage, Head, Link, router } from "@inertiajs/react";
-import "react";
+import { useState } from "react";
 import { Table, OverlayTrigger, Tooltip } from "react-bootstrap";
-/* empty css                          */
-import { u as useInertiaLoading, A as AdHocFiltersDropdown, a as ActiveFiltersLegend, S as SpinnerInline } from "./useInertiaLoading-B2dLlwmV.js";
+import { u as useInertiaLoading, A as AdHocFiltersDropdown, a as ActiveFiltersLegend, S as SpinnerInline } from "./useInertiaLoading-DFtOZ2ck.js";
 import { u as useTableManagement, C as ColumnFilter, R as RecordsPerPage, S as SortControl, F as FilterRow, P as Pagination } from "./useTableManagement-_Ugox1d5.js";
+import { S as ShowRegister } from "./ShowRegister-ChxyE8YT.js";
+import { S as ShowRegisterButton } from "./ShowRegisterButton-CPwJtUP3.js";
 import { S as StatusButton } from "./StatusButton-DfO41WfJ.js";
 import { T as TableExporter } from "./TableExporter-RjBSwz2t.js";
 import { u as useSweetAlert } from "./useSweetAlert-D4PAsWYN.js";
 import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
+import ProductShowView from "./ProductShowView-CVZdA3z-.js";
 import { r as renderCellContent } from "./renderCellContent-DkxoXe9S.js";
 import "@inertiajs/inertia";
 import "./Header-BVvoXjVe.js";
@@ -23,6 +25,7 @@ import "@headlessui/react";
 import "./TextInput-CzxrbIpp.js";
 import "./DatePickerToForm-DlY2BJGL.js";
 import "react-datepicker";
+/* empty css                          */
 import "date-fns/locale";
 import "./Checkbox-C9HPJULq.js";
 import "./LocationSelects-B4vI2QcJ.js";
@@ -30,8 +33,10 @@ import "./ModalTemplate-BnjBXi9G.js";
 import "./SelectSearch-x7o6yKJV.js";
 import "react-select";
 import "./UserSearch-Bn5gVs5d.js";
-import "date-fns";
+import "./YearSelect-BnIqrNoW.js";
 import "./SelectInput-DrqFt-OA.js";
+import "date-fns";
+import "prop-types";
 const EMPTY = Object.freeze([]);
 const EMPTY_OBJ = Object.freeze({});
 function Index({
@@ -39,30 +44,45 @@ function Index({
   session,
   title,
   subtitle,
-  companies,
+  table = EMPTY_OBJ,
+  slug,
   queryParams: rawQueryParams = {},
   availableLocales
 }) {
   const __ = useTranslation();
+  const t = table && typeof table === "object" ? table : EMPTY_OBJ;
   const { props } = usePage();
-  const queryParams = rawQueryParams && typeof rawQueryParams === "object" ? rawQueryParams : EMPTY_OBJ;
-  const adhocFilters = props.adhocFilters ?? EMPTY;
-  const indexRouteName = "providers.index";
-  const indexRouteParams = {};
+  const tableId = t.id ?? "tblProducts";
+  const rows = t.rows ?? EMPTY_OBJ;
+  const queryParams = t.queryParams ?? EMPTY_OBJ;
+  const adhocFilters = t.adhocFilters ?? EMPTY;
+  const legendItems = t.activeFiltersLegend ?? EMPTY;
   const { loading } = useInertiaLoading();
-  const legendItems = props.activeFiltersLegend || [];
   const hasActiveFilters = legendItems.length > 0;
   useSweetAlert();
+  const indexRouteName = `${slug}.index`;
+  const indexRouteParams = {};
+  const [showId, setShowId] = useState(null);
+  const [showPanelOpen, setShowPanelOpen] = useState(false);
+  const handleShowRegister = (product) => {
+    setShowId(product.id);
+    setShowPanelOpen(true);
+  };
+  const handleCloseShowPanel = () => {
+    setShowPanelOpen(false);
+    setShowId(null);
+  };
   const columns = [
-    { key: "name", label: __("razon_social"), sort: true, filter: "text", type: "link", link: "companies.edit", class_th: "", class_td: "", placeholder: __("razon_social_filtrar") },
-    { key: "tradename", label: __("nombre_comercial"), sort: true, filter: "text", class_th: "", class_td: "", placeholder: __("nombre_comercial_filtrar") },
+    { key: "name", label: __("articulo"), sort: true, filter: "text", type: "link", link: "products.edit", class_th: "", class_td: "", placeholder: __("articulo_filtrar") },
+    { key: "reference", label: __("referencia"), sort: true, filter: "text", class_th: "", class_td: "", placeholder: __("referencia_filtrar") },
+    { key: "description", label: __("descripcion"), sort: true, filter: "text", class_th: "", class_td: "", placeholder: __("descripcion_filtrar") },
+    { key: "price", label: __("precio"), sort: true, filter: "text", class_th: "text-center", class_td: "text-end", placeholder: __("precio_filtrar") },
     { key: "created_at", label: __("fecha_alta"), sort: true, filter: "date", class_th: "text-center", class_td: "text-end", placeholder: __("fecha_alta"), dateKeys: ["date_from", "date_to"] },
-    { key: "nif", label: __("nif"), sort: true, filter: "text", class_th: "", class_td: "", placeholder: __("nif_filtrar") },
-    // { key: 'is_ute', label: __('ute'), sort: true, filter: 'select', options: [
-    //     { value: '1', label: __('si') },
-    //     { value: '0', label: __('no') }
-    // ], class_th: 'text-center', class_td: 'text-center', placeholder: __('ute_filtrar') },
-    { key: "logo", label: __("logo"), sort: false, filter: "", type: "image", icon: "building", class_th: "text-center", class_td: "text-center", placeholder: "" }
+    { key: "status", label: __("estado"), sort: true, filter: "select", options: [
+      { value: "1", label: __("activo") },
+      { value: "0", label: __("inactivo") }
+    ], class_th: "text-center", class_td: "text-center", placeholder: __("estado_filtrar"), booleanLike: true },
+    { key: "image", label: __("imagen"), sort: false, filter: "", type: "image", icon: "box", class_th: "text-center", class_td: "text-center", placeholder: "" }
   ];
   const {
     permissions,
@@ -74,31 +94,24 @@ function Index({
     SearchFieldChanged,
     sortChanged,
     filteredData,
-    handleDelete
+    handleDelete,
+    queryParams: tableQueryParams
   } = useTableManagement({
-    table: "tblProviders",
+    table: tableId,
     allColumnKeys: columns.map((col) => col.key),
-    entityName: "providers",
-    indexRoute: "providers.index",
-    destroyRoute: "providers.destroy",
-    filteredDataRoute: "providers.filtered-data",
-    labelName: "proveedor",
+    entityName: "products",
+    indexRoute: slug + ".index",
+    destroyRoute: "products.destroy",
+    filteredDataRoute: slug + ".filtered-data",
+    labelName: "productos",
     queryParams
   });
   const actions = [];
-  if (permissions == null ? void 0 : permissions["providers.create"]) {
+  if (permissions == null ? void 0 : permissions["products.create"]) {
     actions.push({
-      text: __("proveedor_nuevo"),
+      text: __("producto_nuevo"),
       icon: "la-plus",
-      url: "providers.create",
-      modal: false
-    });
-  }
-  if (permissions == null ? void 0 : permissions["providers.create"]) {
-    actions.push({
-      text: __("proveedores_importar"),
-      icon: "la-file-import",
-      url: "providers.import",
+      url: "products.create",
       modal: false
     });
   }
@@ -120,11 +133,11 @@ function Index({
                 filters: adhocFilters,
                 routeName: indexRouteName,
                 routeParams: indexRouteParams,
-                queryParams
+                queryParams: tableQueryParams
               }
             ),
             /* @__PURE__ */ jsx(RecordsPerPage, { perPage, setPerPage }),
-            /* @__PURE__ */ jsx(TableExporter, { filename: __("proveedores"), columns, fetchData: filteredData })
+            /* @__PURE__ */ jsx(TableExporter, { filename: __("productos"), columns, fetchData: filteredData })
           ] }) }),
           /* @__PURE__ */ jsxs("div", { className: "d-flex justify-content-between align-items-center my-2", children: [
             /* @__PURE__ */ jsx(
@@ -132,13 +145,15 @@ function Index({
               {
                 items: legendItems,
                 routeName: indexRouteName,
-                routeParams: indexRouteParams
+                routeParams: indexRouteParams,
+                queryParams: tableQueryParams
               }
             ),
             hasActiveFilters && loading ? /* @__PURE__ */ jsx(SpinnerInline, { text: __("cargando") ?? "Cargando…" }) : null
           ] }),
-          /* @__PURE__ */ jsx("div", { className: "table-responsive", children: /* @__PURE__ */ jsxs(Table, { className: "table table-nowrap table-striped align-middle mb-0", id: "tblProviders", children: [
+          /* @__PURE__ */ jsx("div", { className: "table-responsive", children: /* @__PURE__ */ jsxs(Table, { className: "table table-nowrap table-striped align-middle mb-0", id: tableId, children: [
             /* @__PURE__ */ jsx("thead", { children: /* @__PURE__ */ jsxs("tr", { children: [
+              /* @__PURE__ */ jsx("th", { className: "text-center first-column", children: " " }),
               columns.map((col) => /* @__PURE__ */ jsxs("th", { className: `${col.class_th ?? ""} ${visibleColumns.includes(col.key) ? "" : "d-none"}`.trim(), children: [
                 __(col.label),
                 col.sort && /* @__PURE__ */ jsx(
@@ -160,40 +175,42 @@ function Index({
                 columns,
                 queryParams,
                 visibleColumns,
-                SearchFieldChanged
+                SearchFieldChanged,
+                PrependColumns: 1
               }
             ),
-            /* @__PURE__ */ jsx("tbody", { children: companies.data.map((company) => /* @__PURE__ */ jsxs("tr", { children: [
-              columns.map((col) => /* @__PURE__ */ jsx("td", { className: `${col.class_td ?? ""} ${visibleColumns.includes(col.key) ? "" : "d-none"}`.trim(), children: renderCellContent(company[col.key], col, company) }, col.key)),
+            /* @__PURE__ */ jsx("tbody", { children: rows.data.map((product) => /* @__PURE__ */ jsxs("tr", { children: [
+              /* @__PURE__ */ jsx("td", { className: "text-center", children: /* @__PURE__ */ jsx(ShowRegisterButton, { onClick: () => handleShowRegister(product) }) }),
+              columns.map((col) => /* @__PURE__ */ jsx("td", { className: `${col.class_td ?? ""} ${visibleColumns.includes(col.key) ? "" : "d-none"}`.trim(), children: renderCellContent(product[col.key], col, product) }, col.key)),
               /* @__PURE__ */ jsxs("td", { className: "text-end", children: [
-                (permissions == null ? void 0 : permissions["providers.edit"]) && /* @__PURE__ */ jsx(
+                (permissions == null ? void 0 : permissions["products.edit"]) && /* @__PURE__ */ jsx(
                   OverlayTrigger,
                   {
                     placement: "top",
-                    overlay: /* @__PURE__ */ jsx(Tooltip, { className: "ttp-top", children: company.status == 1 ? __("proveedor_activo") : __("proveedor_inactivo") }),
+                    overlay: /* @__PURE__ */ jsx(Tooltip, { className: "ttp-top", children: product.status == 1 ? __("producto_activo") : __("producto_inactivo") }),
                     children: /* @__PURE__ */ jsx(
                       StatusButton,
                       {
-                        status: company.status,
-                        id: company.id,
-                        updateRoute: "providers.status",
-                        reloadUrl: route("providers.index"),
-                        reloadResource: "providers"
+                        status: product.status,
+                        id: product.id,
+                        updateRoute: "products.status",
+                        reloadUrl: route("products.index"),
+                        reloadResource: "products"
                       }
                     )
                   },
-                  "status-" + company.id
+                  "status-" + product.id
                 ),
-                (permissions == null ? void 0 : permissions["providers.edit"]) && /* @__PURE__ */ jsx(
+                (permissions == null ? void 0 : permissions["products.edit"]) && /* @__PURE__ */ jsx(
                   OverlayTrigger,
                   {
                     placement: "top",
                     overlay: /* @__PURE__ */ jsx(Tooltip, { className: "ttp-top", children: __("editar") }),
-                    children: /* @__PURE__ */ jsx(Link, { href: route("providers.edit", company.id), className: "btn btn-sm btn-info ms-1", children: /* @__PURE__ */ jsx("i", { className: "la la-edit" }) })
+                    children: /* @__PURE__ */ jsx(Link, { href: route("products.edit", product.id), className: "btn btn-sm btn-info ms-1", children: /* @__PURE__ */ jsx("i", { className: "la la-edit" }) })
                   },
-                  "edit-" + company.id
+                  "edit-" + product.id
                 ),
-                (permissions == null ? void 0 : permissions["providers.destroy"]) && /* @__PURE__ */ jsx(
+                (permissions == null ? void 0 : permissions["products.destroy"]) && /* @__PURE__ */ jsx(
                   OverlayTrigger,
                   {
                     placement: "top",
@@ -203,23 +220,34 @@ function Index({
                       {
                         type: "button",
                         className: "btn btn-sm btn-danger ms-1",
-                        onClick: () => handleDelete(company.id),
+                        onClick: () => handleDelete(product.id),
                         children: /* @__PURE__ */ jsx("i", { className: "la la-trash" })
                       }
                     ) })
                   },
-                  "delete-" + company.id
+                  "delete-" + product.id
                 )
               ] })
-            ] }, "company-" + company.id)) })
+            ] }, "product-" + product.id)) })
           ] }) }),
+          /* @__PURE__ */ jsx(
+            ShowRegister,
+            {
+              id: showId,
+              open: showPanelOpen,
+              onClose: handleCloseShowPanel,
+              routeName: "products.show",
+              title: __("articulo"),
+              ViewComponent: ProductShowView
+            }
+          ),
           /* @__PURE__ */ jsx(
             Pagination,
             {
-              links: companies.meta.links,
-              totalRecords: companies.meta.total,
-              currentPage: companies.meta.current_page,
-              perPage: companies.meta.per_page,
+              links: rows.meta.links,
+              totalRecords: rows.meta.total,
+              currentPage: rows.meta.current_page,
+              perPage: rows.meta.per_page,
               onPageChange: (page) => {
                 router.get(route(indexRouteName, indexRouteParams), {
                   ...queryParams,

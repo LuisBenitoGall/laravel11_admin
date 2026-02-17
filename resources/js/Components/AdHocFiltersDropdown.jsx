@@ -10,6 +10,7 @@ import ReusableModal from '@/Components/modals/ModalTemplate';
 import SelectSearch from '@/Components/SelectSearch';
 import TextInput from '@/Components/TextInput';
 import UserSearch from '@/Components/UserSearch';
+import YearSelect from '@/Components/YearSelect';
 
 // Hooks
 import { useTranslation } from '@/Hooks/useTranslation';
@@ -304,6 +305,27 @@ export default function AdHocFiltersDropdown({
                         </div>
                     </div>
                 </div>
+            );
+        }
+
+        if (type === 'year_select') {
+            const minYear = f.minYear ?? 2000;
+            const maxYear = f.maxYear ?? new Date().getFullYear();
+            const raw = values[key];
+            const value = raw !== null && raw !== undefined && raw !== '' ? String(raw) : '';
+
+            return (
+                <>
+                    <label className="form-label">{f.label}</label>
+                    <YearSelect
+                        minYear={minYear}
+                        maxYear={maxYear}
+                        value={value}
+                        onChange={(e) => setValue(key, e.target.value ? parseInt(e.target.value, 10) : '')}
+                        placeholder={f.placeholder ?? __('opcion_selec')}
+                        className="form-select"
+                    />
+                </>
             );
         }
 

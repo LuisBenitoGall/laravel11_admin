@@ -25,7 +25,7 @@ import { F as FormDatePickerInput, t as toLocalYmd } from "./DatePickerToForm-Dl
 import { R as RelevanceSelect } from "./RelevanceSelect-C-e1h0gP.js";
 import UserImages from "./UserImages-CZESt1jq.js";
 import UserNotes from "./UserNotes-T01UE5--.js";
-import UserPersonalData from "./UserPersonalData-B8XywW-Y.js";
+import UserPersonalData from "./UserPersonalData-BDLG48_o.js";
 import UserPassword from "./UserPassword-B_T7uAmO.js";
 import "@inertiajs/inertia";
 import "./Header-BVvoXjVe.js";
@@ -44,6 +44,7 @@ import "./ManagePhones-LdkmCbcO.js";
 import "./RadioButton-BQ8Yvx79.js";
 import "./SelectInput-DrqFt-OA.js";
 import "./SetSex-BUKGr851.js";
+import "./YearSelect-BnIqrNoW.js";
 function ManageUserAddresses({
   userId,
   addresses = [],

@@ -13,6 +13,7 @@ import RadioButton from '@/Components/RadioButton';
 import SelectInput from '@/Components/SelectInput';
 import SetSex from '@/Components/SetSex';
 import TextInput from '@/Components/TextInput';
+import YearSelect from '@/Components/YearSelect';
 
 // Hooks:
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
@@ -177,7 +178,8 @@ export default function UserPersonalData({
         ...dynamicCompanyFields,
         cost_centers: initialCostCenters,
 
-        business_type: crm_contact?.business_type ?? ''
+        business_type: crm_contact?.business_type ?? '',
+        last_year_service: crm_contact?.last_year_service ?? ''
     });
 
     const [submitting, setSubmitting] = useState(false);
@@ -392,6 +394,30 @@ export default function UserPersonalData({
                         error={errors.sex}
                     />
 
+                    {/* Último año de servicio (solo contacto CRM) */}
+                    {company_context?.type === 'contact' && (
+                        <div className="col-md-2">
+                            <label htmlFor="last_year_service" className="form-label">
+                                {__('ultimo_servicio_any')}
+                            </label>
+                            <YearSelect
+                                id="last_year_service"
+                                name="last_year_service"
+                                minYear={2000}
+                                maxYear={new Date().getFullYear()}
+                                value={
+                                    typeof data.last_year_service === 'number' || (typeof data.last_year_service === 'string' && data.last_year_service !== '')
+                                        ? String(data.last_year_service)
+                                        : ''
+                                }
+                                onChange={(e) => setData('last_year_service', e.target.value ? parseInt(e.target.value, 10) : '')}
+                                placeholder={__('opcion_selec')}
+                                className="form-select"
+                            />
+                            <InputError message={errors.last_year_service} />
+                        </div>
+                    )}
+
                     {/* Acepta emails */}
                     <div className="col-md-4">
                         <label htmlFor="accept_emails" className="form-label">
@@ -482,7 +508,11 @@ export default function UserPersonalData({
                             <SelectInput
                                 name="cost_centers"
                                 multiple={false}
-                                value={data.cost_centers}
+                                value={
+                                    Array.isArray(data.cost_centers) && data.cost_centers.length
+                                        ? String(data.cost_centers[0])
+                                        : ''
+                                }
                                 onChange={(e) => {
                                     const selected = Array.from(e.target.selectedOptions).map((o) => o.value);
                                     setData('cost_centers', selected);

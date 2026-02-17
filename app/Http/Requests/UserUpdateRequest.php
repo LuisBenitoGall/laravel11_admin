@@ -24,7 +24,7 @@ class UserUpdateRequest extends FormRequest{
         $userId = $this->route('user');
 
         return [
-            'role' => 'required|integer',
+            'role' => 'required', // puede ser id (numérico) o nombre ej. "Invitados"
             'name' => 'required|string|max:255',
             'surname' => 'required|string|max:255',
             'email' => [
@@ -43,7 +43,8 @@ class UserUpdateRequest extends FormRequest{
                     ->whereNull('deleted_at')
             ],
             'birthday' => ['nullable','date_format:Y-m-d','before:today'],
-            'signature' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:1024'
+            'signature' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:1024',
+            'last_year_service' => 'nullable|integer|min:2000|max:2100',
         ];
     }
 

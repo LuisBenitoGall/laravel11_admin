@@ -720,7 +720,8 @@ class UserController extends Controller{
             if (is_string($params)) {
                 $params = json_decode($params, true) ?: [];
             }
-            return redirect()->route($request->redirect_to, $params ?? [])->with('msg', __('usuario_creado_msg'));
+            $params = is_array($params) ? array_values(array_filter($params, fn ($v) => is_scalar($v))) : [];
+            return redirect()->route($request->redirect_to, $params)->with('msg', __('usuario_creado_msg'));
         }
 
         if ($request->side == 'customers') {
@@ -730,7 +731,7 @@ class UserController extends Controller{
             return redirect()->route('providers.edit', [$companyId, 'users'])->with('msg', __('usuario_creado_msg'));
         }
         if ($request->side == 'crm-accounts') {
-            return redirect()->route(['users.contacts', 'users'])->with('msg', __('usuario_creado_msg'));
+            return redirect()->route('users.contacts')->with('msg', __('usuario_creado_msg'));
         }
 
         return redirect()->route('users.edit', $user)->with('msg', __('usuario_creado_msg'));
@@ -779,7 +780,8 @@ class UserController extends Controller{
             if (is_string($params)) {
                 $params = json_decode($params, true) ?: [];
             }
-            return redirect()->route($request->redirect_to, $params ?? [])->with('msg', __('contacto_vinculado_msg'));
+            $params = is_array($params) ? array_values(array_filter($params, fn ($v) => is_scalar($v))) : [];
+            return redirect()->route($request->redirect_to, $params)->with('msg', __('contacto_vinculado_msg'));
         }
 
         return redirect()
@@ -1218,8 +1220,8 @@ class UserController extends Controller{
         }
 
         // 3) Relación CRM con la empresa en sesión (crm_contacts)
-        //    contact_type es propiedad de (empresa_en_sesión, user)
-        if ($request->filled('contact_type') || $request->input('business_type')) {
+        //    contact_type, business_type, last_year_service
+        if ($request->filled('contact_type') || $request->input('business_type') || $request->has('last_year_service')) {
             $crmContact = CrmContact::firstOrNew([
                 'company_id' => $currentCompanyId,
                 'user_id'    => $user->id,
@@ -1227,9 +1229,9 @@ class UserController extends Controller{
 
             $crmContact->contact_type = $request->input('contact_type');
             $crmContact->business_type = $request->input('business_type');
-
-            // si quieres guardar observaciones más adelante, aquí
-            // $crmContact->observations = $request->input('observations', $crmContact->observations);
+            $crmContact->last_year_service = $request->filled('last_year_service')
+                ? (int) $request->input('last_year_service')
+                : null;
 
             $crmContact->save();
         }

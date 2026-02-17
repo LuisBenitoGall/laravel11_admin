@@ -14,6 +14,7 @@ import { R as RadioButton } from "./RadioButton-BQ8Yvx79.js";
 import { S as SelectInput } from "./SelectInput-DrqFt-OA.js";
 import { S as SetSex } from "./SetSex-BUKGr851.js";
 import { T as TextInput } from "./TextInput-CzxrbIpp.js";
+import { Y as YearSelect } from "./YearSelect-BnIqrNoW.js";
 import "react-datepicker";
 /* empty css                          */
 import "date-fns/locale";
@@ -383,7 +384,8 @@ function UserPersonalData({
     // campos dinámicos para empresas
     ...dynamicCompanyFields,
     cost_centers: initialCostCenters,
-    business_type: (crm_contact == null ? void 0 : crm_contact.business_type) ?? ""
+    business_type: (crm_contact == null ? void 0 : crm_contact.business_type) ?? "",
+    last_year_service: (crm_contact == null ? void 0 : crm_contact.last_year_service) ?? ""
   });
   const [submitting, setSubmitting] = useState(false);
   const handleChange = (e) => {
@@ -582,6 +584,23 @@ function UserPersonalData({
             error: errors.sex
           }
         ),
+        (company_context == null ? void 0 : company_context.type) === "contact" && /* @__PURE__ */ jsxs("div", { className: "col-md-2", children: [
+          /* @__PURE__ */ jsx("label", { htmlFor: "last_year_service", className: "form-label", children: __("ultimo_servicio_any") }),
+          /* @__PURE__ */ jsx(
+            YearSelect,
+            {
+              id: "last_year_service",
+              name: "last_year_service",
+              minYear: 2e3,
+              maxYear: (/* @__PURE__ */ new Date()).getFullYear(),
+              value: typeof data.last_year_service === "number" || typeof data.last_year_service === "string" && data.last_year_service !== "" ? String(data.last_year_service) : "",
+              onChange: (e) => setData("last_year_service", e.target.value ? parseInt(e.target.value, 10) : ""),
+              placeholder: __("opcion_selec"),
+              className: "form-select"
+            }
+          ),
+          /* @__PURE__ */ jsx(InputError, { message: errors.last_year_service })
+        ] }),
         /* @__PURE__ */ jsxs("div", { className: "col-md-4", children: [
           /* @__PURE__ */ jsx("label", { htmlFor: "accept_emails", className: "form-label", children: __("emails_acepta") }),
           /* @__PURE__ */ jsxs("div", { className: "d-flex align-items-start gap-2", children: [
@@ -669,7 +688,7 @@ function UserPersonalData({
             {
               name: "cost_centers",
               multiple: false,
-              value: data.cost_centers,
+              value: Array.isArray(data.cost_centers) && data.cost_centers.length ? String(data.cost_centers[0]) : "",
               onChange: (e) => {
                 const selected = Array.from(e.target.selectedOptions).map((o) => o.value);
                 setData("cost_centers", selected);

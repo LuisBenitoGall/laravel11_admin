@@ -9,6 +9,7 @@ import { R as ReusableModal } from "./ModalTemplate-BnjBXi9G.js";
 import { S as SelectSearch } from "./SelectSearch-x7o6yKJV.js";
 import { T as TextInput } from "./TextInput-CzxrbIpp.js";
 import { U as UserSearch } from "./UserSearch-Bn5gVs5d.js";
+import { Y as YearSelect } from "./YearSelect-BnIqrNoW.js";
 const cleanParams$1 = (obj) => {
   const out = {};
   Object.entries(obj || {}).forEach(([k, v]) => {
@@ -337,6 +338,26 @@ function AdHocFiltersDropdown({
           }
         ) })
       ] }) });
+    }
+    if (type === "year_select") {
+      const minYear = f.minYear ?? 2e3;
+      const maxYear = f.maxYear ?? (/* @__PURE__ */ new Date()).getFullYear();
+      const raw = values[key];
+      const value = raw !== null && raw !== void 0 && raw !== "" ? String(raw) : "";
+      return /* @__PURE__ */ jsxs(Fragment, { children: [
+        /* @__PURE__ */ jsx("label", { className: "form-label", children: f.label }),
+        /* @__PURE__ */ jsx(
+          YearSelect,
+          {
+            minYear,
+            maxYear,
+            value,
+            onChange: (e) => setValue(key, e.target.value ? parseInt(e.target.value, 10) : ""),
+            placeholder: f.placeholder ?? __("opcion_selec"),
+            className: "form-select"
+          }
+        )
+      ] });
     }
     if (type === "user_search") {
       const raw = values[key] ?? null;

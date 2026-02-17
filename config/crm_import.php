@@ -5,6 +5,7 @@ use App\Models\CrmAccount;
 use App\Models\CrmAccountTmp;
 use App\Models\CrmContactExtraTmp;
 use App\Models\CrmContactTmp;
+use App\Models\CrmContactYearServiceTmp;
 use App\Models\CrmMarketingCampaignsTmp;
 use App\Models\CrmMarketingCampaignsExpressTmp;
 use App\Models\CrmMarketingListTmp;
@@ -44,6 +45,17 @@ return [
             'currency'             => 'currency',
             'created_date'         => 'created_date',
             'owner'                => 'owner'
+        ],
+    ],
+
+    'contacts_year_service' => [
+        'file'   => storage_path('app/import/contacts_year_service.csv'),
+        'model'  => CrmContactYearServiceTmp::class,
+        'mapping' => [
+            'name'              => 'name',
+            'surname'           => 'surname',
+            'email'             => 'email',
+            'service_last_year' => 'service_last_year',
         ],
     ],
 

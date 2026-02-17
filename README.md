@@ -108,7 +108,9 @@ Comandos para producción y asegurar que se actualiza public/build
 - php artisan crm:import-contacts-extra --dry-run
 - php artisan crm:import-contacts-extra
 
-## COMANDOS PROMOCIÓN DYNAMICS 35 --> BD:
+- php artisan crm:import-contacts-year-service
+
+## COMANDOS PROMOCIÓN DYNAMICS 365 --> BD:
 - php artisan crm:promote-accounts      !!Asegurarse que se ha hecho la importación de currencies.
 - php artisan crm:promote-contacts
 - php artisan crm:promote-potential-customers
@@ -124,6 +126,8 @@ Comandos para producción y asegurar que se actualiza public/build
 
 - php artisan crm:promote-contacts-extra --company=1
 - php artisan crm:promote-contacts-extra --company=1 --dry-run
+
+- php artisan crm:promote-contacts-year-service
 
 
 ## IA CHAT GPT. Indicaciones para la réplica de elementos en el proyecto.

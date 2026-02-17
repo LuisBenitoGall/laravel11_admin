@@ -556,6 +556,21 @@ class CrmContactController extends Controller{
                     });
                 },
             ],
+
+            'last_year_service' => [
+                'rules' => ['nullable', 'integer'],
+                'apply' => function (Builder $q, $v) use ($company_id) {
+                    if (!$v) return;
+
+                    $q->whereExists(function ($sub) use ($v, $company_id) {
+                        $sub->select(DB::raw(1))
+                            ->from('crm_contacts as cc2')
+                            ->whereColumn('cc2.user_id', 'users.id')
+                            ->where('cc2.company_id', $company_id)
+                            ->where('cc2.last_year_service', $v);
+                    });
+                },
+            ],
         ];
     }
 
@@ -610,6 +625,14 @@ class CrmContactController extends Controller{
                 'multiple' => false,
                 'options'  => $this->costCenterOptionsForCompany($company_id),
                 'colClass' => 'col-12 col-md-6 col-xl-4',
+            ],
+            [
+                'key'     => 'last_year_service',
+                'label'   => __('ultimo_servicio_any'),
+                'type'    => 'year_select',
+                'minYear' => 2000,
+                'maxYear' => (int) date('Y'),
+                'colClass'=> 'col-12 col-md-6 col-xl-4',
             ],
             [
                 'key' => 'location',
@@ -771,6 +794,19 @@ class CrmContactController extends Controller{
                 'path'  => 'cost_center_id',
                 'label' => __('centro_coste'),
                 'value' => $name,
+            ];
+        }
+
+        // last_year_service
+        $lastYearService = $adhoc['last_year_service'] ?? null;
+        $lastYearService = is_numeric($lastYearService) ? (int) $lastYearService : null;
+        if ($lastYearService) {
+            $legend[] = [
+                'key'   => 'adhoc.last_year_service',
+                'scope' => 'adhoc',
+                'path'  => 'last_year_service',
+                'label' => __('ultimo_servicio_any'),
+                'value' => (string) $lastYearService,
             ];
         }
 
