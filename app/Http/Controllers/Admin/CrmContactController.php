@@ -909,21 +909,47 @@ class CrmContactController extends Controller{
     }
 
     /**
-     * 3. Eliminar un contacto CRM.
+     * 3. Eliminar / desvincular un contacto CRM.
      */
-    public function destroy($contact)
+    public function destroy(Request $request, CrmContact $contact)
     {
-        $c = CrmContact::find($contact);
-        if (!$c) {
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+
+        // Seguridad multiempresa: el contacto debe pertenecer a la empresa activa
+        if ($currentCompanyId <= 0 || $contact->company_id !== $currentCompanyId) {
+            if ($request->header('X-Inertia')) {
+                return redirect()->back()->with('alert', __('empresa_no_activa'));
+            }
             return response()->json(['message' => 'Not found'], 404);
         }
 
+        $crmAccountId = $contact->crm_account_id; // lo necesitamos después del delete
+
         try {
-            $c->delete();
-            return response()->json(['message' => 'OK']);
-        } catch (\Exception $e) {
+            $contact->delete();
+        } catch (\Throwable $e) {
+            if ($request->header('X-Inertia')) {
+                return redirect()->back()->with('alert', __('error_eliminar_contacto'));
+            }
             return response()->json(['message' => 'Error deleting'], 500);
         }
+
+        // Peticiones Inertia (como las que vienen de TableUsers) esperan un redirect, no JSON
+        if ($request->header('X-Inertia')) {
+            if ($crmAccountId) {
+                // Volver a la pestaña de usuarios de la cuenta CRM
+                return redirect()
+                    ->route('crm-accounts.edit', [$crmAccountId, 'users'])
+                    ->with('msg', __('contacto_desvinculado_ok'));
+            }
+
+            // Fallback genérico: volver atrás
+            return redirect()->back()->with('msg', __('contacto_eliminado_ok'));
+        }
+
+        // API no-Inertia: respuesta JSON simple
+        return response()->json(['message' => 'OK']);
     }
 
     /**
@@ -1015,7 +1041,7 @@ class CrmContactController extends Controller{
         }
 
         $colIndex = array_flip($headerRow);
-        $expectedCols = ['name', 'surname', 'user_email', 'user_nif', 'position', 'department', 'observations', 'company', 'company_nif', 'company_city', 'company_postal_code', 'company_street', 'company_phone', 'company_email'];
+        $expectedCols = ['name', 'surname', 'user_email', 'user_nif', 'position', 'department', 'observations', 'company', 'company_nif', 'company_city', 'company_postal_code', 'company_street', 'company_phone', 'company_email', 'contact_type', 'contact_subtype'];
         foreach ($expectedCols as $col) {
             if (!isset($colIndex[$col])) {
                 $colIndex[$col] = null;
@@ -1101,8 +1127,36 @@ class CrmContactController extends Controller{
                     $contact->position = $row['position'] ?? null;
                     $contact->department = $row['department'] ?? null;
                     $contact->observations = $row['observations'] ?? null;
-                    $contact->save();
                 }
+
+                // contact_type: valor en Excel es la etiqueta (ej. "clientes", "cliente potencial"); cotejar con el valor de typesMap y guardar el índice (slug)
+                $contactTypeLabel = trim((string) ($row['contact_type'] ?? ''));
+                if ($contactTypeLabel !== '') {
+                    $typesMap = HasContactTypes::typesMap();
+                    $labelNormalized = mb_strtolower($contactTypeLabel, 'UTF-8');
+                    foreach ($typesMap as $slug => $label) {
+                        if (mb_strtolower(trim((string) $label), 'UTF-8') === $labelNormalized) {
+                            $contact->contact_type = $slug;
+                            break;
+                        }
+                    }
+                }
+
+                // contact_subtype: valor en Excel es slug; resolver contra categories (module=users) y asociar al User
+                $contactSubtypeSlug = trim((string) ($row['contact_subtype'] ?? ''));
+                if ($contactSubtypeSlug !== '') {
+                    $subtypeCategory = Category::where('company_id', $currentCompanyId)
+                        ->where('module', 'users')
+                        ->where('status', 1)
+                        ->where('depth', '0')
+                        ->where('slug', $contactSubtypeSlug)
+                        ->first();
+                    if ($subtypeCategory !== null) {
+                        $user->categories()->syncWithoutDetaching([$subtypeCategory->id]);
+                    }
+                }
+
+                $contact->save();
 
                 DB::commit();
                 $totalProcessed++;

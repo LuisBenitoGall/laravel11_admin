@@ -13,6 +13,8 @@ import { useTranslation } from '@/Hooks/useTranslation';
 
 export default function Sidebar() {
     const __ = useTranslation();
+    const txt_archivos = __('archivos');
+    const txt_documentos = __('documentos');
     const txt_areas_negocio = __('areas_negocio');
     const txt_bancos = __('bancos');
     const txt_categorias_por = __('categorias_por');
@@ -74,8 +76,9 @@ export default function Sidebar() {
     const myAccountItems = [
         { route: 'company-accounts.index',  activeSlug: 'company-accounts', label: txt_cuenta },
         { route: 'company-modules.index',   activeSlug: 'company-modules',  label: txt_modulos },
+        { route: 'documents.index',         activeSlug: 'documents',         label: txt_documentos, permission: 'documents.viewAny' }
     ];
-    const visibleMyAccountItems = myAccountItems.filter(i => can(i.route));
+    const visibleMyAccountItems = myAccountItems.filter(i => can(i.permission || i.route));
     const showMyAccountModule = visibleMyAccountItems.length > 0;
 
     const usersItems = [

@@ -38,8 +38,10 @@ export default function TableUsers({
     availableLocales = [],
 	disablePagination = false,          // NUEVO: desactiva paginación para uso en tabs
     userEditCompanyId = null,
+    deleteUserRoute = 'user-companies.destroy',
     rowDeleteKey = 'id'
 }) {
+    console.log(entityName)
     const __ = useTranslation();
     const queryParams = (typeof rawQueryParams === 'object' && rawQueryParams !== null) ? rawQueryParams : {};
 
@@ -177,6 +179,9 @@ export default function TableUsers({
 
     const columns = Array.isArray(columnsProp) && columnsProp.length ? columnsProp : defaultColumns;
 
+    // Ruta de desvinculación: priorizar deleteUserRoute (p. ej. crm-contacts.destroy desde cuenta CRM) sobre destroyRoute
+    const effectiveDestroyRoute = deleteUserRoute ?? destroyRoute;
+
     const {
         permissions,
         sortParams,
@@ -195,7 +200,7 @@ export default function TableUsers({
         entityName,
         indexRoute: disablePagination ? null : indexRoute,
         routeParams: indexParams,
-        destroyRoute,
+        destroyRoute: effectiveDestroyRoute,
         filteredDataRoute,
         labelName,
         queryParams
@@ -311,7 +316,7 @@ export default function TableUsers({
                                 <OverlayTrigger
                                     key={'delete-' + user.id}
                                     placement="top"
-                                    overlay={<Tooltip className="ttp-top">{__('eliminar')}</Tooltip>}
+                                    overlay={<Tooltip className="ttp-top">{__('desvincular')}</Tooltip>}
                                 >
                                     {/* <a
                                     href={route(`${entityName}.destroy`, user.id)}
@@ -323,7 +328,7 @@ export default function TableUsers({
                                     <button
                                         type="button"
                                         className="btn btn-sm btn-danger ms-1"
-                                        title={__('eliminar')}
+                                        title={__('desvincular')}
                                         onClick={() => handleDelete(user[rowDeleteKey])}
                                     >
                                         <i className="la la-trash" />

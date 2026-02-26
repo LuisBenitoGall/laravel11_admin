@@ -66,6 +66,7 @@ use App\Http\Controllers\Admin\CurrencyController;
 // use App\Http\Controllers\Admin\CustomerProductController;
 use App\Http\Controllers\Admin\CustomerProviderController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\UserImageController;
 // use App\Http\Controllers\Admin\DayTypeController;
 // use App\Http\Controllers\Admin\DayTypeConfigController;
@@ -141,6 +142,7 @@ use App\Http\Controllers\Admin\TownController;
 use App\Http\Controllers\Admin\UnitController;
 use App\Http\Controllers\Admin\UserAddressController;
 use App\Http\Controllers\Admin\UserColumnPreferenceController;
+use App\Http\Controllers\Admin\UserCompanyController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserEmailController;
 use App\Http\Controllers\Admin\UserNoteController;
@@ -557,6 +559,17 @@ Route::middleware(['web', 'auth', 'company', 'current_company'])->prefix('admin'
     Route::delete('customers/{relation}', [CustomerProviderController::class, 'destroy'])->name('customers.destroy')->defaults('side', 'customer')->middleware('permission:customers.destroy');
     Route::post('/customers/status', [CustomerProviderController::class, 'status'])->name('customers.status')->defaults('side', 'customer')->middleware('permission:customers.edit');
     
+    //Document Gallery:
+    Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index')->middleware('permission:documents.viewAny');
+    Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store')->middleware('permission:documents.create');
+    Route::get('/documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download')->middleware('permission:documents.view');
+    Route::get('/documents/{document}/preview', [DocumentController::class, 'preview'])->name('documents.preview')->middleware('permission:documents.view');
+    Route::get('/documents/{document}/thumb', [DocumentController::class, 'thumb'])->name('documents.thumb')->middleware('permission:documents.view');
+    Route::patch('/documents/{document}/image-tools', [DocumentController::class, 'imageTools'])->name('documents.image-tools')->middleware('permission:documents.update');
+    Route::get('/documents/{document}', [DocumentController::class, 'show'])->name('documents.show')->middleware('permission:documents.view');
+    Route::patch('/documents/{document}', [DocumentController::class, 'update'])->name('documents.update')->middleware('permission:documents.update');
+    Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy')->middleware('permission:documents.destroy');
+
     //Deliveries:
     Route::get('/deliveries', [DeliveryController::class, 'index'])->name('deliveries.index')->middleware('permission:deliveries.index');
 
@@ -951,6 +964,7 @@ Route::middleware(['web', 'auth', 'company', 'current_company'])->prefix('admin'
 
     //User Companies:
     Route::delete('/user-companies/{user}/signature', [UserCompanyController::class, 'deleteSignature'])->name('users.signature.delete')->middleware('permission:user-companies.edit');
+    Route::delete('/user-companies/{uc}/destroy', [UserCompanyController::class, 'destroy'])->name('user-companies.destroy')->middleware('permission:user-companies.edit');
 
     //User Emails:
     Route::get('user-emails/{user}', [UserEmailController::class, 'index'])->name('user-emails.get');

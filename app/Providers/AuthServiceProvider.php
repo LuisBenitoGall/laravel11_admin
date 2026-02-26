@@ -5,6 +5,7 @@ namespace App\Providers;
 //Models:
 use App\Models\Category;
 use App\Models\CompanyNote;
+use App\Models\Document;
 use App\Models\CompanySetting;
 use App\Models\CustomerProvider;
 use App\Models\GoogleCalendarIntegration;
@@ -15,6 +16,7 @@ use App\Models\ScheduleEvent;
 //Policies:
 use App\Policies\CategoryPolicy;
 use App\Policies\CompanyNotePolicy;
+use App\Policies\DocumentPolicy;
 use App\Policies\CompanySettingPolicy;
 use App\Policies\CustomerProviderPolicy;
 use App\Policies\GoogleCalendarIntegrationPolicy;
@@ -31,6 +33,7 @@ class AuthServiceProvider extends BaseAuthServiceProvider{
     protected $policies = [
         Category::class => CategoryPolicy::class,
         CompanyNote::class => CompanyNotePolicy::class,
+        Document::class => DocumentPolicy::class,
         CompanySetting::class => CompanySettingPolicy::class,
         CustomerProvider::class => CustomerProviderPolicy::class,
         GoogleCalendarIntegration::class => GoogleCalendarIntegrationPolicy::class,

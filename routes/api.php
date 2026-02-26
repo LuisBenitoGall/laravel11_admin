@@ -83,4 +83,5 @@ Route::post('/wp/newsletter-form', [WpFormController::class, 'newsletterForm'])-
 // https://crm.realfabricadetapices.com/api/wp/newsletter-es
 // https://crm.realfabricadetapices.com/api/wp/newsletter-en
 // https://crm.realfabricadetapices.com/api/wp/felipao
+// https://crm.realfabricadetapices.com/api/wp/newsletter-form
 

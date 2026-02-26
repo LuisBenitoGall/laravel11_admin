@@ -90,12 +90,12 @@ export default function Index({
             modal: false
         });
 
-        actions.push({
+        /* actions.push({
             text: __('clientes_importar'),
             icon: 'la-file-import',
             url: 'customers.import',
             modal: false
-        });
+        }); */
     }
 
     return (

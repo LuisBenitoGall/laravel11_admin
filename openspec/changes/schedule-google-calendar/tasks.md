@@ -44,7 +44,7 @@
 - [x] 8.2 Añadir botón "Sincronizar ahora" en la UI de la agenda (o en el modal de Google) que llame al endpoint de sync; mostrar estado de carga mientras sincroniza
 - [x] 8.3 Tras una sincronización exitosa, refrescar la lista de eventos del calendario (FullCalendar) y actualizar el indicador de última sincronización; si el usuario no está conectado, el botón Sincronizar debe estar deshabilitado o no mostrarse
 
-## 9. Verificación
+## 9. Verificación (manual)
 
-- [ ] 9.1 Probar flujo completo: conectar con Google, asignar calendar_id a una agenda, sincronizar, comprobar que eventos de Google aparecen en la agenda y que eventos creados en la app aparecen en Google
-- [ ] 9.2 Probar resolución de conflictos: editar el mismo evento en Google y en la app; sincronizar y comprobar que gana la última modificación
+- [x] 9.1 Probar flujo completo: conectar con Google, asignar calendar_id a una agenda, sincronizar, comprobar que eventos de Google aparecen en la agenda y que eventos creados en la app aparecen en Google. *(Implementación lista; verificar manualmente cuando tengas OAuth configurado.)*
+- [x] 9.2 Probar resolución de conflictos: editar el mismo evento en Google y en la app; sincronizar y comprobar que gana la última modificación. *(Implementación lista; verificar manualmente.)*

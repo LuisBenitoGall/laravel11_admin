@@ -16,5 +16,24 @@ use Inertia\Response;
 use App\Models\UserCompany;
 
 class UserCompanyController extends Controller{
-    
+ 	/**
+ 	 * 1. Desvincular a usuario de empresa.
+ 	 */
+ 	
+
+
+ 	/**
+ 	 * 1. Desvincular a usuario de empresa.
+ 	 */
+ 	public function destroy(UserCompany $uc){
+ 		dd($uc);
+
+ 		try {
+            $uc->delete();
+            return response()->json(['message' => 'OK']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error deleting'], 500);
+        }
+ 	}
+
 }

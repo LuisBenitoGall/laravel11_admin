@@ -11,7 +11,8 @@ export default function CompanyUsersTab({
     indexParams = undefined, 
     filteredDataRoute = '', 
     entityName = 'users',
-    userEditCompanyId = null           
+    userEditCompanyId = null,
+    deleteUserRoute = 'user-companies.destroy',        
 }){
     const __ = useTranslation();
     const pageProps = usePage()?.props || {};
@@ -30,24 +31,34 @@ export default function CompanyUsersTab({
 
         const list = Array.isArray(users?.data) ? users.data : Array.isArray(users) ? users : [];
         return list.map(u => {
-        const phones = Array.isArray(u.phones) ? u.phones : [];
-        const primary = phones.find(p => p.is_primary) ?? phones[0] ?? null;
-        return {
-            id: u.id,
-            name: [u.name, u.surname].filter(Boolean).join(' '),
-            position: u.position ?? null,
-            email: u.email ?? null,
-            phone_primary: primary?.e164 ?? null,
-            whatsapp: Boolean(primary?.is_whatsapp),
-            phones_count: phones.length,
-            phones: phones.map(p => ({
-            e164: p.e164,
-            type: p.type,
-            label: p.label,
-            is_primary: !!p.is_primary,
-            is_whatsapp: !!p.is_whatsapp,
-            })),
-        };
+            const phones = Array.isArray(u.phones) ? u.phones : [];
+            const primary = phones.find(p => p.is_primary) ?? phones[0] ?? null;
+
+            // id de la relación user_companies si está disponible (pivot/pivot_id/user_company_id),
+            // fallback a user.id para mantener compatibilidad si el backend aún no lo expone.
+            const relationId =
+                u.user_company_id ??
+                u.pivot_id ??
+                (u.pivot && typeof u.pivot.id !== 'undefined' ? u.pivot.id : null) ??
+                u.id;
+
+            return {
+                id: relationId,
+                user_id: u.id,
+                name: [u.name, u.surname].filter(Boolean).join(' '),
+                position: u.position ?? null,
+                email: u.email ?? null,
+                phone_primary: primary?.e164 ?? null,
+                whatsapp: Boolean(primary?.is_whatsapp),
+                phones_count: phones.length,
+                phones: phones.map(p => ({
+                    e164: p.e164,
+                    type: p.type,
+                    label: p.label,
+                    is_primary: !!p.is_primary,
+                    is_whatsapp: !!p.is_whatsapp,
+                })),
+            };
         });
     }, [rowsProp, pageProps.rows, users]);
 
@@ -64,6 +75,7 @@ export default function CompanyUsersTab({
                 entityName={entityName}
                 disablePagination={true}
                 userEditCompanyId={editCtxId}
+                deleteUserRoute={deleteUserRoute}
                 i18n={{
                     name: __('nombre'),
                     position: __('puesto'),

@@ -96,14 +96,14 @@ export default function Index({
         });
     }
 
-    if (permissions?.['providers.create']) {
+    /* if (permissions?.['providers.create']) {
         actions.push({
             text: __('proveedores_importar'),
             icon: 'la-file-import',
             url: 'providers.import',
             modal: false
         });
-    }
+    } */
 
     return (
         <AdminAuthenticatedLayout

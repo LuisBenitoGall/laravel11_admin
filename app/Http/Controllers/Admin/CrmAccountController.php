@@ -35,6 +35,7 @@ use App\Models\Company;
 use App\Models\CostCenter;
 use App\Models\Country;
 use App\Models\CrmAccount;
+use App\Models\CrmContact;
 use App\Models\Currency;
 use App\Models\CustomerProvider;
 use App\Models\User;
@@ -534,18 +535,16 @@ class CrmAccountController extends Controller{
         $company->formatted_created_at = Carbon::parse($company->created_at)->format($locale[4].' H:i:s');
         $company->formatted_updated_at = Carbon::parse($company->updated_at)->format($locale[4].' H:i:s');
 
-        //Usuarios de la empresa:
-        $users = User::select('users.*')
-        ->join('user_companies', 'users.id', '=', 'user_companies.user_id')
-        ->where('user_companies.company_id', $company->id)
-        ->orderBy('users.name', 'ASC')
-        ->get();
+        // Contactos de la cuenta CRM (cada fila con id = crm_contacts.id para desvincular vía crm-contacts.destroy)
+        $contacts = CrmContact::where('crm_account_id', $account->id)
+            ->with(['user.phones', 'user.avatar'])
+            ->join('users', 'crm_contacts.user_id', '=', 'users.id')
+            ->orderBy('users.name', 'ASC')
+            ->select('crm_contacts.*')
+            ->get();
 
-        //Usuarios:
-        $users = UserCompany::usersByCompany($company->id);
-
-        //Mapeo de usuarios:
-        $table = $this->mapUsersForTable($users, $locale);
+        $table = $this->mapContactsForTable($contacts, $locale);
+        $users = ['data' => $table, 'meta' => ['total' => count($table), 'current_page' => 1, 'per_page' => max(1, count($table))]];
 
         //Tratamientos:
         $salutations = HasSalutation::comboOptions();
@@ -606,88 +605,66 @@ class CrmAccountController extends Controller{
     }
 
     /**
-     * 5.1. Query usuarios de la cuenta CRM.
+     * 5.1. Query contactos de la cuenta CRM (para desvincular vía crm-contacts.destroy).
      */
-    private function crmAccountUsersDataQuery(UserFilterRequest $request, CrmAccount $account): Builder
+    private function crmAccountContactsDataQuery(UserFilterRequest $request, CrmAccount $account): Builder
     {
-        $companyId = $account->linked_company_id;
+        $query = CrmContact::query()
+            ->where('crm_contacts.crm_account_id', $account->id)
+            ->with(['user.phones', 'user.avatar'])
+            ->join('users', 'crm_contacts.user_id', '=', 'users.id');
 
-        $query = User::query()
-            ->select('users.*')
-            ->join('user_companies', 'users.id', '=', 'user_companies.user_id')
-            ->where('user_companies.company_id', $companyId)
-            ->with(['avatar', 'phones']);
-
-        // Filtros dinámicos (mismo estilo que tu UserController::dataQuery)
-        $filters = [
-            'name' => function (Builder $q, $v) {
-                $q->where(function ($sub) use ($v) {
-                    $sub->where('name', 'like', "%{$v}%")
-                        ->orWhere('surname', 'like', "%{$v}%");
-                });
-            },
-            'email' => function (Builder $q, $v) {
-                $q->where('email', 'like', "%{$v}%");
-            },
-            'phones' => function (Builder $q, $v) {
-                $q->whereHas('phones', function ($sub) use ($v) {
-                    $sub->where('phone_number', 'like', "%{$v}%");
-                });
-            },
-        ];
-
-        foreach ($filters as $key => $callback) {
-            if ($request->filled($key)) {
-                $callback($query, $request->input($key));
-            }
+        if ($request->filled('name')) {
+            $v = $request->input('name');
+            $query->where(function ($q) use ($v) {
+                $q->where('users.name', 'like', "%{$v}%")
+                    ->orWhere('users.surname', 'like', "%{$v}%");
+            });
+        }
+        if ($request->filled('email')) {
+            $query->where('users.email', 'like', '%' . $request->input('email') . '%');
+        }
+        if ($request->filled('phones')) {
+            $query->whereHas('user.phones', function ($sub) use ($request) {
+                $sub->where('phone_number', 'like', '%' . $request->input('phones') . '%');
+            });
         }
 
-        // Filtros por rango de fechas (created_at)
         $dateFrom = $request->input('date_from');
         $dateTo   = $request->input('date_to');
-
         if ($dateFrom && $dateTo) {
-            $query->whereBetween('users.created_at', [
-                "{$dateFrom} 00:00:00",
-                "{$dateTo} 23:59:59",
-            ]);
+            $query->whereBetween('users.created_at', ["{$dateFrom} 00:00:00", "{$dateTo} 23:59:59"]);
         } elseif ($dateFrom) {
             $query->where('users.created_at', '>=', "{$dateFrom} 00:00:00");
         } elseif ($dateTo) {
             $query->where('users.created_at', '<=', "{$dateTo} 23:59:59");
         }
 
-        // Ordenación
         $sortField     = $request->input('sort_field', 'name');
         $sortDirection = $request->input('sort_direction', 'ASC');
         $allowedSortFields = ['name', 'surname', 'email', 'created_at'];
-
         if (!in_array($sortField, $allowedSortFields, true)) {
             $sortField = 'name';
         }
-
-        return $query->orderBy("users.{$sortField}", $sortDirection);
+        return $query->orderBy("users.{$sortField}", $sortDirection)->select('crm_contacts.*');
     }
 
     /**
-     * 5.2. Filtrado de usuarios para la cuenta CRM.
+     * 5.2. Filtrado de contactos para la pestaña usuarios de la cuenta CRM.
      */
     public function crmAccountUsersFilteredData(UserFilterRequest $request, CrmAccount $account)
     {
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 
-        $cacheKey = 'crm_account_' . $account->id . '_users_' . md5(json_encode($request->all()));
+        $cacheKey = 'crm_account_' . $account->id . '_contacts_' . md5(json_encode($request->all()));
 
-        $users = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($request, $account) {
-            return $this->crmAccountUsersDataQuery($request, $account)->get();
+        $contacts = Cache::remember($cacheKey, now()->addMinutes(5), function () use ($request, $account) {
+            return $this->crmAccountContactsDataQuery($request, $account)->get();
         });
 
-        $rows = $this->mapUsersForTable($users, $locale);
+        $rows = $this->mapContactsForTable($contacts, $locale);
 
-        return response()->json([
-            // clave 'rows' si en el front entityName = 'rows'
-            'rows' => $rows,
-        ]);
+        return response()->json(['rows' => $rows]);
     }
 
     /**
@@ -760,7 +737,7 @@ class CrmAccountController extends Controller{
     }
 
     /**
-     * 9. Mapeo de usuarios.
+     * 9. Mapeo de usuarios (por User; id = user id). Uso: Company edit (user-companies).
      */
     private function mapUsersForTable(Collection $users, array $locale): Collection
     {
@@ -789,6 +766,44 @@ class CrmAccountController extends Controller{
                 ])->values(),
             ];
         });
+    }
+
+    /**
+     * 9b. Mapeo de contactos CRM para tabla (id = crm_contacts.id para crm-contacts.destroy).
+     */
+    private function mapContactsForTable(Collection $contacts, array $locale): array
+    {
+        return $contacts->map(function (CrmContact $contact) use ($locale) {
+            $u = $contact->user;
+            if (!$u) {
+                return ['id' => $contact->id, 'name' => '', 'position' => null, 'created_at' => '', 'email' => null, 'avatar' => null, 'phone_primary' => null, 'whatsapp' => false, 'phones_count' => 0, 'phones' => [], 'user_id' => null];
+            }
+            $phones = $u->phones ?? collect();
+            $primary = $phones->firstWhere('is_primary', true) ?: $phones->first();
+            $salutation = $u->salutation ? HasSalutation::salutationAbbrOf($u->salutation) : '';
+
+            return [
+                'id'            => $contact->id,
+                'user_id'      => $u->id,
+                'name'          => trim($salutation . ' ' . ucwords($u->name ?? '') . ' ' . ucwords($u->surname ?? '')),
+                'position'      => $contact->position ?? $u->position,
+                'created_at'    => Carbon::parse($contact->created_at ?? $u->created_at)->format($locale[4]),
+                'email'         => $u->email,
+                'avatar'        => $u->avatar && $u->avatar->image
+                                    ? \Storage::url('users/' . $u->avatar->image)
+                                    : null,
+                'phone_primary' => $primary?->e164 ?? null,
+                'whatsapp'      => (bool) optional($primary)->is_whatsapp,
+                'phones_count'  => $phones->count(),
+                'phones'        => $phones->map(fn($p) => [
+                    'e164'        => $p->e164 ?? null,
+                    'type'        => $p->type ?? null,
+                    'label'       => $p->label ?? null,
+                    'is_primary'  => (bool) ($p->is_primary ?? false),
+                    'is_whatsapp' => (bool) ($p->is_whatsapp ?? false),
+                ])->values()->all(),
+            ];
+        })->values()->all();
     }
 
     /**
