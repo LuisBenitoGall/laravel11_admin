@@ -26,8 +26,6 @@ class UserCompanyController extends Controller{
  	 * 1. Desvincular a usuario de empresa.
  	 */
  	public function destroy(UserCompany $uc){
- 		dd($uc);
-
  		try {
             $uc->delete();
             return response()->json(['message' => 'OK']);
