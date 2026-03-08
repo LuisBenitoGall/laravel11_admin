@@ -118,13 +118,13 @@ function Index({
                   content: /* @__PURE__ */ jsx(
                     MarketingCampaignMembersTab,
                     {
-                      users: members ?? null,
-                      rows: rows ?? [],
+                      users: props.members ?? null,
+                      rows: props.rows ?? [],
                       indexRoute: "marketing-campaigns.edit",
-                      indexParams: [list.id, "members"],
+                      indexParams: [campaign.id, "lists"],
                       tableId: "tblMarketingListMembers",
                       filteredDataRoute: "marketing-campaigns.members.filtered-data",
-                      queryParams
+                      queryParams: props.queryParams ?? {}
                     }
                   )
                 }
