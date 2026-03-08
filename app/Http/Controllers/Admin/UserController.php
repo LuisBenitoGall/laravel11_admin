@@ -1007,7 +1007,7 @@ class UserController extends Controller{
         ]);    
     }
 
-    public function edit(User $user, $profile = false)
+    public function edit(Request $request, User $user, $profile = false)
     {
         $ctx = app(CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
@@ -1042,9 +1042,23 @@ class UserController extends Controller{
             ->where('user_id', $user->id)
             ->first();
 
-        // Cuenta CRM a la que pertenece el contacto (solo si tiene crm_account_id)
+        // Cuenta CRM para "Volver a la cuenta": priorizar from_account (cuenta desde la que se navegó)
         $crm_account = null;
-        if ($crm_contact?->crm_account_id) {
+        $fromAccountId = $request->query('from_account');
+        if ($fromAccountId && is_numeric($fromAccountId)) {
+            $account = CrmAccount::select('id', 'name', 'company_id')
+                ->where('company_id', $currentCompanyId)
+                ->find((int) $fromAccountId);
+            if ($account) {
+                $hasContact = CrmContact::where('crm_account_id', $account->id)
+                    ->where('user_id', $user->id)
+                    ->exists();
+                if ($hasContact) {
+                    $crm_account = $account;
+                }
+            }
+        }
+        if ($crm_account === null && $crm_contact?->crm_account_id) {
             $crm_account = CrmAccount::select('id', 'name')
                 ->find($crm_contact->crm_account_id);
         }

@@ -44,7 +44,7 @@ class UserImage extends Model{
         $size = $file->getSize() ?? 0;
         $slug = Str::slug($file->getClientOriginalName());
 
-        $allowed = ['image/png','image/jpeg','image/jpg','image/webp','image/svg+xml'];
+        $allowed = ['image/png','image/jpeg','image/jpg','image/webp','image/svg+xml','image/gif','application/pdf'];
         if(!in_array($mime, $allowed, true)) return null;
         if($size > 3 * 1024 * 1024) return null; // 3MB
 

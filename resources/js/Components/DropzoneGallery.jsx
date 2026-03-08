@@ -16,7 +16,13 @@ export default function DropzoneGallery({
     uploadParamName = 'file',
     maxFiles = 20,
     maxFileSize = 3 * 1024 * 1024, // 3MB
-    acceptedTypes = ['image/jpeg','image/png','image/gif','image/webp'],
+    acceptedTypes = [
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'application/pdf'
+    ],
     onChange = () => {},
     autoUpload = true,
     showProgress = false,
@@ -350,6 +356,14 @@ export default function DropzoneGallery({
         return () => window.removeEventListener('keydown', onKey);
     }, [viewerOpen]);
 
+    const isPdf = (img) => {
+        if (img?.file && typeof img.file === 'object' && img.file.type === 'application/pdf') return true;
+        const u = (img?.url || img?.path || img?.filename || img?.image || '').toLowerCase();
+        const n = (img?.name || '').toLowerCase();
+        return (typeof u === 'string' && (u.endsWith('.pdf') || u.includes('application/pdf'))) ||
+            (typeof n === 'string' && n.endsWith('.pdf'));
+    };
+
     const openViewer = (src, alt = '') => {
         setViewerSrc(src);
         setViewerAlt(alt);
@@ -382,7 +396,7 @@ export default function DropzoneGallery({
                     ref={inputRef}
                     type="file"
                     multiple
-                    accept={acceptedTypes.map(t => t).join(',')}
+                    accept={acceptedTypes.includes('application/pdf') ? [...acceptedTypes, '.pdf'].join(',') : acceptedTypes.join(',')}
                     style={{ display: 'none' }}
                     onChange={(e) => handleFiles(e.target.files)}
                 />
@@ -426,15 +440,29 @@ export default function DropzoneGallery({
                         const prefix = imagePath ? `/storage/${imagePath.replace(/\/$/, '')}/` : '/storage/';
                         src = `${prefix}${src}`;
                     }
+                    const isPdfItem = isPdf(img);
                     return (
                         <div key={img.id ?? img.__tmp ?? img.url ?? img.image} className="col-6 col-sm-4 col-md-3">
                             <div className="position-relative border rounded overflow-hidden" style={{ minHeight: 80 }}>
-                                <img
-                                    src={src}
-                                    alt={img.name ?? ''}
-                                    style={{ width: '100%', height: 120, objectFit: 'cover', cursor: 'pointer' }}
-                                    onClick={() => openViewer(src, img.name ?? '')}
-                                />
+                                {isPdfItem ? (
+                                    <a
+                                        href={src}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="d-flex flex-column align-items-center justify-content-center bg-light text-danger text-decoration-none"
+                                        style={{ width: '100%', height: 120 }}
+                                    >
+                                        <i className="la la-file-pdf" style={{ fontSize: '2rem' }}></i>
+                                        <span className="small mt-1">PDF</span>
+                                    </a>
+                                ) : (
+                                    <img
+                                        src={src}
+                                        alt={img.name ?? ''}
+                                        style={{ width: '100%', height: 120, objectFit: 'cover', cursor: 'pointer' }}
+                                        onClick={() => openViewer(src, img.name ?? '')}
+                                    />
+                                )}
                                 <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
                                     <OverlayTrigger
                                         placement="left"
@@ -449,7 +477,7 @@ export default function DropzoneGallery({
                                         </button>
                                     </OverlayTrigger>
 
-                                    {setFeaturedUrl && (
+                                    {setFeaturedUrl && !isPdfItem && (
                                         <OverlayTrigger
                                             placement="left"
                                             overlay={

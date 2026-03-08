@@ -289,7 +289,8 @@ export default function Edit({
                     filteredDataRoute={'crm-accounts.users.filtered-data'}
                     queryParams={props.queryParams || {}}
                     userEditCompanyId={crm_account?.linked_company_id ?? company.id}
-                    deleteUserRoute={module === 'crm' ? 'crm-contacts.destroy' : 'user-companies.destroy'}    
+                    deleteUserRoute={module === 'crm' ? 'crm-contacts.destroy' : 'user-companies.destroy'}
+                    editFromAccountId={crm_account?.id ?? null}
                 />
             ),
         });

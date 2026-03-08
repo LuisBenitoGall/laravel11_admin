@@ -84,9 +84,9 @@ export default function ModalUserCreate({
         setData('phones', next.length ? next : ['']);
     };
 
-    const formRef = useRef(null);
+    const FORM_ID = 'modal-user-create-form';
 
-    const handleConfirm = () => {
+    const handleConfirm = (submitEvent) => {
         if (selectedExistingUser) {
             setIsLinking(true);
             const linkPayload = {
@@ -112,8 +112,9 @@ export default function ModalUserCreate({
             return;
         }
 
-        if (formRef.current && typeof formRef.current.reportValidity === 'function') {
-            const valid = formRef.current.reportValidity();
+        const formEl = submitEvent?.target ?? document.getElementById(FORM_ID);
+        if (formEl && typeof formEl.reportValidity === 'function') {
+            const valid = formEl.reportValidity();
             if (!valid) return;
         }
 
@@ -137,14 +138,15 @@ export default function ModalUserCreate({
         <ReusableModal
             show={show}
             onClose={onClose}
-            onConfirm={handleConfirm}
+            onConfirm={() => handleConfirm(null)}
             title={__('usuario_nuevo')}
             confirmText={(processing || isLinking) ? __('guardando') : __('guardar')}
             cancelText={__('cancelar')}
             confirmDisabled={processing || isLinking}
             confirmLoading={processing || isLinking}
+            submitFormId={FORM_ID}
         >
-            <form ref={formRef} onSubmit={(e) => { e.preventDefault(); handleConfirm(); }}>
+            <form id={FORM_ID} onSubmit={(e) => { e.preventDefault(); handleConfirm(e); }}>
                 {showUserSearch && (
                     <div className="mb-4">
                         <p className="text-warning">

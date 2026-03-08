@@ -39,7 +39,9 @@ export default function TableUsers({
 	disablePagination = false,          // NUEVO: desactiva paginación para uso en tabs
     userEditCompanyId = null,
     deleteUserRoute = 'user-companies.destroy',
-    rowDeleteKey = 'id'
+    rowDeleteKey = 'id',
+    /** Id de la cuenta CRM desde la que se editó (para "Volver a la cuenta X"); se añade como ?from_account= */
+    editFromAccountId = null,
 }) {
     console.log(entityName)
     const __ = useTranslation();
@@ -304,9 +306,15 @@ export default function TableUsers({
                                     overlay={<Tooltip className="ttp-top">{__('editar')}</Tooltip>}
                                 >
                                     <Link
-                                        href={route(`${entityName}.edit`,
-                                            userEditCompanyId != null ? [user.id, userEditCompanyId] : [user.id]
-                                        )}
+                                        href={(() => {
+                                            const userId = user.user_id ?? user.id;
+                                            const baseUrl = route(`${entityName}.edit`, userEditCompanyId != null ? [userId, userEditCompanyId] : [userId]);
+                                            if (editFromAccountId != null && editFromAccountId !== '') {
+                                                const sep = baseUrl.includes('?') ? '&' : '?';
+                                                return `${baseUrl}${sep}from_account=${encodeURIComponent(editFromAccountId)}`;
+                                            }
+                                            return baseUrl;
+                                        })()}
                                         className="btn btn-sm btn-info ms-1"
                                     >
                                         <i className="la la-edit" />

@@ -21,7 +21,7 @@ export default function UserImages({ images = [], uploadUrl = null, deleteUrl = 
                 uploadParamName={'file'}
                 maxFiles={20}
                 maxFileSize={3 * 1024 * 1024}
-                acceptedTypes={['image/jpeg','image/png','image/gif','image/webp']}
+                acceptedTypes={['image/jpeg','image/png','image/gif','image/webp','application/pdf']}
                 onChange={handleChange}
                 autoUpload={true}
             />

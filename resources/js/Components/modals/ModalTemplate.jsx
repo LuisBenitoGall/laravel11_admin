@@ -14,6 +14,8 @@ const ReusableModal = ({
     confirmDisabled = false,
     confirmLoading = false,
     footerLeft = null,
+    /** Si se pasa, el botón confirm será type="submit" form={submitFormId} para enviar ese formulario */
+    submitFormId = null,
 }) => {
     return (
         <>
@@ -63,9 +65,10 @@ const ReusableModal = ({
                                     </button>
 
                                     <button
-                                        type="button"
+                                        type={submitFormId ? 'submit' : 'button'}
+                                        form={submitFormId || undefined}
                                         className={`btn ${confirmClassName} d-inline-flex align-items-center`}
-                                        onClick={onConfirm}
+                                        onClick={submitFormId ? undefined : onConfirm}
                                         disabled={confirmDisabled || confirmLoading}
                                     >
                                         {confirmLoading && (

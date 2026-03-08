@@ -338,6 +338,7 @@ export default function Sidebar() {
                         })()}
 
                         {/* Configuración - Solo visible para Super Admin */}
+                        {/*
                         {isSuperAdmin && (() => {
                             const isActive = currentModule === 'settings';
                             
@@ -372,6 +373,7 @@ export default function Sidebar() {
                                 </li>
                             );
                         })()}
+                        */}
 
                         {/* Usuarios */}
                         {showUsersModule && (() => {
@@ -409,9 +411,10 @@ export default function Sidebar() {
                             );
                         })()}
 
-                        {/* Módulos dinámicos */}
+                        {/* Módulos dinámicos (schedule oculto) */}
                         {Array.isArray(modules) && modules.length > 0 ? (
                             modules
+                                .filter(module => module?.slug !== 'schedule')
                                 .map(module => {
                                     const functionalities = Array.isArray(module.functionalities)
                                         ? module.functionalities

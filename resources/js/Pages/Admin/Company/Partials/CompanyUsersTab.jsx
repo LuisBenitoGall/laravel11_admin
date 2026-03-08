@@ -12,7 +12,8 @@ export default function CompanyUsersTab({
     filteredDataRoute = '', 
     entityName = 'users',
     userEditCompanyId = null,
-    deleteUserRoute = 'user-companies.destroy',        
+    deleteUserRoute = 'user-companies.destroy',
+    editFromAccountId = null,
 }){
     const __ = useTranslation();
     const pageProps = usePage()?.props || {};
@@ -76,6 +77,7 @@ export default function CompanyUsersTab({
                 disablePagination={true}
                 userEditCompanyId={editCtxId}
                 deleteUserRoute={deleteUserRoute}
+                editFromAccountId={editFromAccountId}
                 i18n={{
                     name: __('nombre'),
                     position: __('puesto'),
