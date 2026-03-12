@@ -68,7 +68,7 @@
     "/build/assets/Dropdown-DLZR1XDp.js"
   ],
   "resources/js/Components/DropzoneGallery.jsx": [
-    "/build/assets/UserImages-wO_P5EkE.js"
+    "/build/assets/UserImages-fTJRUy_n.js"
   ],
   "resources/js/Components/FileInput.jsx": [
     "/build/assets/FileInput-U7oe6ye3.js"
@@ -102,7 +102,7 @@
     "/build/assets/ManagePhones-LdkmCbcO.js"
   ],
   "resources/js/Components/ManageUserAddresses.jsx": [
-    "/build/assets/Edit-DuNYXMAb.js",
+    "/build/assets/Edit-GC7mze0F.js",
     "/build/assets/react-draft-wysiwyg-B0OUxWBp.css",
     "/build/assets/react-datepicker-Do_pkREf.css"
   ],
@@ -196,7 +196,7 @@
     "/build/assets/react-draft-wysiwyg-B0OUxWBp.css"
   ],
   "resources/js/Components/UserNoteForm.jsx": [
-    "/build/assets/Edit-DuNYXMAb.js",
+    "/build/assets/Edit-GC7mze0F.js",
     "/build/assets/react-draft-wysiwyg-B0OUxWBp.css",
     "/build/assets/react-datepicker-Do_pkREf.css"
   ],
@@ -249,7 +249,7 @@
     "/build/assets/ModalUserCreate-D5YDdXQl.js"
   ],
   "resources/js/Components/modals/ModalUserNoteCreate.jsx": [
-    "/build/assets/Edit-DuNYXMAb.js",
+    "/build/assets/Edit-GC7mze0F.js",
     "/build/assets/react-draft-wysiwyg-B0OUxWBp.css",
     "/build/assets/react-datepicker-Do_pkREf.css"
   ],
@@ -760,7 +760,7 @@
     "/build/assets/Create-C3IXddQc.js"
   ],
   "resources/js/Pages/Admin/User/Edit.jsx": [
-    "/build/assets/Edit-DuNYXMAb.js",
+    "/build/assets/Edit-GC7mze0F.js",
     "/build/assets/react-draft-wysiwyg-B0OUxWBp.css",
     "/build/assets/react-datepicker-Do_pkREf.css"
   ],
@@ -775,7 +775,7 @@
     "/build/assets/Show-Dr1F-XTV.js"
   ],
   "resources/js/Pages/Admin/User/Partials/UserImages.jsx": [
-    "/build/assets/UserImages-wO_P5EkE.js"
+    "/build/assets/UserImages-fTJRUy_n.js"
   ],
   "resources/js/Pages/Admin/User/Partials/UserNotes.jsx": [
     "/build/assets/UserNotes-T01UE5--.js",

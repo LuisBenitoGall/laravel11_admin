@@ -401,10 +401,10 @@ export default function DropzoneGallery({
                     onChange={(e) => handleFiles(e.target.files)}
                 />
                 <div className="mb-2 pt-3">
-                    <strong>{__('imagenes_anadir')}</strong>
+                    <strong>{__('documentos_anadir')}</strong>
                     <br />
 
-                    <i className="la la-image fs-1 my-4"></i>
+                    <i className="la la-file fs-1 my-4"></i>
                 </div>
                 <div className="small text-muted pb-4">{__('imagenes_arrastrar_click')} (máx {maxFiles} archivos)</div>
             </div>

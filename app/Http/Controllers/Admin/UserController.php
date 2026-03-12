@@ -1064,7 +1064,7 @@ class UserController extends Controller{
         }
 
         // slug: si existe contacto CRM, estamos en contexto "contacts"
-        $slug = $crm_contact ? 'contacts' : 'users';
+        $slug = $crm_contact ? 'crm-contacts' : 'users';
 
         // Contexto ligero para el front
         $companyContext = (object) [
@@ -1146,7 +1146,7 @@ class UserController extends Controller{
         return \Inertia\Inertia::render('Admin/User/Edit', [
             'title'                 => __($this->option),
             'subtitle'              => $crm_contact? __('contacto_editar'):__('usuario_editar'),
-            'module'                => $this->module,
+            'module'                => $crm_contact? 'crm':$this->module,
             'slug'                  => $slug,
 
             'user'                  => $user,

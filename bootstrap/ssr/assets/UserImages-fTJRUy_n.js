@@ -346,9 +346,9 @@ function DropzoneGallery({
             }
           ),
           /* @__PURE__ */ jsxs("div", { className: "mb-2 pt-3", children: [
-            /* @__PURE__ */ jsx("strong", { children: __("imagenes_anadir") }),
+            /* @__PURE__ */ jsx("strong", { children: __("documentos_anadir") }),
             /* @__PURE__ */ jsx("br", {}),
-            /* @__PURE__ */ jsx("i", { className: "la la-image fs-1 my-4" })
+            /* @__PURE__ */ jsx("i", { className: "la la-file fs-1 my-4" })
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "small text-muted pb-4", children: [
             __("imagenes_arrastrar_click"),
