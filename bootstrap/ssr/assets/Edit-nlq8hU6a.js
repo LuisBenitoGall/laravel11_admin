@@ -806,7 +806,7 @@ function Index({
     ...profile === true ? [{ key: "user-password", label: __("contrasena") }] : [],
     { key: "user-addresses", label: __("direcciones") },
     // { key: 'user-categories', label: __('categorias') },
-    { key: "user-images", label: __("imagenes") },
+    { key: "user-images", label: __("documentos") },
     { key: "user-notes", label: __("notas") }
   ];
   return /* @__PURE__ */ jsxs(AdminAuthenticated, { user: auth.user, title, subtitle, actions, children: [
