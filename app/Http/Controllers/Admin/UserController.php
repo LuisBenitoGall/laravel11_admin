@@ -1098,8 +1098,11 @@ class UserController extends Controller{
             ->get();
 
         // Tratamientos y tipos de contacto
-        $salutations   = HasSalutation::comboOptions();
-        $contact_types = $slug === 'contacts' ? HasContactTypes::comboOptions() : [];
+        $salutations = HasSalutation::comboOptions();
+        // En el nuevo flujo, el slug para edición de contactos CRM es 'crm-contacts'
+        $contact_types = \in_array($slug, ['contacts', 'crm-contacts'], true)
+            ? HasContactTypes::comboOptions()
+            : [];
 
         // Subtipos de contacto (categorías de módulo users para la empresa en sesión)
         $contact_subtypes = Category::where('company_id', $currentCompanyId)
