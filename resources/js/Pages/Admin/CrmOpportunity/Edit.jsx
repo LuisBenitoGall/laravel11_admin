@@ -1,5 +1,5 @@
 import AdminAuthenticatedLayout from '@/Layouts/Admin/AdminAuthenticatedLayout';
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { Tooltip } from 'react-tooltip';
 import { useState } from 'react';
 import axios from 'axios';
@@ -19,6 +19,7 @@ import OpportunityStatusSelect from '@/Components/OpportunityStatusSelect';
 
 // Hooks:
 import { useTranslation } from '@/Hooks/useTranslation';
+import { useHandleDelete } from '@/Utils/useHandleDelete.jsx';
 
 export default function Index({ 
     auth, 
@@ -53,7 +54,7 @@ export default function Index({
     };
 
     //Confirmación de eliminación:
-    const { handleDelete } = useHandleDelete('iva_tipo', 'iva-types.destroy', [opportunity.id]);
+    const { handleDelete } = useHandleDelete('oportunidad', 'crm-opportunities.destroy', [opportunity.id]);
 
     //Envío formulario:
     function handleSubmit(e) {

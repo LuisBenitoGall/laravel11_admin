@@ -8,7 +8,7 @@ import "./TextInput-CzxrbIpp.js";
 import "sweetalert2";
 import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
 import { T as Tabs } from "./Tabs-CZO-HKNH.js";
-import MarketingCampaignInfoTab from "./MarketingCampaignInfoTab-CUEQNekb.js";
+import MarketingCampaignInfoTab from "./MarketingCampaignInfoTab-CU_bZ18n.js";
 import MarketingCampaignMembersTab from "./MarketingCampaignListsTab-D3pW5wKx.js";
 import "./Header-BVvoXjVe.js";
 import "react-bootstrap";

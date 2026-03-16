@@ -1,6 +1,6 @@
 import { jsxs, jsx } from "react/jsx-runtime";
 import { A as AdminAuthenticated } from "./AdminAuthenticatedLayout-MrkbgmVx.js";
-import { usePage, useForm, Head } from "@inertiajs/react";
+import { usePage, useForm, Head, router } from "@inertiajs/react";
 import "react-tooltip";
 import "react";
 import "./FileInput-U7oe6ye3.js";
@@ -12,6 +12,7 @@ import "draftjs-to-html";
 /* empty css                             */
 import "./TextInput-CzxrbIpp.js";
 import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
+import { u as useHandleDelete } from "./useHandleDelete-B2XtFf-J.js";
 import "@inertiajs/inertia";
 import "./Header-BVvoXjVe.js";
 import "react-bootstrap";
@@ -42,7 +43,7 @@ function Index({
     name: opportunity.name || "",
     status: opportunity.status
   });
-  const { handleDelete } = useHandleDelete("iva_tipo", "iva-types.destroy", [opportunity.id]);
+  useHandleDelete("oportunidad", "crm-opportunities.destroy", [opportunity.id]);
   function handleSubmit(e) {
     e.preventDefault();
     const formData = new FormData();

@@ -19,6 +19,8 @@ export default function MarketingCampaignInfoTab({
     const __ = useTranslation();
     const { showAlert } = useSweetAlert();
 
+    const params = updateParams ?? [campaign?.id];
+
     const { data, setData, post, processing, errors } = useForm({
         owner_id: campaign?.owner_id ?? '',
         name: campaign?.name ?? '',
@@ -29,6 +31,33 @@ export default function MarketingCampaignInfoTab({
         observations: campaign?.observations ?? '',
         _method: 'PUT',
     });
+
+    useEffect(() => {
+        setData({
+            owner_id: campaign?.owner_id ?? '',
+            name: campaign?.name ?? '',
+            slug: campaign?.slug ?? '',
+            type: campaign?.type ?? '',
+            is_dynamic: campaign?.is_dynamic ?? false,
+            status: campaign?.status ?? 1,
+            observations: campaign?.observations ?? '',
+            _method: 'PUT',
+        });
+    }, [campaign]);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+
+        post(route(updateRoute, params), {
+            preserveScroll: true,
+            onSuccess: () => {
+                showAlert(__('Éxito'), __('La campaña se ha actualizado correctamente.'), 'success');
+            },
+            onError: () => {
+                showAlert(__('Error'), __('Se ha producido un error al actualizar la campaña.'), 'error');
+            },
+        });
+    };
 
     return (
         <form onSubmit={handleSubmit}>
