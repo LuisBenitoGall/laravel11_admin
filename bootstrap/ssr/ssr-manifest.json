@@ -116,8 +116,7 @@
     "/build/assets/Index-C2ZNKeVu.js"
   ],
   "resources/js/Components/OpportunityStatusSelect.jsx": [
-    "/build/assets/Create-_cy-CtQG.js",
-    "/build/assets/react-draft-wysiwyg-B0OUxWBp.css"
+    "/build/assets/OpportunityStatusSelect-DpuaHxuk.js"
   ],
   "resources/js/Components/Pagination.jsx": [
     "/build/assets/useTableManagement-_Ugox1d5.js"
@@ -473,11 +472,11 @@
     "/build/assets/react-datepicker-Do_pkREf.css"
   ],
   "resources/js/Pages/Admin/CrmOpportunity/Create.jsx": [
-    "/build/assets/Create-_cy-CtQG.js",
+    "/build/assets/Create-Diw37Bo3.js",
     "/build/assets/react-draft-wysiwyg-B0OUxWBp.css"
   ],
   "resources/js/Pages/Admin/CrmOpportunity/Edit.jsx": [
-    "/build/assets/Edit-DMeshaiH.js",
+    "/build/assets/Edit-BRPvjCJn.js",
     "/build/assets/react-draft-wysiwyg-B0OUxWBp.css"
   ],
   "resources/js/Pages/Admin/CrmOpportunity/Index.jsx": [

@@ -531,6 +531,7 @@ Route::middleware(['web', 'auth', 'company', 'current_company'])->prefix('admin'
         Route::get('crm-opportunities/{opportunity}/show', [CrmOpportunityController::class, 'show'])->name('crm-opportunities.show');
         Route::get('crm-opportunities/{opportunity}/edit/{tab?}', [CrmOpportunityController::class, 'edit'])->name('crm-opportunities.edit')->middleware('permission:crm-opportunities.edit');
         Route::put('crm-opportunities/{opportunity}', [CrmOpportunityController::class, 'update'])->name('crm-opportunities.update')->middleware('permission:crm-opportunities.update');
+        Route::delete('crm-opportunities/{opportunity}', [CrmOpportunityController::class, 'destroy'])->name('crm-opportunities.destroy')->middleware('permission:crm-opportunities.destroy');
     });
 
     //Currencies:

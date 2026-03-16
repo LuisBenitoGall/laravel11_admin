@@ -127,15 +127,16 @@ export default function Index({
                         {/* Usuario responsable (user_id) con autocomplete */}
                         <div className="col-lg-6">
                             <UserSearch
-                                label={__('contacto')}
+                                label={__('contacto') + '*'}
                                 name="user_id"
                                 searchUrl={route('users.search')}
                                 value={null} // en edición ya pasarás el usuario
                                 onChange={(user) => setData('user_id', user ? user.id : null)}
                                 placeholder={__('usuario_buscar')}
                                 error={errors.user_id}
+                                extraParams={{ for_crm_link: 1 }}
+                                required
                             />
-                            <InputError message={errors.user_id} />
                         </div>
 
                         {/* Cuenta / CRM Account */}

@@ -23,8 +23,8 @@ use App\Models\CrmAccount;
 use App\Models\Company;
 use App\Models\CrmContact;
 use App\Models\CrmOpportunity;
+use App\Models\User;
 use App\Models\UserColumnPreference;
-
 //Requests:
 use App\Http\Requests\CrmOpportunityFilterRequest;
 use App\Http\Requests\CrmOpportunityStoreRequest;
@@ -296,6 +296,15 @@ class CrmOpportunityController extends Controller
         $opportunity->formatted_created_at = Carbon::parse($opportunity->created_at)->format($locale[4].' H:i:s');
         $opportunity->formatted_updated_at = Carbon::parse($opportunity->updated_at)->format($locale[4].' H:i:s');
 
+        // Nombre completo del contacto (usuario vinculado a la oportunidad)
+        $contactName = null;
+        if ($opportunity->user_id) {
+            $contactUser = User::select('name', 'surname')->find($opportunity->user_id);
+            if ($contactUser) {
+                $contactName = trim(($contactUser->name ?? '') . ' ' . ($contactUser->surname ?? ''));
+            }
+        }
+
         $crmAccounts = CrmAccount::select('id', 'name')
         ->where('company_id', $currentCompanyId)
         ->where('status', 1)
@@ -308,6 +317,7 @@ class CrmOpportunityController extends Controller
             "module" => $this->module,
             "slug" => 'crm-opportunities',
             "opportunity" => $opportunity,
+            "contactName" => $contactName,
             "crmAccounts" => $crmAccounts,
             "availableLocales" => LocaleTrait::availableLocales(),
             "permissions" => $this->permissions
@@ -317,7 +327,67 @@ class CrmOpportunityController extends Controller
     /**
      * 5. Actualizar oportunidad.
      */
-    public function update(){
+    public function update(CrmOpportunityUpdateRequest $request, CrmOpportunity $opportunity)
+    {
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if ($currentCompanyId <= 0) {
+            $url = route('companies.refresh-session');
 
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
+
+        if ($opportunity->company_id !== $currentCompanyId) {
+            abort(403);
+        }
+
+        $opportunity->name = $request->name;
+        // El contacto (user_id) no se modifica en edición
+        $opportunity->crm_account_id = $request->crm_account_id;
+        $opportunity->observations = $request->observations;
+        $opportunity->status = $request->status;
+        $opportunity->save();
+
+        return redirect()
+            ->route('crm-opportunities.edit', $opportunity->id)
+            ->with('msg', __('oportunidad_actualizada_msg'));
+    }
+
+    /**
+     * 6. Eliminar oportunidad.
+     */
+    public function destroy(CrmOpportunity $opportunity)
+    {
+        $ctx = app(CompanyContext::class);
+        $currentCompanyId = (int) $ctx->id();
+        if ($currentCompanyId <= 0) {
+            $url = route('companies.refresh-session');
+
+            session(['intended_after_company' => request()->fullUrl()]);
+            session()->flash('alert', __('empresa_no_activa'));
+
+            if (request()->header('X-Inertia')) {
+                return \Inertia\Inertia::location($url);
+            }
+
+            return redirect($url);
+        }
+
+        if ($opportunity->company_id !== $currentCompanyId) {
+            abort(403);
+        }
+
+        $opportunity->delete();
+
+        return redirect()
+            ->route('crm-opportunities.index')
+            ->with('msg', __('oportunidad_eliminada_msg'));
     }
 }
