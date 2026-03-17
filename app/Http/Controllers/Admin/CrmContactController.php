@@ -149,7 +149,7 @@ class CrmContactController extends Controller{
             "slug"                => $slug,
             "table"               => [
                 'id'                    => 'tblContacts',
-                'rows'                  => UserResource::collection($contacts),
+                'rows'                  => UserResource::collection($contacts, 'crm-contact'),
                 'meta'                  => $contacts->toArray()['meta'] ?? null, // o el meta que ya mandas
                 'queryParams'           => request()->query() ?: [],
                 'permissions'           => $this->permissions,
@@ -198,7 +198,7 @@ class CrmContactController extends Controller{
         });
 
         return response()->json([
-            'rows' => UserResource::collection($users),
+            'rows' => UserResource::collection($users, 'crm-contact'),
         ]);
     }
 

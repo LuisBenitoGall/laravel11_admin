@@ -5,6 +5,8 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Carbon\Carbon;
+use App\Models\CrmAccount;
+use Illuminate\Support\Facades\Storage;
 
 // Concerns:
 use App\Concerns\HasContactTypes;
@@ -16,6 +18,20 @@ use App\Traits\LocaleTrait;
 class UserResource extends JsonResource
 {
     use LocaleTrait;
+
+    protected static string $origin = 'user';
+
+    /**
+     * Permite indicar desde qué contexto se construye la colección.
+     * - 'user'        → listado de usuarios (UserController)
+     * - 'crm-contact' → listado de contactos CRM (CrmContactController)
+     */
+    public static function collection($resource, string $origin = 'user')
+    {
+        self::$origin = $origin;
+
+        return parent::collection($resource);
+    }
 
     /**
      * 1. Array usuarios.
@@ -70,7 +86,7 @@ class UserResource extends JsonResource
             'isAdmin'   => $this->isAdmin,
 
             'avatar' => $this->avatar && $this->avatar->image
-                ? \Storage::url('users/'.$this->avatar->image)
+                ? Storage::url('users/'.$this->avatar->image)
                 : null,
 
             'phones_count' => $this->phones->count(),
@@ -92,6 +108,25 @@ class UserResource extends JsonResource
             'contact_subtype' => $contactSubtypeName,
 
             'companies' => $this->whenLoaded('companies', function () {
+                // Contexto: listado de contactos CRM → devolvemos cuentas CRM asociadas
+                if (self::$origin === 'crm-contact') {
+                    return $this->companies->map(function ($company) {
+                        $account = CrmAccount::where('linked_company_id', $company->id)->first();
+
+                        if (! $account) {
+                            // Sin vínculo de cuenta, no devolvemos nada para esta empresa
+                            return null;
+                        }
+
+                        return [
+                            'id'   => $account->id,
+                            'name' => $account->name,
+                            'link' => route('crm-accounts.edit', $account->id),
+                        ];
+                    })->filter()->values();
+                }
+
+                // Contexto por defecto: listado de usuarios → empresas vinculadas
                 return $this->companies->map(function ($company) {
                     return [
                         'id'   => $company->id,

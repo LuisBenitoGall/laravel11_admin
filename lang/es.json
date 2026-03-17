@@ -855,6 +855,7 @@
     "oportunidad_actualizada_msg": "La oportunidad se ha actualizado correctamente.",
     "oportunidad_creada_msg": "La oportunidad se ha creado correctamente.",
     "oportunidad_editar": "Editar oportunidad",
+    "oportunidad_eliminada_msg": "La oportunidad ha sido eliminada correctamente.",
     "oportunidad_eliminar": "Eliminar oportunidad",
     "oportunidad_eliminar_confirm": "Confirma que deseas eliminar esta oportunidad",
     "oportunidad_en_proceso": "Oportunidad en proceso",
