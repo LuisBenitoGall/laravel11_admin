@@ -43,7 +43,6 @@ export default function TableUsers({
     /** Id de la cuenta CRM desde la que se editó (para "Volver a la cuenta X"); se añade como ?from_account= */
     editFromAccountId = null,
 }) {
-    console.log(entityName)
     const __ = useTranslation();
     const queryParams = (typeof rawQueryParams === 'object' && rawQueryParams !== null) ? rawQueryParams : {};
 
@@ -52,7 +51,10 @@ export default function TableUsers({
     const [showPanelOpen, setShowPanelOpen] = useState(false);
 
     const handleShowRegister = (user) => {
-        setShowId(user.id);
+        // Mismo criterio que el enlace "editar": user_id es el id del User cuando
+        // id es el pivot/relation (p. ej. user_companies en CompanyUsersTab / crm-accounts).
+        const showUserId = user.user_id ?? user.id;
+        setShowId(showUserId);
         setShowPanelOpen(true);
     };
 

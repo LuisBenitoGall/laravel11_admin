@@ -4,14 +4,13 @@ import { usePage, useForm, Head } from "@inertiajs/react";
 import "@inertiajs/inertia";
 import "react-tooltip";
 import { useState } from "react";
-import { C as CategoryAssigner } from "./CategoryAssigner-771-XyNo.js";
 import { T as Tabs } from "./Tabs-CZO-HKNH.js";
 import "./TextInput-CzxrbIpp.js";
 import { u as useSweetAlert } from "./useSweetAlert-D4PAsWYN.js";
 import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
 import { M as ModalUserCreate } from "./ModalUserCreate-D5YDdXQl.js";
 import CompanyInfoTab from "./CompanyInfoTab-BDtYKjWE.js";
-import CompanyUsersTab from "./CompanyUsersTab-CRe2osz8.js";
+import CompanyUsersTab from "./CompanyUsersTab-Ce83IjQW.js";
 import "./Header-BVvoXjVe.js";
 import "react-bootstrap";
 import "sweetalert2";
@@ -21,11 +20,11 @@ import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "./NavLink-k73-0cwm.js";
 import "./Dropdown-DLZR1XDp.js";
 import "@headlessui/react";
-import "./InputError-DME5vguS.js";
 import "./DatePickerToForm-DlY2BJGL.js";
 import "react-datepicker";
 /* empty css                          */
 import "date-fns/locale";
+import "./InputError-DME5vguS.js";
 import "./ModalTemplate-BiHkGcpB.js";
 import "./SelectInput-DrqFt-OA.js";
 import "./UserSearch-Bn5gVs5d.js";
@@ -33,7 +32,7 @@ import "./FileInput-U7oe6ye3.js";
 import "./InfoPopover-CwWEvwXq.js";
 import "./ManagePhones-LdkmCbcO.js";
 import "./PrimaryButton-CIbKPOjQ.js";
-import "./TableUsers-CESvbges.js";
+import "./TableUsers-fNwYNqE9.js";
 import "./useTableManagement-_Ugox1d5.js";
 import "date-fns";
 import "./ShowRegister-ChxyE8YT.js";
@@ -48,7 +47,7 @@ function Index({
   session,
   title,
   subtitle,
-  customer,
+  provider,
   relation,
   users,
   rows,
@@ -66,7 +65,7 @@ function Index({
   const permissions = props.permissions || {};
   const [activeTab, setActiveTab] = useState(tab || "info");
   const { data, setData, errors, processing } = useForm({
-    name: customer.name || "",
+    name: provider.name || "",
     status: relation.status
   });
   const [showModalUserCreate, setShowModalUserCreate] = useState(false);
@@ -75,19 +74,19 @@ function Index({
   const handleCloseModalUserCreate = () => setShowModalUserCreate(false);
   const refreshUsersTable = () => setRefreshKey((prev) => prev + 1);
   const actions = [];
-  if (permissions == null ? void 0 : permissions["customers.index"]) {
+  if (permissions == null ? void 0 : permissions["providers.index"]) {
     actions.push({
-      text: __("clientes_volver"),
+      text: __("proveedores_volver"),
       icon: "la-angle-left",
-      url: "customers.index",
+      url: "providers.index",
       modal: false
     });
   }
-  if (permissions == null ? void 0 : permissions["customers.create"]) {
+  if (permissions == null ? void 0 : permissions["providers.create"]) {
     actions.push({
-      text: __("cliente_nuevo"),
+      text: __("proveedor_nuevo"),
       icon: "la-plus",
-      url: "customers.create",
+      url: "providers.create",
       modal: false
     });
   }
@@ -105,7 +104,7 @@ function Index({
       text: __("centros_trabajo"),
       icon: "la-map-marker-alt",
       url: "workplaces.index",
-      params: [customer.id],
+      params: [provider.id],
       modal: false
     });
   }
@@ -114,35 +113,22 @@ function Index({
       text: __("centros_coste"),
       icon: "la-comment-dollar",
       url: "cost-centers.index",
-      params: [customer.id],
+      params: [provider.id],
       modal: false
     });
   }
-  if (permissions == null ? void 0 : permissions["customers.destroy"]) {
+  if (permissions == null ? void 0 : permissions["providers.destroy"]) {
     actions.push({
       text: __("eliminar"),
       icon: "la-trash",
       method: "delete",
-      url: "customers.destroy",
+      url: "providers.destroy",
       params: [relation.id],
-      title: __("cliente_eliminar"),
-      message: __("cliente_eliminar_confirm"),
+      title: __("proveedor_eliminar"),
+      message: __("proveedor_eliminar_confirm"),
       modal: false
     });
   }
-  const envForCategories = "sectors";
-  const categoryEndpoints = {
-    list: route("categorizables.list"),
-    // GET  ?environment=&type=&id=
-    assign: route("categorizables.assign"),
-    // POST body {environment,type,id,category_ids}
-    unassign: route("categorizables.unassign"),
-    // POST body {environment,type,id,category_ids}
-    tree: route("categories.tree", { environment: envForCategories }),
-    // GET  ?environment=
-    create: route("categories.store", { environment: envForCategories })
-    // POST body {environment,name,parent_id?}
-  };
   return /* @__PURE__ */ jsxs(
     AdminAuthenticated,
     {
@@ -155,9 +141,9 @@ function Index({
         /* @__PURE__ */ jsxs("div", { className: "contents pb-4", children: [
           /* @__PURE__ */ jsxs("div", { className: "row", children: [
             /* @__PURE__ */ jsx("div", { className: "col-12", children: /* @__PURE__ */ jsxs("h2", { children: [
-              __("cliente"),
+              __("proveedor"),
               " ",
-              /* @__PURE__ */ jsx("u", { children: customer.name })
+              /* @__PURE__ */ jsx("u", { children: provider.name })
             ] }) }),
             /* @__PURE__ */ jsxs("div", { className: "col-12 mt-2 mb-4", children: [
               /* @__PURE__ */ jsxs("span", { className: "text-muted me-5", children: [
@@ -182,10 +168,10 @@ function Index({
                   content: /* @__PURE__ */ jsx(
                     CompanyInfoTab,
                     {
-                      company: customer,
-                      side: "customers",
+                      company: provider,
+                      side: "providers",
                       updateRoute: "companies.update",
-                      updateParams: [customer.id]
+                      updateParams: [provider.id]
                     }
                   )
                 },
@@ -197,26 +183,11 @@ function Index({
                     {
                       users: users ?? null,
                       rows: rows ?? [],
-                      indexRoute: "customers.edit",
-                      indexParams: customer.id,
+                      indexRoute: "providers.edit",
+                      indexParams: provider.id,
                       tableId: "tblCompanyUsers"
                     }
                   )
-                },
-                {
-                  key: "categories",
-                  label: __("categorias"),
-                  content: /* @__PURE__ */ jsx("div", { className: "mt-3", children: /* @__PURE__ */ jsx(
-                    CategoryAssigner,
-                    {
-                      environment: envForCategories,
-                      categorizable: { type: "App\\Models\\Company", id: customer.id },
-                      endpoints: categoryEndpoints,
-                      title: __("sectores"),
-                      allowCreate: true,
-                      readOnly: false
-                    }
-                  ) })
                 }
               ],
               defaultActive: tab
@@ -228,8 +199,8 @@ function Index({
               show: showModalUserCreate,
               onClose: handleCloseModalUserCreate,
               onCreate: refreshUsersTable,
-              companyId: customer.id,
-              side: "customers",
+              companyId: provider.id,
+              side: "providers",
               salutations,
               contact_subtypes,
               contact_types: []

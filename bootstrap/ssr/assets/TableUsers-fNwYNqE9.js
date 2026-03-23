@@ -35,13 +35,13 @@ function TableUsers({
   /** Id de la cuenta CRM desde la que se editó (para "Volver a la cuenta X"); se añade como ?from_account= */
   editFromAccountId = null
 }) {
-  console.log(entityName);
   const __ = useTranslation();
   const queryParams = typeof rawQueryParams === "object" && rawQueryParams !== null ? rawQueryParams : {};
   const [showId, setShowId] = useState(null);
   const [showPanelOpen, setShowPanelOpen] = useState(false);
   const handleShowRegister = (user) => {
-    setShowId(user.id);
+    const showUserId = user.user_id ?? user.id;
+    setShowId(showUserId);
     setShowPanelOpen(true);
   };
   const handleCloseShowPanel = () => {

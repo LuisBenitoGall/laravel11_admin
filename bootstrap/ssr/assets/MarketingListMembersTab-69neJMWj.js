@@ -1,7 +1,7 @@
 import { jsx } from "react/jsx-runtime";
 import { useMemo } from "react";
 import { usePage } from "@inertiajs/react";
-import { T as TableUsers } from "./TableUsers-CESvbges.js";
+import { T as TableUsers } from "./TableUsers-fNwYNqE9.js";
 import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
 import "react-bootstrap";
 import "./useTableManagement-_Ugox1d5.js";
@@ -21,34 +21,29 @@ import "./StatusButton-DfO41WfJ.js";
 import "./UserShowView-BriFAEee.js";
 import "./ManagePhones-LdkmCbcO.js";
 import "./renderCellContent-DkxoXe9S.js";
-function CompanyUsersTab({
+function MarketingListMembersTab({
   users: usersProp = null,
   rows: rowsProp = null,
-  tableId = "tblCompanyUsers",
+  tableId = "tblMarketingListMembers",
   indexRoute = "",
   indexParams = void 0,
   filteredDataRoute = "",
   entityName = "users",
-  userEditCompanyId = null,
-  deleteUserRoute = "user-companies.destroy",
-  editFromAccountId = null
+  userEditCompanyId = null
 }) {
-  var _a, _b, _c, _d;
+  var _a;
   const __ = useTranslation();
   const pageProps = ((_a = usePage()) == null ? void 0 : _a.props) || {};
-  const editCtxId = userEditCompanyId ?? ((_b = pageProps == null ? void 0 : pageProps.crm_account) == null ? void 0 : _b.linked_company_id) ?? ((_c = pageProps == null ? void 0 : pageProps.company) == null ? void 0 : _c.id) ?? null;
-  const users = usersProp ?? pageProps.users ?? ((_d = pageProps.company) == null ? void 0 : _d.users) ?? { data: [], meta: { links: [], total: 0, current_page: 1, per_page: 10 } };
+  const users = usersProp ?? pageProps.users ?? null;
   const rows = useMemo(() => {
     if (Array.isArray(rowsProp)) return rowsProp;
     if (Array.isArray(pageProps.rows)) return pageProps.rows;
-    const list = Array.isArray(users == null ? void 0 : users.data) ? users.data : Array.isArray(users) ? users : [];
-    return list.map((u) => {
+    const source = Array.isArray(users == null ? void 0 : users.data) ? users.data : Array.isArray(users) ? users : [];
+    return source.map((u) => {
       const phones = Array.isArray(u.phones) ? u.phones : [];
       const primary = phones.find((p) => p.is_primary) ?? phones[0] ?? null;
-      const relationId = u.user_company_id ?? u.pivot_id ?? (u.pivot && typeof u.pivot.id !== "undefined" ? u.pivot.id : null) ?? u.id;
       return {
-        id: relationId,
-        user_id: u.id,
+        id: u.id,
         name: [u.name, u.surname].filter(Boolean).join(" "),
         position: u.position ?? null,
         email: u.email ?? null,
@@ -65,6 +60,7 @@ function CompanyUsersTab({
       };
     });
   }, [rowsProp, pageProps.rows, users]);
+  const editCtxId = userEditCompanyId;
   return /* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx(
     TableUsers,
     {
@@ -76,10 +72,11 @@ function CompanyUsersTab({
       indexParams,
       filteredDataRoute,
       entityName,
-      disablePagination: true,
+      destroyRoute: "marketing-list-users.destroy",
+      rowDeleteKey: "mlu_id",
+      disablePagination: false,
       userEditCompanyId: editCtxId,
-      deleteUserRoute,
-      editFromAccountId,
+      labelName: "miembros",
       i18n: {
         name: __("nombre"),
         position: __("puesto"),
@@ -94,5 +91,5 @@ function CompanyUsersTab({
   ) });
 }
 export {
-  CompanyUsersTab as default
+  MarketingListMembersTab as default
 };
