@@ -724,14 +724,15 @@ class UserController extends Controller{
             return redirect()->route($request->redirect_to, $params)->with('msg', __('usuario_creado_msg'));
         }
 
-        if ($request->side == 'customers') {
-            return redirect()->route('customers.edit', [$companyId, 'users'])->with('msg', __('usuario_creado_msg'));
-        }
-        if ($request->side == 'providers') {
-            return redirect()->route('providers.edit', [$companyId, 'users'])->with('msg', __('usuario_creado_msg'));
-        }
+        // if ($request->side == 'customers') {
+        //     return redirect()->route('customers.edit', [$companyId, 'users'])->with('msg', __('usuario_creado_msg'));
+        // }
+        // if ($request->side == 'providers') {
+        //     return redirect()->route('providers.edit', [$companyId, 'users'])->with('msg', __('usuario_creado_msg'));
+        // }
         if ($request->side == 'crm-accounts') {
-            return redirect()->route('users.contacts')->with('msg', __('usuario_creado_msg'));
+            //return redirect()->route('users.contacts')->with('msg', __('usuario_creado_msg'));
+            return redirect()->route('crm-contacts.index')->with('msg', __('usuario_creado_msg'));
         }
 
         return redirect()->route('users.edit', $user)->with('msg', __('usuario_creado_msg'));
@@ -1344,8 +1345,9 @@ class UserController extends Controller{
 
         $user->delete();
 
-        // Redirigir a la vista anterior (p. ej. índice de contactos CRM o de usuarios)
-        return redirect()->back()->with('msg', __('usuario_eliminado'));
+        return redirect()
+            ->route('crm-contacts.index')
+            ->with('msg', __('usuario_eliminado'));
     }
 
     /**
