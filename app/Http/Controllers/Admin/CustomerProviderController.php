@@ -758,7 +758,9 @@ class CustomerProviderController extends Controller{
             $salutation = $u->salutation? HasSalutation::salutationAbbrOf($u->salutation):'';
 
             return [
-                'id'            => $u->id,
+                // id = user_companies.id para user-companies.destroy (route model binding {uc})
+                'id'            => $u->user_company_id,
+                'user_id'       => $u->id,
                 'name'          => $salutation.' '.ucwords($u->name).' '.ucwords($u->surname),
                 'position'      => $u->position,
                 'created_at'    => Carbon::parse($u->created_at)->format($locale[4]),
@@ -849,7 +851,8 @@ class CustomerProviderController extends Controller{
             $salutation = $u->salutation? HasSalutation::salutationAbbrOf($u->salutation):'';
 
             return [
-                'id'            => $u->id,
+                'id'            => $u->user_company_id,
+                'user_id'       => $u->id,
                 'name'          => $salutation.' '.ucwords($u->name).' '.ucwords($u->surname),
                 'position'      => $u->position,
                 'created_at'    => Carbon::parse($u->created_at)->format($locale[4]),

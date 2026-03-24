@@ -30,7 +30,12 @@ function TableUsers({
   disablePagination = false,
   // NUEVO: desactiva paginación para uso en tabs
   userEditCompanyId = null,
-  deleteUserRoute = "user-companies.destroy",
+  /**
+   * Ruta DELETE para desvincular la fila (pivot/lista/contacto). Si no se pasa, se usa `destroyRoute`.
+   * Debe ser `undefined` por defecto: si tuviera el mismo valor por defecto que `destroyRoute`,
+   * `deleteUserRoute ?? destroyRoute` ignoraría siempre `destroyRoute` (p. ej. marketing-list-users).
+   */
+  deleteUserRoute = void 0,
   rowDeleteKey = "id",
   /** Id de la cuenta CRM desde la que se editó (para "Volver a la cuenta X"); se añade como ?from_account= */
   editFromAccountId = null

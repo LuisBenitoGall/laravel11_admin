@@ -43,7 +43,17 @@ class UserCompany extends Model{
      * 2. Usuarios por empresa.
      */
     public static function usersByCompany($company_id){
-        return User::select('users.id', 'users.name', 'users.surname', 'users.salutation', 'users.created_at', 'users.email', 'user_companies.position', 'user_companies.department')
+        return User::select(
+            'users.id',
+            'user_companies.id as user_company_id',
+            'users.name',
+            'users.surname',
+            'users.salutation',
+            'users.created_at',
+            'users.email',
+            'user_companies.position',
+            'user_companies.department'
+        )
         ->join('user_companies', 'user_companies.user_id', '=', 'users.id')
         ->where('user_companies.company_id', $company_id)
         ->with(['phones' => fn($q) => $q

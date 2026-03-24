@@ -1,7 +1,7 @@
 import { jsx } from "react/jsx-runtime";
 import { useMemo } from "react";
 import { usePage } from "@inertiajs/react";
-import { T as TableUsers } from "./TableUsers-fNwYNqE9.js";
+import { T as TableUsers } from "./TableUsers-CPfEC2Zr.js";
 import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
 import "react-bootstrap";
 import "./useTableManagement-_Ugox1d5.js";
