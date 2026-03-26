@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
-use Illuminate\Support\Uri;
 use App\Support\CompanyContext;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -398,23 +397,24 @@ class MarketingListController extends Controller
         $list->updated_by    = $userId;
         $list->save();
 
-        // Filtros con los que estabas viendo crm-contacts (solo datos serializables a query string)
+        // Filtros del listado de contactos: JSON → array; solo claves de primer nivel string
+        // (evita índices numéricos que Laravel interpreta mal en route()).
         $redirectFilters = $this->sanitizeRedirectFiltersForQuery($data['redirect_filters'] ?? []);
 
-        $query = array_merge($redirectFilters, [
+        $merged = array_merge($redirectFilters, [
             'marketing_list_id'    => $list->id,
             'build_marketing_list' => 1,
         ]);
 
-        // route(..., $query) puede fallar si quedan claves/valores no aptos para el generador;
-        // construimos la query con Uri::withQuery + Arr::query (misma base que el front).
-        $url = (string) Uri::route('crm-contacts.index')->withQuery($query, false);
-
-        return redirect($url)->with('msg', __('lista_creada_msg'));
+        return redirect()
+            ->route('crm-contacts.index', $merged)
+            ->with('msg', __('lista_creada_msg'));
     }
 
     /**
-     * Normaliza filtros enviados desde el front (JSON) para poder volcarlos a la query del redirect.
+     * Normaliza filtros enviados desde el front (JSON) para el query del redirect.
+     * Solo se conservan entradas con clave string en el primer nivel; el resto se ignora.
+     * Las claves anidadas (p. ej. adhoc) se mantienen tal cual.
      *
      * @param  mixed  $filters
      * @return array<string, mixed>
@@ -431,8 +431,19 @@ class MarketingListController extends Controller
         }
 
         $decoded = json_decode($encoded, true);
+        if (! is_array($decoded)) {
+            return [];
+        }
 
-        return is_array($decoded) ? $decoded : [];
+        $out = [];
+        foreach ($decoded as $key => $value) {
+            if (! is_string($key)) {
+                continue;
+            }
+            $out[$key] = $value;
+        }
+
+        return $out;
     }
 
     /**
