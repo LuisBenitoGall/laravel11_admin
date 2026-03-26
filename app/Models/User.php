@@ -206,12 +206,8 @@ class User extends Authenticatable implements MustVerifyEmail{
     }
 
     /**
-     * 11. Categorías de usuario.
+     * 11. Categorías de usuario — ver HasCategories::categories() (pivote categorizables con company_id).
      */
-    public function categories()
-    {
-        return $this->morphToMany(Category::class, 'categorizable');
-    }
 
     /**
      * Centros de coste vinculados (vía user_cost_centers).

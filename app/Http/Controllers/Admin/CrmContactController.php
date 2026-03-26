@@ -1152,7 +1152,9 @@ class CrmContactController extends Controller{
                         ->where('slug', $contactSubtypeSlug)
                         ->first();
                     if ($subtypeCategory !== null) {
-                        $user->categories()->syncWithoutDetaching([$subtypeCategory->id]);
+                        $user->categories()->syncWithoutDetaching([
+                            $subtypeCategory->id => ['company_id' => $currentCompanyId],
+                        ]);
                     }
                 }
 

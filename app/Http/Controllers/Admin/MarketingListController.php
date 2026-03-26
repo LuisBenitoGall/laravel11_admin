@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
+use Illuminate\Support\Uri;
 use App\Support\CompanyContext;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -397,25 +398,41 @@ class MarketingListController extends Controller
         $list->updated_by    = $userId;
         $list->save();
 
-        // Filtros con los que estabas viendo crm-contacts
-        $redirectFilters = $data['redirect_filters'] ?? [];
-        if (!is_array($redirectFilters)) {
-            $redirectFilters = [];
+        // Filtros con los que estabas viendo crm-contacts (solo datos serializables a query string)
+        $redirectFilters = $this->sanitizeRedirectFiltersForQuery($data['redirect_filters'] ?? []);
+
+        $query = array_merge($redirectFilters, [
+            'marketing_list_id'    => $list->id,
+            'build_marketing_list' => 1,
+        ]);
+
+        // route(..., $query) puede fallar si quedan claves/valores no aptos para el generador;
+        // construimos la query con Uri::withQuery + Arr::query (misma base que el front).
+        $url = (string) Uri::route('crm-contacts.index')->withQuery($query, false);
+
+        return redirect($url)->with('msg', __('lista_creada_msg'));
+    }
+
+    /**
+     * Normaliza filtros enviados desde el front (JSON) para poder volcarlos a la query del redirect.
+     *
+     * @param  mixed  $filters
+     * @return array<string, mixed>
+     */
+    private function sanitizeRedirectFiltersForQuery(mixed $filters): array
+    {
+        if (! is_array($filters)) {
+            return [];
         }
 
-        // Si quieres *siempre* empezar en la página 1, descomenta esto:
-        // unset($redirectFilters['page']);
+        $encoded = json_encode($filters);
+        if ($encoded === false || $encoded === '') {
+            return [];
+        }
 
-        // Redirigimos al índice de contactos en modo "construir lista" + filtros originales
-        return redirect()
-            ->route('crm-contacts.index', array_merge(
-                $redirectFilters,
-                [
-                    'marketing_list_id'    => $list->id,
-                    'build_marketing_list' => 1,
-                ]
-            ))
-            ->with('msg', __('lista_creada_msg'));
+        $decoded = json_decode($encoded, true);
+
+        return is_array($decoded) ? $decoded : [];
     }
 
     /**
@@ -663,7 +680,7 @@ class MarketingListController extends Controller
         $list->name = $request->name;
         $list->slug = $slug;
         $list->observations = $request->observations;
-        $list->status = $status;
+        $list->status = $request->boolean('status') ? 1 : 0;
         $list->updated_by = Auth::id();
         $list->save();
 
