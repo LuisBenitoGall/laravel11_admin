@@ -27,6 +27,10 @@ class BrevoMarketingService
     /**
      * Crea o actualiza la lista remota en Brevo
      * y guarda brevo_list_id / brevo_folder_id en el modelo.
+     *
+     * - Si la lista ya existe en CRM con brevo_list_id: PUT nombre (sobrescritura del título en Brevo).
+     * - Si la lista fue borrada en Brevo (404) o no coincide: se limpia brevo_list_id y se crea de nuevo
+     *   o se reutiliza una lista del mismo nombre en la carpeta (evita duplicados en Brevo).
      */
     public function ensureRemoteList(MarketingList $list): MarketingList
     {
@@ -34,79 +38,159 @@ class BrevoMarketingService
             throw new \RuntimeException('Brevo API key not configured.');
         }
 
-        // 1) Asegurar carpeta remota
         $this->ensureRemoteFolder($list);
+        $list->refresh();
 
-        // 2) Si ya tiene lista en Brevo, opcionalmente actualizamos nombre y salimos
+        $remoteName = $this->buildRemoteListName($list);
+
+        // 1) Ya tenemos ID remoto: actualizar nombre; si la lista ya no existe, recrear/re-enlazar
         if ($list->brevo_list_id) {
-            try {
-                $payload = [
-                    'name' => $this->buildRemoteListName($list),
-                    // normalmente no hace falta tocar folderId al actualizar
-                ];
-
-                $response = $this->client()
-                    ->put($this->url("/contacts/lists/{$list->brevo_list_id}"), $payload);
-
-                if ($response->failed()) {
-                    Log::warning('Brevo: error updating list name', [
-                        'list_id'   => $list->id,
-                        'brevo_id'  => $list->brevo_list_id,
-                        'status'    => $response->status(),
-                        'body'      => $response->body(),
-                    ]);
-                }
-            } catch (Throwable $e) {
-                Log::error('Brevo: exception updating list', [
-                    'list_id'  => $list->id,
-                    'brevo_id' => $list->brevo_list_id,
-                    'error'    => $e->getMessage(),
+            $put = $this->client()
+                ->put($this->url("/contacts/lists/{$list->brevo_list_id}"), [
+                    'name' => $remoteName,
                 ]);
+
+            if ($put->successful()) {
+                $list->brevo_sync_status = 'ok';
+                $list->brevo_sync_error = null;
+                $list->save();
+
+                return $list;
             }
 
-            return $list;
+            $gone = in_array($put->status(), [404, 410], true);
+
+            if ($gone) {
+                Log::info('Brevo: lista remota inexistente, se vuelve a crear o enlazar', [
+                    'crm_list_id' => $list->id,
+                    'brevo_list_id' => $list->brevo_list_id,
+                    'status' => $put->status(),
+                ]);
+                $list->brevo_list_id = null;
+                $list->save();
+                $list->refresh();
+            } else {
+                Log::warning('Brevo: error al actualizar lista remota', [
+                    'list_id' => $list->id,
+                    'brevo_id' => $list->brevo_list_id,
+                    'status' => $put->status(),
+                    'body' => $put->body(),
+                ]);
+                // Seguimos: puede que el sync de contactos funcione igualmente
+                return $list;
+            }
         }
 
-        // 3) Crear lista en Brevo con folderId obligatorio
-        $payload = [
-            'name'     => $this->buildRemoteListName($list),
-            'folderId' => $list->brevo_folder_id, // aquí ya no es null gracias a ensureRemoteFolder
-        ];
+        // 2) Crear lista en Brevo o enlazar una ya existente en la misma carpeta (mismo nombre)
+        if (! $list->brevo_list_id) {
+            $payload = [
+                'name' => $remoteName,
+                'folderId' => $list->brevo_folder_id,
+            ];
 
-        try {
-            $response = $this->client()
-                ->post($this->url('/contacts/lists'), $payload);
+            try {
+                $response = $this->client()
+                    ->post($this->url('/contacts/lists'), $payload);
 
-            if ($response->failed()) {
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $list->brevo_list_id = $data['id'] ?? null;
+                    $list->brevo_sync_status = 'ok';
+                    $list->brevo_sync_error = null;
+                    $list->save();
+
+                    return $list;
+                }
+
+                // Creación rechazada (p. ej. nombre duplicado en carpeta): intentar enlazar lista existente
+                $existingId = $this->findListIdInFolderByName((int) $list->brevo_folder_id, $remoteName);
+                if ($existingId !== null) {
+                    $list->brevo_list_id = $existingId;
+                    $list->brevo_sync_status = 'ok';
+                    $list->brevo_sync_error = null;
+                    $list->save();
+
+                    // Alinear nombre remoto por si cambió solo en CRM
+                    $this->client()->put($this->url("/contacts/lists/{$existingId}"), ['name' => $remoteName]);
+
+                    return $list;
+                }
+
                 $body = $response->json();
-
                 $list->brevo_sync_status = 'error';
-                $list->brevo_sync_error  = $body['message'] ?? $response->body();
+                $list->brevo_sync_error = is_array($body) ? ($body['message'] ?? $response->body()) : $response->body();
                 $list->save();
 
                 throw new \RuntimeException('Brevo error creating list: '.$response->body());
+            } catch (Throwable $e) {
+                Log::error('Brevo: exception creating list', [
+                    'list_id' => $list->id,
+                    'error' => $e->getMessage(),
+                ]);
+
+                $list->brevo_sync_status = 'error';
+                $list->brevo_sync_error = $e->getMessage();
+                $list->save();
+
+                throw $e;
             }
-
-            $data = $response->json();
-
-            $list->brevo_list_id     = $data['id'] ?? null;
-            $list->brevo_sync_status = 'ok';
-            $list->brevo_sync_error  = null;
-            $list->save();
-        } catch (Throwable $e) {
-            Log::error('Brevo: exception creating list', [
-                'list_id' => $list->id,
-                'error'   => $e->getMessage(),
-            ]);
-
-            $list->brevo_sync_status = 'error';
-            $list->brevo_sync_error  = $e->getMessage();
-            $list->save();
-
-            throw $e;
         }
 
         return $list;
+    }
+
+    /**
+     * Busca en una carpeta de Brevo una lista con el nombre exacto indicado.
+     */
+    protected function findListIdInFolderByName(int $folderId, string $name): ?int
+    {
+        $target = trim($name);
+        if ($target === '') {
+            return null;
+        }
+
+        $limit = 50;
+        $offset = 0;
+
+        while (true) {
+            $response = $this->client()
+                ->get($this->url("/contacts/folders/{$folderId}/lists"), [
+                    'limit' => $limit,
+                    'offset' => $offset,
+                    'sort' => 'asc',
+                ]);
+
+            if ($response->failed()) {
+                Log::warning('Brevo: no se pudieron listar listas de carpeta', [
+                    'folder_id' => $folderId,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+
+                return null;
+            }
+
+            $data = $response->json();
+            $lists = $data['lists'] ?? [];
+
+            if (! is_array($lists) || $lists === []) {
+                break;
+            }
+
+            foreach ($lists as $row) {
+                if (! empty($row['id']) && isset($row['name']) && trim((string) $row['name']) === $target) {
+                    return (int) $row['id'];
+                }
+            }
+
+            if (count($lists) < $limit) {
+                break;
+            }
+
+            $offset += $limit;
+        }
+
+        return null;
     }
 
     /**
@@ -154,38 +238,23 @@ class BrevoMarketingService
         // 3) Altas/updates: para cada email del CRM, upsert + asignar a lista
         foreach ($toAddOrUpdate as $email) {
             $user = $crmByEmail[$email] ?? null;
-            if (!$user) {
+            if (! $user) {
                 continue;
             }
 
-            $payload = [
-                'email'         => $email,
-                'attributes'    => $this->mapUserAttributes($user),
-                'listIds'       => [$list->brevo_list_id],
-                'updateEnabled' => true,
-            ];
-
             try {
-                $response = $this->client()
-                    ->post($this->url('/contacts'), $payload);
-
-                if ($response->failed()) {
-                    $body = $response->json();
-                    $errors[] = [
-                        'email'  => $email,
-                        'stage'  => 'upsert',
-                        'status' => $response->status(),
-                        'error'  => $body['message'] ?? $response->body(),
-                    ];
+                $err = $this->upsertContactForList($user, $list, $email);
+                if ($err !== null) {
+                    $errors[] = $err;
                 } else {
                     $processed++;
                 }
             } catch (Throwable $e) {
                 $errors[] = [
-                    'email'  => $email,
-                    'stage'  => 'upsert',
+                    'email' => $email,
+                    'stage' => 'upsert',
                     'status' => null,
-                    'error'  => $e->getMessage(),
+                    'error' => $e->getMessage(),
                 ];
             }
         }
@@ -240,6 +309,66 @@ class BrevoMarketingService
             $list->brevo_sync_error  = null;
             $list->save();
         }
+    }
+
+    /**
+     * Crea el contacto en Brevo o, si ya existe, lo actualiza y lo asocia a la lista (sobrescritura).
+     *
+     * @return array<string, mixed>|null Error estructurado o null si OK
+     */
+    protected function upsertContactForList(User $user, MarketingList $list, string $email): ?array
+    {
+        $payload = [
+            'email' => $email,
+            'attributes' => $this->mapUserAttributes($user),
+            'listIds' => [$list->brevo_list_id],
+            'updateEnabled' => true,
+        ];
+
+        $response = $this->client()
+            ->post($this->url('/contacts'), $payload);
+
+        if ($response->successful()) {
+            return null;
+        }
+
+        $body = $response->json();
+        $message = strtolower((string) (is_array($body) ? ($body['message'] ?? '') : ''));
+
+        // Contacto ya existente: PUT añade a listIds y actualiza atributos
+        if ($response->status() === 400
+            && (
+                str_contains($message, 'already')
+                || str_contains($message, 'duplicate')
+                || str_contains($message, 'exist')
+                || str_contains($message, 'associated')
+            )) {
+            $put = $this->client()
+                ->put($this->url('/contacts/' . rawurlencode($email)), [
+                    'attributes' => $this->mapUserAttributes($user),
+                    'listIds' => [$list->brevo_list_id],
+                ]);
+
+            if ($put->successful()) {
+                return null;
+            }
+
+            $putBody = $put->json();
+
+            return [
+                'email' => $email,
+                'stage' => 'upsert_put',
+                'status' => $put->status(),
+                'error' => is_array($putBody) ? ($putBody['message'] ?? $put->body()) : $put->body(),
+            ];
+        }
+
+        return [
+            'email' => $email,
+            'stage' => 'upsert',
+            'status' => $response->status(),
+            'error' => is_array($body) ? ($body['message'] ?? $response->body()) : $response->body(),
+        ];
     }
 
     /**

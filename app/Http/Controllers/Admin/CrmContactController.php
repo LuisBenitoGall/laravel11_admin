@@ -24,6 +24,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use Inertia\Response;
 use Carbon\Carbon;
 use File;
+use libphonenumber\PhoneNumberUtil;
 
 //Concerns:
 use App\Concerns\HasBusinessTypes;
@@ -39,6 +40,7 @@ use App\Models\CrmAccount;
 use App\Models\CrmContact;
 use App\Models\CustomerProvider;
 use App\Models\MarketingList;
+use App\Models\Phone;
 use App\Models\Province;
 use App\Models\Town;
 use App\Models\User;
@@ -1041,7 +1043,7 @@ class CrmContactController extends Controller{
         }
 
         $colIndex = array_flip($headerRow);
-        $expectedCols = ['name', 'surname', 'user_email', 'user_nif', 'position', 'department', 'observations', 'company', 'company_nif', 'company_city', 'company_postal_code', 'company_street', 'company_phone', 'company_email', 'contact_type', 'contact_subtype'];
+        $expectedCols = ['name', 'surname', 'user_email', 'user_nif', 'user_phone1', 'user_phone2', 'position', 'department', 'observations', 'company', 'company_nif', 'company_city', 'company_postal_code', 'company_street', 'company_phone', 'company_email', 'contact_type', 'contact_subtype'];
         foreach ($expectedCols as $col) {
             if (!isset($colIndex[$col])) {
                 $colIndex[$col] = null;
@@ -1124,10 +1126,17 @@ class CrmContactController extends Controller{
                     $contact->company_id = $currentCompanyId;
                     $contact->user_id = $user->id;
                     $contact->crm_account_id = $crmAccount?->id;
-                    $contact->position = $row['position'] ?? null;
-                    $contact->department = $row['department'] ?? null;
-                    $contact->observations = $row['observations'] ?? null;
                 }
+
+                // Siempre actualizar desde la fila importada (incluye reimportaciones)
+                $contact->position = (($row['position'] ?? '') !== '') ? $row['position'] : null;
+                $contact->department = (($row['department'] ?? '') !== '') ? $row['department'] : null;
+                $contact->observations = (($row['observations'] ?? '') !== '') ? $row['observations'] : null;
+
+                // Teléfonos del usuario (polimórfico phones → User)
+                $phone1 = (string) ($row['user_phone1'] ?? '');
+                $phone2 = (string) ($row['user_phone2'] ?? '');
+                $this->syncImportPhonesForUser($user, $phone1, $phone2);
 
                 // contact_type: valor en Excel es la etiqueta (ej. "clientes", "cliente potencial"); cotejar con el valor de typesMap y guardar el índice (slug)
                 $contactTypeLabel = trim((string) ($row['contact_type'] ?? ''));
@@ -1177,5 +1186,77 @@ class CrmContactController extends Controller{
                 'failed_rows'     => $failedRows,
             ],
         ]);
+    }
+
+    /**
+     * Sincroniza user_phone1 / user_phone2 con phones (morph User). Si ambas columnas
+     * vienen vacías no se tocan los teléfonos existentes. Si hay texto pero ningún
+     * número es válido para E.164, tampoco se llama a sync (evita borrar todo al fallar el parseo).
+     */
+    private function syncImportPhonesForUser(User $user, string $p1, string $p2): void
+    {
+        $p1 = $this->normalizeImportPhoneString($p1);
+        $p2 = $this->normalizeImportPhoneString($p2);
+
+        if ($p1 === '' && $p2 === '') {
+            return;
+        }
+
+        if (! $this->rowHasAtLeastOneValidPhoneNumber($p1, $p2)) {
+            return;
+        }
+
+        $items = [];
+        if ($p1 !== '') {
+            $items[] = [
+                'number'     => $p1,
+                'type'       => 'mobile',
+                'is_primary' => true,
+            ];
+        }
+        if ($p2 !== '') {
+            $items[] = [
+                'number'     => $p2,
+                'type'       => 'mobile',
+                'is_primary' => $p1 === '',
+            ];
+        }
+
+        if ($items === []) {
+            return;
+        }
+
+        Phone::syncFor($user, $items, ['default_region' => 'ES']);
+    }
+
+    /** Misma lógica de espacios que Phone::trimAllWhitespace para coherencia con normalizeItems. */
+    private function normalizeImportPhoneString(string $raw): string
+    {
+        $value = preg_replace('/\s+/u', '', $raw);
+
+        return trim($value);
+    }
+
+    private function rowHasAtLeastOneValidPhoneNumber(string $p1, string $p2): bool
+    {
+        $util = PhoneNumberUtil::getInstance();
+        $region = 'ES';
+
+        foreach ([$p1, $p2] as $raw) {
+            $raw = $this->normalizeImportPhoneString($raw);
+            if ($raw === '') {
+                continue;
+            }
+            try {
+                $parsed = $util->parse($raw, $region);
+                if ($util->isValidNumber($parsed)) {
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                continue;
+            }
+        }
+
+        return false;
     }
 }

@@ -338,7 +338,6 @@ export default function Sidebar() {
                         })()}
 
                         {/* Configuración - Solo visible para Super Admin */}
-                        {/*
                         {isSuperAdmin && (() => {
                             const isActive = currentModule === 'settings';
                             
@@ -373,7 +372,6 @@ export default function Sidebar() {
                                 </li>
                             );
                         })()}
-                        */}
 
                         {/* Usuarios */}
                         {showUsersModule && (() => {
