@@ -218,6 +218,17 @@ export default function Index({
         contactTypeColumn,
         contactSubTypeColumn,
         { key: 'companies',  label: __('empresa'),     sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('empresa_filtrar') },
+        ...(leads === true
+            ? [{
+                key: 'crm_contact_created_at',
+                label: __('contacto_fecha_alta'),
+                sort: false,
+                filter: '',
+                class_th: 'text-end',
+                class_td: 'text-end',
+                placeholder: '',
+            }]
+            : []),
         { key: 'avatar',     label: __('imagen'),      sort: false, filter: '',     type: 'image', icon: 'user-tie', class_th: 'text-center', class_td: 'text-center', placeholder: '' }
     ];
 

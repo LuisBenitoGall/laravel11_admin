@@ -713,6 +713,9 @@ class CrmAccountController extends Controller{
     
         $account->delete();
 
+        //Desvincular todos los contactos de la cuenta
+        CrmContact::where('crm_account_id', $account_id)->update(['crm_account_id' => null]);
+
         return redirect()->route('crm-accounts.index')->with('msg', __('cuenta_eliminada'));
     }
 

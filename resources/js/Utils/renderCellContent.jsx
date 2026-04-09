@@ -79,6 +79,14 @@ export default function renderCellContent(value, column, rowData = {}) {
 		return <PhonesCell phones={value} />;
 	}
 
+	// Fecha de alta CRM: ya viene formateada desde el backend según sesión
+	if (column.key === 'crm_contact_created_at') {
+		if (value == null || value === '') {
+			return '—';
+		}
+		return String(value);
+	}
+
 	// Enlaces
 	if (column.type === 'link') {
 		if (value) {

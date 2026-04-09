@@ -55,26 +55,15 @@ class UserNoteController extends Controller{
     public function store(UserNoteStoreRequest $request){
         $ctx = app(CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
-        if($currentCompanyId <= 0){
-            $url = route('companies.refresh-session');
-
-            // si quieres ser fino, guarda a dónde quería ir originalmente
-            session(['intended_after_company' => request()->fullUrl()]);
-            session()->flash('alert', __('empresa_no_activa'));
-
-            if (request()->header('X-Inertia')) {
-                return \Inertia\Inertia::location($url);
-            }
-
-            return redirect($url);
-        }
+        // company_id es opcional: sin empresa en contexto (p. ej. contactos no vinculados) se guarda null
 
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
+        $localeCode = $locale[0] ?? app()->getLocale();
 
         //Tratamiento de fechas:
         $rawRemind = $request->input('remind_at');
         $remind_at = $rawRemind !== ''
-            ? ($locale[0] !== 'en'
+            ? ($localeCode !== 'en'
                 ? $this->convertDate($rawRemind, false)
                 : $rawRemind
             )
@@ -112,7 +101,7 @@ class UserNoteController extends Controller{
         $userId = (int) $request->contact_id;
 
         $n = new UserNote();
-        $n->company_id = $currentCompanyId;
+        $n->company_id = $currentCompanyId > 0 ? $currentCompanyId : null;
         $n->owner_id = Auth::id();
         $n->contact_id = $request->contact_id;
         $n->title = $request->title;
@@ -125,9 +114,25 @@ class UserNoteController extends Controller{
         $n->is_archived = $isArchived;
         $n->save();
 
-        $userCompany = $request->user_company? $request->user_company:UserCompany::where('user_id', $userId)->first()->company_id;
+        // Redirección tras guardar: segundo parámetro de users.edit solo si hay contexto de empresa
+        $userCompanyParam = $request->input('user_company');
+        if ($userCompanyParam !== null && $userCompanyParam !== '') {
+            $userCompany = is_numeric($userCompanyParam) ? (int) $userCompanyParam : $userCompanyParam;
+        } elseif ($currentCompanyId > 0) {
+            $uc = UserCompany::query()
+                ->where('user_id', $userId)
+                ->where('company_id', $currentCompanyId)
+                ->first();
+            $userCompany = $uc?->company_id ?? $currentCompanyId;
+        } else {
+            $userCompany = null;
+        }
 
-        return redirect()->route('users.edit', [$userId, $userCompany])->with('msg', __('nota_creada_msg'));   
+        if ($userCompany !== null && $userCompany !== '') {
+            return redirect()->route('users.edit', [$userId, $userCompany])->with('msg', __('nota_creada_msg'));
+        }
+
+        return redirect()->route('users.edit', $userId)->with('msg', __('nota_creada_msg'));
     }
 
     /**
@@ -154,8 +159,12 @@ class UserNoteController extends Controller{
         $perPage = (int) $request->input('per_page', 10);
         $search  = trim((string) $request->input('q', ''));
 
-        $query = UserNote::forCompany($currentCompanyId)
+        $query = UserNote::query()
             ->where('contact_id', $user->id)
+            ->where(function ($q) use ($currentCompanyId) {
+                $q->where('company_id', $currentCompanyId)
+                    ->orWhereNull('company_id');
+            })
             ->where('is_archived', false)
             ->with('owner')
             ->orderByDesc('is_pinned')
@@ -198,8 +207,8 @@ class UserNoteController extends Controller{
             return redirect($url);
         }
 
-        // La nota debe pertenecer a la empresa en contexto
-        if ((int) $note->company_id !== $currentCompanyId) {
+        // La nota debe pertenecer a la empresa en contexto (company_id null = nota sin empresa asociada)
+        if ($note->company_id !== null && (int) $note->company_id !== $currentCompanyId) {
             abort(403, __('accion_no_autorizada'));
         }
 
@@ -237,8 +246,8 @@ class UserNoteController extends Controller{
             return redirect($url);
         }
 
-        // Seguridad básica: la nota debe pertenecer a la empresa en contexto
-        if ((int) $note->company_id !== $currentCompanyId) {
+        // Seguridad básica: la nota debe pertenecer a la empresa en contexto (o sin empresa)
+        if ($note->company_id !== null && (int) $note->company_id !== $currentCompanyId) {
             abort(403, __('accion_no_autorizada'));
         }
 
@@ -294,8 +303,8 @@ class UserNoteController extends Controller{
             return redirect($url);
         }
 
-        // Seguridad básica: la nota debe ser de la empresa en contexto
-        if ((int) $note->company_id !== $currentCompanyId) {
+        // Seguridad básica: la nota debe ser de la empresa en contexto (o sin empresa)
+        if ($note->company_id !== null && (int) $note->company_id !== $currentCompanyId) {
             abort(403, __('accion_no_autorizada'));
         }
 
@@ -327,7 +336,7 @@ class UserNoteController extends Controller{
         }
 
         // La nota debe pertenecer a la empresa en contexto
-        if ((int) $note->company_id !== $currentCompanyId) {
+        if ($note->company_id !== null && (int) $note->company_id !== $currentCompanyId) {
             abort(403, __('accion_no_autorizada'));
         }
 
@@ -365,7 +374,7 @@ class UserNoteController extends Controller{
         }
 
         // Seguridad: nota debe pertenecer a la empresa de la sesión
-        if ((int) $note->company_id !== $currentCompanyId) {
+        if ($note->company_id !== null && (int) $note->company_id !== $currentCompanyId) {
             abort(403, __('accion_no_autorizada'));
         }
 
@@ -402,7 +411,7 @@ class UserNoteController extends Controller{
         }
 
         // Seguridad: la nota debe pertenecer a la empresa en contexto
-        if ((int) $note->company_id !== $currentCompanyId) {
+        if ($note->company_id !== null && (int) $note->company_id !== $currentCompanyId) {
             abort(403, __('accion_no_autorizada'));
         }
 
@@ -450,7 +459,10 @@ class UserNoteController extends Controller{
         $today   = Carbon::today();
 
         $notes = UserNote::query()
-            ->where('company_id', $currentCompanyId)
+            ->where(function ($q) use ($currentCompanyId) {
+                $q->where('company_id', $currentCompanyId)
+                    ->orWhereNull('company_id');
+            })
             ->where('owner_id', $ownerId)
             ->where('is_archived', false)
             ->whereNotNull('remind_at')

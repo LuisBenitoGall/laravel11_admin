@@ -42,8 +42,8 @@ En el archivo config/constants.php se definen constantes personalizadas.
     - php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"
     - php artisan migrate
 
-- PDF + Excel + descarga de archivos:
-	- npm install jspdf jspdf-autotable xlsx exceljs file-saver
+- PDF + exportación CSV (listados admin) + descarga de archivos:
+	- npm install jspdf jspdf-autotable file-saver
 
 - Textarea WYSIWYG:
 	- React Draft Wysiwyg: npm install react-draft-wysiwyg draft-js

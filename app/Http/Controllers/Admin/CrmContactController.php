@@ -256,6 +256,8 @@ class CrmContactController extends Controller{
             DB::raw('MIN(cc.position)     as position'),
             DB::raw('MIN(cc.department)   as department'),
             DB::raw('MAX(cc.contact_type) as contact_type'),
+            // Fecha de alta del contacto CRM (p. ej. clientes potenciales / leads)
+            DB::raw('MIN(cc.created_at) as crm_contact_created_at'),
         ])
         ->groupBy(
             'users.id',

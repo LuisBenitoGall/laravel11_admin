@@ -32,7 +32,6 @@
         "date-fns": "^4.1.0",
         "draft-js": "^0.11.7",
         "draftjs-to-html": "^0.9.1",
-        "exceljs": "^4.4.0",
         "file-saver": "^2.0.5",
         "html-to-draftjs": "^1.5.0",
         "i18next": "^24.0.5",

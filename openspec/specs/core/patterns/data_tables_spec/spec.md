@@ -39,7 +39,7 @@
 Obligatorios
 - Selector para mostrar y ocultar columnas (persistente por usuario y tabla).
 - Selector de número de registros por página.
-- CTA de exportación a Excel.
+- CTA de exportación a CSV.
 - CTA de exportación a PDF (si existe el exporter correspondiente).
 - Cabecera con relación de columnas:
   - Por defecto siempre se incluye una columna inicial opcional (ej: “show panel”).
@@ -199,7 +199,7 @@ Reglas:
 - Columnas condicionales (ej: “leads”) son aceptadas, pero deben mantener key estable.
 
 
-## Exportación (Excel/PDF)
+## Exportación (CSV/PDF)
 
 - La exportación se realiza llamando a filteredDataRoute con los mismos filtros activos (cabecera + adhoc).
 - El endpoint de exportación debe devolver siempre:

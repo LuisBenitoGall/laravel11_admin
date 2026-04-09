@@ -92,7 +92,7 @@ Presenta el listado de artículos por empresa:
 - Selector para mostrar / ocultar columnas
 - Filtros avanzados
 - Selector resultados por página
-- CTA exportación a Excel y PDF
+- CTA exportación a CSV y PDF
 - Filtros
 - Acciones por fila
 - Numerador de registros por página y número total de registros

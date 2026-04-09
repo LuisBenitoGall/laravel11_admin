@@ -142,6 +142,11 @@ class UserResource extends JsonResource
             'deleted_at'          => $this->deleted_at,
             'created_at'          => Carbon::parse($this->created_at)->format($locale[4]),
             'updated_at'          => Carbon::parse($this->updated_at)->format($locale[4]),
+
+            // Listado CRM: fecha de alta del registro en crm_contacts (agregado MIN en query)
+            'crm_contact_created_at' => self::$origin === 'crm-contact' && ($rawCcAt = $this->resource->getAttribute('crm_contact_created_at'))
+                ? Carbon::parse($rawCcAt)->format(($locale[4] ?? 'd/m/Y').' H:i')
+                : null,
         ];
     }
 }
