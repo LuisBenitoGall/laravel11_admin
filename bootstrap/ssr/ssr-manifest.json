@@ -1,6 +1,6 @@
 {
-  "\u0000vite/dynamic-import-helper.js": [
-    "/build/assets/Edit-tBL-NLE5.js"
+  "lang/es_fiscal.json": [
+    "/build/assets/es_fiscal-J2k7RDWH.js"
   ],
   "node_modules/laravel-vite-plugin/inertia-helpers/index.js": [],
   "node_modules/react-image-crop/dist/ReactCrop.css": [
@@ -265,7 +265,7 @@
     "/build/assets/Sidebar-DgixJBon.js"
   ],
   "resources/js/Hooks/useFiscalTranslation.js": [
-    "/build/assets/Edit-tBL-NLE5.js"
+    "/build/assets/Edit-Dhf26-oO.js"
   ],
   "resources/js/Hooks/useInertiaLoading.js": [
     "/build/assets/useInertiaLoading-CJM3ri4r.js"
@@ -323,7 +323,7 @@
     "/build/assets/Create-CHcJqzqf.js"
   ],
   "resources/js/Pages/Admin/AccountingAccountType/Edit.jsx": [
-    "/build/assets/Edit-tBL-NLE5.js"
+    "/build/assets/Edit-Dhf26-oO.js"
   ],
   "resources/js/Pages/Admin/AccountingAccountType/Index.jsx": [
     "/build/assets/Index-50PQuFhe.js"

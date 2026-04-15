@@ -18,30 +18,19 @@ import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "./NavLink-k73-0cwm.js";
 import "./Dropdown-DLZR1XDp.js";
 import "@headlessui/react";
-const __variableDynamicImportRuntimeHelper = (glob, path, segs) => {
-  const v = glob[path];
-  if (v) {
-    return typeof v === "function" ? v() : Promise.resolve(v);
-  }
-  return new Promise((_, reject) => {
-    (typeof queueMicrotask === "function" ? queueMicrotask : setTimeout)(
-      reject.bind(
-        null,
-        new Error(
-          "Unknown variable dynamic import: " + path + (path.split("/").length !== segs ? ". Note that variables only represent file names one level deep." : "")
-        )
-      )
-    );
-  });
-};
+const fiscalModules = /* @__PURE__ */ Object.assign({ "../../../lang/es_fiscal.json": () => import("./es_fiscal-J2k7RDWH.js") });
 function useFiscalTranslation() {
   const { props } = usePage();
   const locale = props.locale || "en";
   const [translations, setTranslations] = useState({});
   useEffect(() => {
-    __variableDynamicImportRuntimeHelper(/* @__PURE__ */ Object.assign({}), `../../lang/${locale}_fiscal.json`, 4).then((module) => {
-      setTranslations(module.default);
-    });
+    const key = `../../../lang/${locale}_fiscal.json`;
+    const loader = fiscalModules[key] ?? fiscalModules["../../../lang/es_fiscal.json"];
+    if (loader) {
+      loader().then((module) => setTranslations(module.default));
+    } else {
+      setTranslations({});
+    }
   }, [locale]);
   return (key) => {
     return translations[key] || key;

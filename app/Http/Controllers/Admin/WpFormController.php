@@ -31,6 +31,8 @@ class WpFormController extends Controller
      * 1. Formulario de contacto.
      * 2. Formulario de newsletter.
      * 3. Formulario Felipao.
+     * 4. Nuevo formulario de newsletter.
+     * 5. Incluir contacto en listado newsletter.
      */
     
     use HasUserPermissionsTrait;
@@ -186,6 +188,8 @@ class WpFormController extends Controller
         $msg->message = $message;
         $msg->origin = 'Formulario newsletter '.$locale;
         $msg->save();
+
+        $this->addContactToList($user->id);
         
         return response()->json([
             'success' => true
@@ -246,11 +250,12 @@ class WpFormController extends Controller
         $locale = $request->input('lang', $lang);
         $contact_type = 'newl';
 
-        $name    = trim((string) $request->input('field_nombre'));
-        $surname = trim((string) $request->input('field_apellidos'));
-        $email   = trim((string) $request->input('field_email'));
-        $product = (string) $request->input('field_producto');
-        $service = (string) $request->input('field_servicio');
+        // Compatibilidad: aceptamos campos nuevos (field_*) y legacy.
+        $name    = trim((string) $request->input('field_nombre', $request->input('name')));
+        $surname = trim((string) $request->input('field_apellidos', $request->input('surname')));
+        $email   = trim((string) $request->input('field_email', $request->input('email')));
+        $product = (string) $request->input('field_producto', $request->input('product'));
+        $service = (string) $request->input('field_servicio', $request->input('service'));
 
         // Validación: respuestas 400 fuera del try (no son "error del proceso")
         if ($email === '') {
@@ -371,5 +376,21 @@ class WpFormController extends Controller
         }
     }
 
+    /**
+     * 5. Incluir contacto en listado newsletter.
+     */
+    public function addContactToList($contact_id){
+        $slug = 'contactos-newsletter';
+
+        $list = MarketingList::select('id')->where('slug', $slug)->first();
+
+        if($list){
+            $mlu = new MarketingListUser();
+            $mlu->marketing_list_id = $list->id;
+            $mlu->user_id = $contact_id;
+            $mlu->status = 1;
+            $mlu->save();
+        }
+    }
     
 }
