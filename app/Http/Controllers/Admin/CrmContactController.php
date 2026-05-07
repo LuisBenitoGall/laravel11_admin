@@ -45,6 +45,7 @@ use App\Models\Province;
 use App\Models\Town;
 use App\Models\User;
 use App\Models\UserColumnPreference;
+use App\Models\UserCompany;
 
 //Requests:
 use App\Http\Requests\UserFilterRequest;
@@ -929,9 +930,20 @@ class CrmContactController extends Controller{
         }
 
         $crmAccountId = $contact->crm_account_id; // lo necesitamos después del delete
+        $userId = $contact->user_id;
 
         try {
             $contact->delete();
+
+            // Eliminar también el vínculo user_companies creado al añadir este contacto
+            if ($userId && $crmAccountId) {
+                $account = CrmAccount::find($crmAccountId);
+                if ($account && $account->linked_company_id) {
+                    UserCompany::where('user_id', $userId)
+                        ->where('company_id', $account->linked_company_id)
+                        ->delete();
+                }
+            }
         } catch (\Throwable $e) {
             if ($request->header('X-Inertia')) {
                 return redirect()->back()->with('alert', __('error_eliminar_contacto'));

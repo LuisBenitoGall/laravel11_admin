@@ -113,7 +113,8 @@ class UserController extends Controller{
                 'customers.edit',
                 'providers.create',
                 'providers.edit',
-                'crm-accounts.edit'
+                'crm-accounts.edit',
+                'user-companies.edit'
             ]);   
         } 
     }  

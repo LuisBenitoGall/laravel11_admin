@@ -63,6 +63,10 @@ export default function CompanyUsersTab({
         });
     }, [rowsProp, pageProps.rows, users]);
 
+    // El filteredDataRoute necesita el account ID como parámetro de ruta
+    // (ej. /crm-accounts/{account}/users/filtered-data). Lo obtenemos de editFromAccountId.
+    const effectiveIndexParams = indexParams ?? (editFromAccountId ? [editFromAccountId] : undefined);
+
     return (
         <div>
             <TableUsers
@@ -71,7 +75,7 @@ export default function CompanyUsersTab({
                 tableId={tableId}
                 queryParams={pageProps.queryParams ?? {}}
                 indexRoute={indexRoute}
-                indexParams={indexParams}
+                indexParams={effectiveIndexParams}
                 filteredDataRoute={filteredDataRoute}
                 entityName={entityName}
                 disablePagination={true}

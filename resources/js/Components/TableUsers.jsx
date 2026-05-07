@@ -79,10 +79,8 @@ export default function TableUsers({
         }).join('\n');
     };
 
-    // Normaliza filas y meta:
-    // 1) si llega rowsProp desde backend, lo usamos
-    // 2) si no, caemos al users paginator/array
-    const rows = Array.isArray(rowsProp)
+    // Normaliza filas base desde props (sin hook todavía)
+    const baseRows = Array.isArray(rowsProp)
     ? rowsProp
     : (Array.isArray(users?.data)
         ? users.data
@@ -202,7 +200,8 @@ export default function TableUsers({
         SearchFieldChanged,
         sortChanged,
         filteredData,
-        handleDelete
+        handleDelete,
+        managedRows
     } = useTableManagement({
         table: tableId,
         allColumnKeys: columns.map(col => col.key),
@@ -214,6 +213,9 @@ export default function TableUsers({
         labelName,
         queryParams
     });
+
+    // managedRows: filas actualizadas localmente tras filtrado/sort en tabs (sin navegación Inertia)
+    const rows = managedRows !== null ? managedRows : baseRows;
 
     return (
         <div>

@@ -263,6 +263,20 @@ export default function UserPersonalData({
     };
 
     const companyName = company_context?.name || '';
+    const canEditUserCompanies = !!props.permissions?.['user-companies.edit'];
+
+    const handleDeleteUserCompany = (ucId, name) => {
+        showConfirm({
+            title: __('empresa_desvincular'),
+            text: `${__('empresa_desvincular_confirm')} (${name})`,
+            icon: 'warning',
+            onConfirm: () => {
+                router.delete(route('user-companies.destroy', ucId), {
+                    preserveScroll: true,
+                });
+            },
+        });
+    };
 
     return (
         <div className="col-12 gy-2">
@@ -600,19 +614,19 @@ export default function UserPersonalData({
                                         <th>{__('empresa')}</th>
                                         <th>{__('cargo')}</th>
                                         <th>{__('departamento')}</th>
+                                        {canEditUserCompanies && <th style={{ width: '1%' }}></th>}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {companiesArray.map((uc) => {
                                         const posKey = `position_company_${uc.company_id}`;
                                         const deptKey = `department_company_${uc.company_id}`;
+                                        const ucName = uc.company?.tradename || uc.company?.name || '-';
 
                                         return (
                                             <tr key={uc.id}>
                                                 <td className="ps-2 align-middle">
-                                                    {uc.company?.tradename ||
-                                                        uc.company?.name ||
-                                                        '-'}
+                                                    {ucName}
                                                 </td>
                                                 <td>
                                                     <TextInput
@@ -642,6 +656,18 @@ export default function UserPersonalData({
                                                         maxLength={150}
                                                     />
                                                 </td>
+                                                {canEditUserCompanies && (
+                                                    <td className="align-middle text-end">
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-sm btn-danger"
+                                                            title={__('empresa_desvincular')}
+                                                            onClick={() => handleDeleteUserCompany(uc.id, ucName)}
+                                                        >
+                                                            <i className="la la-trash" />
+                                                        </button>
+                                                    </td>
+                                                )}
                                             </tr>
                                         );
                                     })}

@@ -25,11 +25,19 @@ class UserCompanyController extends Controller{
  	/**
  	 * 1. Desvincular a usuario de empresa.
  	 */
- 	public function destroy(UserCompany $uc){
+ 	public function destroy(Request $request, UserCompany $uc){
+        $userId = $uc->user_id;
  		try {
             $uc->delete();
+            if ($request->header('X-Inertia')) {
+                return redirect()->route('users.edit', $userId)
+                    ->with('msg', __('empresa_desvinculada_ok'));
+            }
             return response()->json(['message' => 'OK']);
         } catch (\Exception $e) {
+            if ($request->header('X-Inertia')) {
+                return redirect()->back()->with('alert', __('error_eliminar'));
+            }
             return response()->json(['message' => 'Error deleting'], 500);
         }
  	}

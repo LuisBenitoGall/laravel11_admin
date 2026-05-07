@@ -105,6 +105,8 @@ export function useTableManagement({
                 params,
                 { preserveState: true, replace: true }
             );
+        } else if (filteredDataRoute) {
+            fetchAndSetRows(updatedParams);
         }
     };
 
@@ -135,6 +137,16 @@ export function useTableManagement({
                 params,
                 { preserveState: true }
             );
+        } else if (filteredDataRoute) {
+            const updatedParams = {
+                ...localQueryParams,
+                sort_field: name,
+                sort_direction: newDirection,
+                page: 1,
+                per_page: perPage
+            };
+            setLocalQueryParams(updatedParams);
+            fetchAndSetRows(updatedParams);
         }
     };
 
@@ -212,7 +224,7 @@ export function useTableManagement({
   const filteredData = async (params = null) => {
     try {
       const response = await axios.get(
-        route(filteredDataRoute, getRouteParams(filteredDataRoute)),
+        route(getRouteName(filteredDataRoute), getRouteParams(filteredDataRoute)),
         { params: params || queryParams, headers: { Accept: 'application/json' } }
       );
 
@@ -222,6 +234,14 @@ export function useTableManagement({
       console.error(__('data_error'), error);
       return [];
     }
+  };
+
+  // Filas gestionadas localmente (para tablas en tab sin navegación Inertia)
+  const [managedRows, setManagedRows] = useState(null);
+
+  const fetchAndSetRows = (params) => {
+    if (!filteredDataRoute) return;
+    filteredData(params).then(r => setManagedRows(r));
   };
 
   const handleDelete = (id, callback = null) => {
@@ -255,6 +275,7 @@ export function useTableManagement({
     sortChanged,
     filteredData,
     handleDelete,
+    managedRows,
     queryParams: localQueryParams
   };
 }
