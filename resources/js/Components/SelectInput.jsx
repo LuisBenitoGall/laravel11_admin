@@ -19,7 +19,7 @@ export default forwardRef(function SelectInput({
         <select
             {...props}
             ref={inputRef}
-            className={`form-control ${className}`}
+            className={`form-select ${className}`}
             multiple={multiple}
         >
             {children}

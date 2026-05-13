@@ -41,6 +41,10 @@ class MarketingCampaign extends Model
 
         'status',
 
+        'action',
+        'priority',
+        'members_type',
+
         'external_id',
         'source_system',
         'source_type',
@@ -103,10 +107,20 @@ class MarketingCampaign extends Model
     {
         return $this->belongsToMany(
             MarketingList::class,
-            'marketing_campaign_lists', 
-            'campaign_id',
-            'list_id'
+            'marketing_campaign_lists',
+            'marketing_campaign_id',
+            'marketing_list_id'
         )->withTimestamps();
+    }
+
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 
     /**

@@ -25,6 +25,8 @@ use App\Models\CostCenter;
 use App\Models\CrmAccount;
 use App\Models\Currency;
 use App\Models\MarketingCampaign;
+use App\Models\MarketingCampaignList;
+use App\Models\MarketingList;
 use App\Models\User;
 use App\Models\UserColumnPreference;
 
@@ -35,6 +37,7 @@ use App\Http\Requests\MarketingCampaignUpdateRequest;
 
 //Resources:
 use App\Http\Resources\MarketingCampaignResource;
+use App\Http\Resources\MarketingListResource;
 
 //Traits:
 use App\Traits\ConvertDateTrait;
@@ -372,36 +375,136 @@ class MarketingCampaignController extends Controller
      */
     public function update(MarketingCampaignUpdateRequest $request, MarketingCampaign $campaign){
         try {
-            $validated = $request->validated();
+            $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 
-            $campaign->owner_id = $request->owner_id;
-            $campaign->company_id = $currentCompanyId;
-            $campaign->name = $request->name;
-            $campaign->campaign_code = $request->campaign_code;
+            $rawStart = $request->input('start_at');
+            $startAt = $rawStart
+                ? ($locale[0] !== 'en' ? $this->convertDate($rawStart, false) : $rawStart)
+                : null;
 
-            $campaign->description = $request->description;
-            $campaign->total_cost = $request->total_cost;
-            $campaign->expected_cost = $request->expected_cost;
-            $campaign->currency_id = $request->currency_id;
-            $campaign->promote_code = $request->promote_code;
-            $campaign->start_at = $starAt;
-            $campaign->finish_at = $finishAt;
+            $rawFinish = $request->input('finish_at');
+            $finishAt = $rawFinish
+                ? ($locale[0] !== 'en' ? $this->convertDate($rawFinish, false) : $rawFinish)
+                : null;
+
+            $campaign->owner_id       = $request->owner_id;
+            $campaign->name           = $request->name;
+            $campaign->campaign_code  = $request->campaign_code;
+            $campaign->description    = $request->description;
+            $campaign->total_cost     = $request->total_cost ?? 0;
+            $campaign->expected_cost  = $request->expected_cost;
+            $campaign->currency_id    = $request->currency_id;
+            $campaign->promote_code   = $request->promote_code;
+            $campaign->start_at       = $startAt;
+            $campaign->finish_at      = $finishAt;
             $campaign->cost_center_id = $request->cost_center_id;
-
-            $campaign->created_by = Auth::id();
-            $campaign->updated_by = Auth::id();
-            $campaign->status = $request->status;
-            $campaign->priority = $request->priority;
-            $campaign->members_type = $request->members_type;
+            $campaign->updated_by     = Auth::id();
+            $campaign->status         = $request->status ?? 0;
+            $campaign->is_quick       = $request->boolean('is_quick');
+            $campaign->action         = $request->action;
+            $campaign->priority       = $request->priority;
+            $campaign->members_type   = $request->members_type;
             $campaign->save();
 
             return redirect()->route('marketing-campaigns.edit', $campaign->id)
-            ->with('msg', __('campanya_actualizada_msg'));
+                ->with('msg', __('campanya_actualizada_msg'));
 
         } catch (\Throwable $e) {
             Log::error('Error en update(): ' . $e->getMessage());
             abort(500, 'Error interno del servidor');
         }
+    }
+
+    /**
+     * 5.1 Búsqueda de listas disponibles (no vinculadas) para el selector del modal.
+     */
+    public function availableListsSearch(Request $request, MarketingCampaign $campaign){
+        $q     = $request->input('q', '');
+        $limit = min((int) $request->input('limit', 10), 50);
+
+        $linkedIds = MarketingCampaignList::where('marketing_campaign_id', $campaign->id)
+            ->whereNull('deleted_at')
+            ->pluck('marketing_list_id');
+
+        $lists = MarketingList::where('company_id', $campaign->company_id)
+            ->whereNotIn('id', $linkedIds)
+            ->when($q !== '', fn($q_query) => $q_query->where('name', 'like', '%' . $q . '%'))
+            ->orderBy('name')
+            ->limit($limit)
+            ->get(['id', 'name', 'members_count', 'status']);
+
+        return response()->json(['data' => $lists]);
+    }
+
+    /**
+     * 5.2 Vincular una lista a la campaña.
+     */
+    public function attachList(MarketingCampaign $campaign, MarketingList $list){
+        if ((int) $list->company_id !== (int) $campaign->company_id) {
+            return response()->json(['message' => __('acceso_denegado')], 403);
+        }
+
+        $existing = MarketingCampaignList::where('marketing_campaign_id', $campaign->id)
+            ->where('marketing_list_id', $list->id)
+            ->withTrashed()
+            ->first();
+
+        if ($existing) {
+            if ($existing->trashed()) {
+                $existing->restore();
+            } else {
+                return response()->json(['message' => __('lista_ya_vinculada')], 422);
+            }
+        } else {
+            MarketingCampaignList::create([
+                'company_id'            => $campaign->company_id,
+                'marketing_campaign_id' => $campaign->id,
+                'marketing_list_id'     => $list->id,
+            ]);
+        }
+
+        return response()->json(['success' => true, 'message' => __('lista_vinculada_ok')]);
+    }
+
+    /**
+     * 5.3 Listas vinculadas a la campaña (datos filtrados para tab).
+     */
+    public function listsFilteredData(Request $request, MarketingCampaign $campaign){
+        $perPage = $request->input('per_page', config('constants.RECORDS_PER_PAGE_DEFAULT_'));
+
+        $query = MarketingList::whereIn('id', function ($sub) use ($campaign) {
+            $sub->select('marketing_list_id')
+                ->from('marketing_campaign_lists')
+                ->where('marketing_campaign_id', $campaign->id)
+                ->whereNull('deleted_at');
+        });
+
+        if ($request->filled('name')) {
+            $query->where('name', 'like', '%' . $request->input('name') . '%');
+        }
+
+        $allowedSortFields = ['name', 'members_count', 'created_at', 'status'];
+        $sortField = in_array($request->input('sort_field'), $allowedSortFields)
+            ? $request->input('sort_field')
+            : 'name';
+        $sortDirection = strtoupper($request->input('sort_direction', 'ASC')) === 'DESC' ? 'DESC' : 'ASC';
+
+        $lists = $query->orderBy($sortField, $sortDirection)->paginate($perPage)->onEachSide(1);
+
+        return MarketingListResource::collection($lists)->response();
+    }
+
+    /**
+     * 5.2 Desvincular lista de la campaña (soft-delete en pivot).
+     */
+    public function detachList(MarketingCampaign $campaign, MarketingList $list){
+        MarketingCampaignList::where('marketing_campaign_id', $campaign->id)
+            ->where('marketing_list_id', $list->id)
+            ->whereNull('deleted_at')
+            ->first()
+            ?->delete();
+
+        return response()->json(['success' => true]);
     }
 
     /**

@@ -41,16 +41,30 @@ return new class extends Migration{
         });
 
         // Columna generada para unicidad por (empresa, uso, contexto)
-        DB::statement("
-            ALTER TABLE accounting_account_usages
-            ADD COLUMN context_key VARCHAR(255)
-                GENERATED ALWAYS AS (
-                    IF(context_type IS NULL AND context_id IS NULL,
-                       'GLOBAL',
-                       CONCAT(COALESCE(context_type, ''), '#', COALESCE(context_id, 0))
-                    )
-                ) VIRTUAL
-        ");
+        if (DB::getDriverName() === 'sqlite') {
+            // SQLite 3.31+: usa CASE WHEN (no IF) y || para concatenar
+            DB::statement("
+                ALTER TABLE accounting_account_usages
+                ADD COLUMN context_key VARCHAR(255)
+                    GENERATED ALWAYS AS (
+                        CASE WHEN context_type IS NULL AND context_id IS NULL
+                             THEN 'GLOBAL'
+                             ELSE COALESCE(context_type, '') || '#' || COALESCE(context_id, 0)
+                        END
+                    ) VIRTUAL
+            ");
+        } else {
+            DB::statement("
+                ALTER TABLE accounting_account_usages
+                ADD COLUMN context_key VARCHAR(255)
+                    GENERATED ALWAYS AS (
+                        IF(context_type IS NULL AND context_id IS NULL,
+                           'GLOBAL',
+                           CONCAT(COALESCE(context_type, ''), '#', COALESCE(context_id, 0))
+                        )
+                    ) VIRTUAL
+            ");
+        }
 
         // Unicidad: una fila por (empresa, uso, contexto)
         Schema::table('accounting_account_usages', function (Blueprint $table) {

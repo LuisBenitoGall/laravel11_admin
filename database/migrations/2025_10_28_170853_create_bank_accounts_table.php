@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
@@ -37,10 +38,12 @@ return new class extends Migration {
             $table->boolean('status')->default(false);    // activa/inactiva
 
             // Campo generado para garantizar UNA featured por empresa
-            // IF(featured = 1, company_id, NULL)
+            $virtualExpr = DB::getDriverName() === 'sqlite'
+                ? 'CASE WHEN featured = 1 THEN company_id ELSE NULL END'
+                : 'IF(`featured` = 1, `company_id`, NULL)';
             $table->unsignedBigInteger('featured_company_id')
                 ->nullable()
-                ->virtualAs('IF(`featured` = 1, `company_id`, NULL)');
+                ->virtualAs($virtualExpr);
 
             $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
             $table->foreignId('updated_by')->constrained('users')->restrictOnDelete();

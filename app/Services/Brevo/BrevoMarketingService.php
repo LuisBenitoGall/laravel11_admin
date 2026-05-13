@@ -70,13 +70,17 @@ class BrevoMarketingService
                 $list->save();
                 $list->refresh();
             } else {
+                $putBody = $put->json();
                 Log::warning('Brevo: error al actualizar lista remota', [
                     'list_id' => $list->id,
                     'brevo_id' => $list->brevo_list_id,
                     'status' => $put->status(),
                     'body' => $put->body(),
                 ]);
-                // Seguimos: puede que el sync de contactos funcione igualmente
+                $list->brevo_sync_status = 'error';
+                $list->brevo_sync_error  = is_array($putBody) ? ($putBody['message'] ?? $put->body()) : $put->body();
+                $list->save();
+
                 return $list;
             }
         }

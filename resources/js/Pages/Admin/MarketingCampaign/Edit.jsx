@@ -1,18 +1,10 @@
 import AdminAuthenticatedLayout from '@/Layouts/Admin/AdminAuthenticatedLayout';
-import { Head, Link, router, useForm, usePage, useRemember } from '@inertiajs/react';
-import { Inertia } from '@inertiajs/inertia';
-import { Tooltip } from 'react-tooltip';
-import { useEffect, useState } from 'react';
+import { Head, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 
 //Components:
-import CategoryAssigner from '@/Components/CategoryAssigner';
-import Checkbox from '@/Components/Checkbox';
-import InfoPopover from '@/Components/InfoPopover';
-import InputError from '@/Components/InputError';
-import PrimaryButton from '@/Components/PrimaryButton';
-import SecondaryButton from '@/Components/SecondaryButton';
+import ModalCampaignAttachList from '@/Components/modals/ModalCampaignAttachList';
 import Tabs from '@/Components/Tabs';
-import TextInput from '@/Components/TextInput';
 
 //Hooks:
 import { useTranslation } from '@/Hooks/useTranslation';
@@ -21,28 +13,28 @@ import { useTranslation } from '@/Hooks/useTranslation';
 import MarketingCampaignInfoTab from './Partials/MarketingCampaignInfoTab';
 import MarketingCampaignListsTab from './Partials/MarketingCampaignListsTab';
 
-export default function Index({ 
-    auth, 
-    session, 
-    title, 
-    subtitle, 
-    campaign, 
-    tab, 
-    costCenters, 
-    owners, 
-    currencies,
-    campaignStatus, 
-    priorities,
-    availableLocales 
-}){
+export default function Index({
+    auth,
+    session,
+    title,
+    subtitle,
+    campaign,
+    tab,
+    costCenters = [],
+    owners = [],
+    currencies = [],
+    campaignStatus = {},
+    priorities = {},
+    availableLocales,
+}) {
     const __ = useTranslation();
     const props = usePage()?.props || {};
     const locale = props.locale || false;
     const languages = props.languages || [];
     const permissions = props.permissions || {};
 
-
-
+    const [showAttachModal, setShowAttachModal] = useState(false);
+    const [listRefreshKey, setListRefreshKey] = useState(0);
 
     //Acciones:
     const actions = [];
@@ -64,6 +56,15 @@ export default function Index({
         });
     }
 
+    if (permissions?.['marketing-campaigns.edit']) {
+        actions.push({
+            text: __('lista_agregar'),
+            icon: 'la-plus',
+            modal: true,
+            onClick: () => setShowAttachModal(true)
+        });
+    }
+
     return (
         <AdminAuthenticatedLayout
             user={auth.user}
@@ -73,6 +74,13 @@ export default function Index({
         >
             <Head title={title} />
     
+            <ModalCampaignAttachList
+                show={showAttachModal}
+                onClose={() => setShowAttachModal(false)}
+                onAdded={() => { setShowAttachModal(false); setListRefreshKey((k) => k + 1); }}
+                campaign={campaign}
+            />
+
             {/* Contenido */}
             <div className="contents pb-4">
                 <div className="row">
@@ -109,7 +117,11 @@ export default function Index({
                             content: (
                                 <MarketingCampaignInfoTab
                                     campaign={campaign}
-                                    side={'marketing-campaigns'}
+                                    costCenters={costCenters}
+                                    owners={owners}
+                                    currencies={currencies}
+                                    campaignStatus={campaignStatus}
+                                    priorities={priorities}
                                     updateRoute={'marketing-campaigns.update'}
                                     updateParams={[campaign.id]}
                                 />
@@ -120,13 +132,9 @@ export default function Index({
                             label: __('listas'),
                             content: (
                                 <MarketingCampaignListsTab
-                                    users={props.members ?? null}
-                                    rows={props.rows ?? []}
-                                    indexRoute={'marketing-campaigns.edit'}
-                                    indexParams={[campaign.id, 'lists']}
-                                    tableId={'tblMarketingListMembers'}
-                                    filteredDataRoute={'marketing-campaigns.members.filtered-data'}
+                                    campaign={campaign}
                                     queryParams={props.queryParams ?? {}}
+                                    refreshKey={listRefreshKey}
                                 />
                             )
                         }

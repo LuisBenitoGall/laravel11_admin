@@ -678,8 +678,13 @@ Route::middleware(['web', 'auth', 'company', 'current_company'])->prefix('admin'
     Route::post('/marketing-campaigns/store', [MarketingCampaignController::class, 'store'])->name('marketing-campaigns.store')->middleware('permission:marketing-campaigns.create');
     Route::get('/marketing-campaigns/{campaign}/show', [MarketingCampaignController::class, 'show'])->name('marketing-campaigns.show');
     Route::get('/marketing-campaigns/{campaign}/edit/{tab?}', [MarketingCampaignController::class, 'edit'])->name('marketing-campaigns.edit')->middleware('permission:marketing-campaigns.edit');
+    Route::put('/marketing-campaigns/{campaign}', [MarketingCampaignController::class, 'update'])->name('marketing-campaigns.update')->middleware('permission:marketing-campaigns.edit');
     Route::delete('/marketing-campaigns/{campaign}', [MarketingCampaignController::class, 'destroy'])->name('marketing-campaigns.destroy')->middleware('permission:marketing-campaigns.destroy');
-     Route::post('marketing-campaigns/status', [MarketingCampaignController::class, 'status'])->name('marketing-campaigns.status')->middleware('permission:marketing-campaigns.edit');
+    Route::post('marketing-campaigns/status', [MarketingCampaignController::class, 'status'])->name('marketing-campaigns.status')->middleware('permission:marketing-campaigns.edit');
+    Route::get('/marketing-campaigns/{campaign}/lists/filtered-data', [MarketingCampaignController::class, 'listsFilteredData'])->name('marketing-campaigns.lists.filtered-data');
+    Route::get('/marketing-campaigns/{campaign}/lists/search', [MarketingCampaignController::class, 'availableListsSearch'])->name('marketing-campaigns.lists.search');
+    Route::post('/marketing-campaigns/{campaign}/lists/{list}/attach', [MarketingCampaignController::class, 'attachList'])->name('marketing-campaigns.lists.attach')->middleware('permission:marketing-campaigns.edit');
+    Route::delete('/marketing-campaigns/{campaign}/lists/{list}', [MarketingCampaignController::class, 'detachList'])->name('marketing-campaigns.lists.detach')->middleware('permission:marketing-campaigns.edit');
 
     //Marketing Lists:
     Route::get('/marketing-lists', [MarketingListController::class, 'index'])->name('marketing-lists.index')->middleware('permission:marketing');
@@ -688,6 +693,7 @@ Route::middleware(['web', 'auth', 'company', 'current_company'])->prefix('admin'
     Route::post('/marketing-lists/from-contacts', [MarketingListController::class, 'storeFromContacts'])->name('marketing-lists.store-from-contacts')->middleware('permission:marketing-lists.create');
     Route::get('/marketing-lists/{list}/show', [MarketingListController::class, 'show'])->name('marketing-lists.show');
     Route::get('/marketing-lists/{list}/edit/{tab?}', [MarketingListController::class, 'edit'])->name('marketing-lists.edit')->middleware('permission:marketing-lists.edit');
+    Route::put('/marketing-lists/{list}', [MarketingListController::class, 'update'])->name('marketing-lists.update')->middleware('permission:marketing-lists.edit');
     Route::delete('/marketing-lists/{list}', [MarketingListController::class, 'destroy'])->name('marketing-lists.destroy')->middleware('permission:marketing-lists.destroy');
     Route::post('/marketing-lists/status', [MarketingListController::class, 'status'])->name('marketing-lists.status')->middleware('permission:marketing-lists.edit');
     Route::get('/marketing-lists/{list}/members/filtered-data', [MarketingListController::class, 'membersFilteredData'])->name('marketing-lists.members.filtered-data');

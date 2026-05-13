@@ -24,7 +24,23 @@ class MarketingCampaignUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
+            'owner_id'        => 'nullable|exists:users,id',
+            'name'            => 'required|string|max:255',
+            'campaign_code'   => 'nullable|string|max:255',
+            'campaign_type'   => 'nullable|string|max:50',
+            'description'     => 'nullable|string',
+            'total_cost'      => 'nullable|numeric|min:0',
+            'expected_cost'   => 'nullable|numeric|min:0',
+            'currency_id'     => 'nullable|exists:currencies,id',
+            'promote_code'    => 'nullable|string|max:255',
+            'start_at'        => 'nullable|date',
+            'finish_at'       => 'nullable|date|after_or_equal:start_at',
+            'cost_center_id'  => 'nullable|exists:cost_centers,id',
+            'status'          => 'nullable|integer|min:0|max:9',
+            'is_quick'        => 'nullable|boolean',
+            'action'          => 'nullable|string|max:255',
+            'priority'        => 'nullable',
+            'members_type'    => 'nullable|string|max:255',
         ];
     }
 

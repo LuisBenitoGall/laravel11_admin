@@ -17,7 +17,7 @@ class SyncMarketingListToBrevo implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    protected $listId;
+    public int $listId;
     protected $triggeredBy;
 
     /**

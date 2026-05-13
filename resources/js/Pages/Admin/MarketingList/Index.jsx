@@ -200,6 +200,7 @@ export default function Index({
                                         )}
 
                                         {/* Exportar a Brevo */}
+                                        {permissions?.['marketing-lists.edit'] && (
                                         <OverlayTrigger
                                                 key={"export-"+list.id}
                                                 placement="top"
@@ -216,6 +217,7 @@ export default function Index({
                                                 <i className="la la-file-export"></i>
                                             </button>
                                         </OverlayTrigger>
+                                        )}
 
                                         {/* Editar */}
                                         {permissions?.['marketing-lists.edit'] && (

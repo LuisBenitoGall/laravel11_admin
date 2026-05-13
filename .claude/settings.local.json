@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(& \"C:\\\\laragon\\\\bin\\\\php\\\\php-8.2.6-Win32-vs16-x64\\\\php.exe\" \"C:\\\\laragon\\\\www\\\\laravel11_admin\\\\vendor\\\\bin\\\\phpunit\" \"C:\\\\laragon\\\\www\\\\laravel11_admin\\\\tests\\\\Feature\\\\BrevoMarketingListExportTest.php\" --testdox 2>&1)",
+      "PowerShell(Set-Content *)",
+      "PowerShell(Get-Service *)",
+      "PowerShell(Test-NetConnection *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\laragon\\\\www\\\\laravel11_admin\\\\resources\\\\js\\\\Components\" -Recurse -Filter \"*.jsx\")",
+      "Bash(Select-Object FullName)",
+      "Bash(Get-ChildItem -Path \"C:\\\\laragon\\\\www\\\\laravel11_admin\\\\resources\\\\js\\\\Components\" -Filter \"*able*.jsx\")",
+      "Bash(Select-Object Name)",
+      "Bash(npm run *)"
+    ]
+  }
+}

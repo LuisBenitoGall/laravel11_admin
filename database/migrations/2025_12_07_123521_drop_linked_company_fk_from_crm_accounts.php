@@ -14,6 +14,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // information_schema is MySQL-only; skip on SQLite (FK/index already absent)
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         // Use information_schema to drop only existing constraints/indexes safely
         $database = DB::getDatabaseName();
 
