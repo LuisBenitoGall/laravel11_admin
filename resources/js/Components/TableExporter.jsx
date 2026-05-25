@@ -35,6 +35,7 @@ const TableExporter = ({ fetchData, columns, filename = 'export' }) => {
     const cellToValue = (value, col) => {
         let v = col.export === 'html' ? cleanHtml(value) : value;
         if (v === null || v === undefined) return '';
+        if (typeof col.exportValue === 'function') return col.exportValue(v);
         if (typeof v === 'object') return JSON.stringify(v);
         return v;
     };
@@ -85,11 +86,7 @@ const TableExporter = ({ fetchData, columns, filename = 'export' }) => {
 
             const headers = columns.map(col => col.label);
             const rows    = data.map(row =>
-                columns.map(col => {
-                    const value = row[col.key];
-                    if (col.export === 'html') return cleanHtml(value);
-                    return value;
-                })
+                columns.map(col => cellToValue(row[col.key], col))
             );
 
             autoTable(doc, {

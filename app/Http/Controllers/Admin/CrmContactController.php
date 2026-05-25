@@ -402,12 +402,21 @@ class CrmContactController extends Controller{
         /**
          * 6) Orden
          */
-        $sortField     = $request->input('sort_field', 'name');
-        $sortDirection = $request->input('sort_direction', 'ASC');
-        $allowedSortFields = ['name', 'surname', 'email'];
+        $sortField     = $request->input('sort_field', 'full_name');
+        $sortDirection = strtoupper($request->input('sort_direction', 'ASC'));
+        if (!in_array($sortDirection, ['ASC', 'DESC'], true)) {
+            $sortDirection = 'ASC';
+        }
+        $allowedSortFields = ['full_name', 'name', 'surname', 'email'];
 
         if (!in_array($sortField, $allowedSortFields, true)) {
-            $sortField = 'name';
+            $sortField = 'full_name';
+        }
+
+        if ($sortField === 'full_name') {
+            return $query->orderByRaw(
+                "CONCAT(TRIM(COALESCE(users.name, '')), ' ', TRIM(COALESCE(users.surname, ''))) {$sortDirection}"
+            );
         }
 
         return $query->orderBy("users.$sortField", $sortDirection);

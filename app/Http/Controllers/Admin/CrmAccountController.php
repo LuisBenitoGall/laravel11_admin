@@ -524,11 +524,27 @@ class CrmAccountController extends Controller{
     public function edit(CrmAccount $account, $tab = false){
         $locale = LocaleTrait::languages(session('locale', app()->getLocale()));
 
-        $company = $account->linked_company_id? Company::find($account->linked_company_id):false;
+        $company = $account->linked_company_id
+            ? Company::withTrashed()->find($account->linked_company_id)
+            : null;
 
-        if(!$company){
-            return redirect()->route('crm-accounts.index')->with('alert', __('empresa_edicion_error'));
-            exit;    
+        if ($company?->trashed()) {
+            $company->restore();
+        }
+
+        if (!$company) {
+            $company = new Company();
+            $company->name       = $account->name ?? '';
+            $company->slug       = Str::slug($account->name ?? 'cuenta-' . $account->id);
+            $company->tradename  = $account->tradename;
+            $company->nif        = $account->nif;
+            $company->status     = true;
+            $company->created_by = Auth::id();
+            $company->updated_by = Auth::id();
+            $company->save();
+
+            $account->linked_company_id = $company->id;
+            $account->saveQuietly();
         }
 
         //Formateo de datos:
@@ -539,8 +555,12 @@ class CrmAccountController extends Controller{
         $contacts = CrmContact::where('crm_account_id', $account->id)
             ->with(['user.phones', 'user.avatar'])
             ->join('users', 'crm_contacts.user_id', '=', 'users.id')
+            ->leftJoin('user_companies as uc_pos', function ($join) use ($account) {
+                $join->on('uc_pos.user_id', '=', 'users.id')
+                     ->where('uc_pos.company_id', '=', $account->company_id);
+            })
             ->orderBy('users.name', 'ASC')
-            ->select('crm_contacts.*')
+            ->select('crm_contacts.*', 'uc_pos.position AS company_position')
             ->get();
 
         $table = $this->mapContactsForTable($contacts, $locale);
@@ -612,7 +632,11 @@ class CrmAccountController extends Controller{
         $query = CrmContact::query()
             ->where('crm_contacts.crm_account_id', $account->id)
             ->with(['user.phones', 'user.avatar'])
-            ->join('users', 'crm_contacts.user_id', '=', 'users.id');
+            ->join('users', 'crm_contacts.user_id', '=', 'users.id')
+            ->leftJoin('user_companies as uc_pos', function ($join) use ($account) {
+                $join->on('uc_pos.user_id', '=', 'users.id')
+                     ->where('uc_pos.company_id', '=', $account->company_id);
+            });
 
         if ($request->filled('name')) {
             $v = $request->input('name');
@@ -646,7 +670,7 @@ class CrmAccountController extends Controller{
         if (!in_array($sortField, $allowedSortFields, true)) {
             $sortField = 'name';
         }
-        return $query->orderBy("users.{$sortField}", $sortDirection)->select('crm_contacts.*');
+        return $query->orderBy("users.{$sortField}", $sortDirection)->select('crm_contacts.*', 'uc_pos.position AS company_position');
     }
 
     /**
@@ -789,7 +813,7 @@ class CrmAccountController extends Controller{
                 'id'            => $contact->id,
                 'user_id'      => $u->id,
                 'name'          => trim($salutation . ' ' . ucwords($u->name ?? '') . ' ' . ucwords($u->surname ?? '')),
-                'position'      => $contact->position ?? $u->position,
+                'position'      => $contact->company_position ?? $contact->position,
                 'created_at'    => Carbon::parse($contact->created_at ?? $u->created_at)->format($locale[4]),
                 'email'         => $u->email,
                 'avatar'        => $u->avatar && $u->avatar->image
