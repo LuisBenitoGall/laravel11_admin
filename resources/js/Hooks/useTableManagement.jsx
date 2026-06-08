@@ -9,6 +9,7 @@ import { useTranslation } from '@/Hooks/useTranslation';
 export function useTableManagement({
   table,
   allColumnKeys = [],
+  defaultHiddenKeys = [],
   entityName,
   indexRoute = null,
   destroyRoute,
@@ -32,7 +33,9 @@ export function useTableManagement({
 
     // Preferencias de columnas
     const savedPrefs = props.columnPreferences?.[table];
-    const initialVisible = Array.isArray(savedPrefs) && savedPrefs.length ? savedPrefs : allColumnKeys;
+    const initialVisible = Array.isArray(savedPrefs) && savedPrefs.length
+        ? savedPrefs
+        : allColumnKeys.filter(k => !defaultHiddenKeys.includes(k));
 
     const [sortParams, setSortParams] = useState({
         sort_field: queryParams.sort_field || defaultSortField,

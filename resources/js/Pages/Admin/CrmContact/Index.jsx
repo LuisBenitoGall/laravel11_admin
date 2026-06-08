@@ -212,8 +212,9 @@ export default function Index({
     const columns = [
         { key: 'full_name',       label: __('nombre'),      sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_filtrar') },
         // { key: 'created_at', label: __('fecha_alta'),  sort: true,  filter: 'date', class_th: 'text-center', class_td: 'text-end', placeholder: __('fecha_alta'), dateKeys: ['date_from', 'date_to'] },
-        { key: 'email',      label: __('email'),       sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('email_filtrar') },
-        { key: 'phones',     label: __('telefonos'),   sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('telefonos_filtrar'), exportValue: (v) => Array.isArray(v) ? v.map(p => p.e164).filter(Boolean).join('; ') : (v ?? '') },
+        { key: 'email',        label: __('email'),          sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('email_filtrar') },
+        { key: 'other_emails', label: __('otros_emails'),   sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('otros_emails_filtrar'), exportValue: (v) => Array.isArray(v) ? v.filter(Boolean).join('; ') : (v ?? '') },
+        { key: 'phones',       label: __('telefonos'),      sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('telefonos_filtrar'), exportValue: (v) => Array.isArray(v) ? v.map(p => p.e164).filter(Boolean).join('; ') : (v ?? '') },
         { key: 'position',   label: __('cargo'),       sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('cargo_filtrar') },
         contactTypeColumn,
         contactSubTypeColumn,
@@ -253,6 +254,7 @@ export default function Index({
         destroyRoute: 'users.destroy',
         filteredDataRoute: slug + '.filtered-data',
         labelName: 'contactos',
+        defaultSortField: 'full_name',
         queryParams,
         preserveParams: isBuildingList && builderList
             ? { marketing_list_id: builderList.id, build_marketing_list: 1 }

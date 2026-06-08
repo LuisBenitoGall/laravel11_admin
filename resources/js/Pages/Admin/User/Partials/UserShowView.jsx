@@ -51,7 +51,7 @@ export default function UserShowView({ record }) {
             <div className="d-flex justify-content-between align-items-start mb-3">
                 <div>
                     <h4 className="mb-1">
-                        {user.full_name || `${user.name} ${user.surname}`}
+                        {[user.name, user.surname].filter(Boolean).join(' ')}
                     </h4>
                     <div className="text-muted">
                         {user.company?.name}

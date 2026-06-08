@@ -51,8 +51,9 @@ const TableExporter = ({ fetchData, columns, filename = 'export' }) => {
                 import('file-saver'),
             ]);
 
-            const header = columns.map(col => col.label);
-            const body   = data.map(row => columns.map(col => cellToValue(row[col.key], col)));
+            const exportCols = columns.filter(col => !col.noExport);
+            const header = exportCols.map(col => col.label);
+            const body   = data.map(row => exportCols.map(col => cellToValue(row[col.key], col)));
 
             const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
             const wb = XLSX.utils.book_new();
@@ -84,9 +85,10 @@ const TableExporter = ({ fetchData, columns, filename = 'export' }) => {
             const autoTable = autoTableModule.default || autoTableModule;
             const doc       = new jsPDF();
 
-            const headers = columns.map(col => col.label);
+            const exportCols = columns.filter(col => !col.noExport);
+            const headers = exportCols.map(col => col.label);
             const rows    = data.map(row =>
-                columns.map(col => cellToValue(row[col.key], col))
+                exportCols.map(col => cellToValue(row[col.key], col))
             );
 
             autoTable(doc, {

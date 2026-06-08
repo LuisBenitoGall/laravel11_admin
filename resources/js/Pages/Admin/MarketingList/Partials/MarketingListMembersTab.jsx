@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { usePage } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 
 //Components:
 import TableUsers from '@/Components/TableUsers';
@@ -7,18 +7,48 @@ import TableUsers from '@/Components/TableUsers';
 //Hooks:
 import { useTranslation } from '@/Hooks/useTranslation';
 
-export default function MarketingListMembersTab({ 
-    users: usersProp = null, 
+export default function MarketingListMembersTab({
+    users: usersProp = null,
     rows: rowsProp = null,
-    tableId = 'tblMarketingListMembers', 
-    indexRoute = '', 
-    indexParams = undefined, 
-    filteredDataRoute = '', 
+    tableId = 'tblMarketingListMembers',
+    indexRoute = '',
+    indexParams = undefined,
+    filteredDataRoute = '',
     entityName = 'users',
-    userEditCompanyId = null           
+    userEditCompanyId = null
 }){
     const __ = useTranslation();
     const pageProps = usePage()?.props || {};
+
+    const columns = useMemo(() => [
+        { key: 'name',        label: __('nombre'),         sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_filtrar') },
+        { key: 'email',       label: __('email'),           sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('email_filtrar') },
+        { key: 'other_emails',label: __('otros_emails'),    sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('otros_emails_filtrar'), exportValue: (v) => Array.isArray(v) ? v.filter(Boolean).join('; ') : (v ?? '') },
+        { key: 'phones',      label: __('telefonos'),       sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('telefonos_filtrar'),    exportValue: (v) => Array.isArray(v) ? v.map(p => p.e164).filter(Boolean).join('; ') : (v ?? '') },
+        { key: 'position',    label: __('cargo'),           sort: false, filter: 'text', class_th: '', class_td: '' },
+        {
+            key: 'accounts',
+            label: __('cuentas'),
+            sort: false,
+            filter: 'text',
+            class_th: '', class_td: '',
+            placeholder: __('cuentas_filtrar'),
+            exportValue: (v) => Array.isArray(v) ? v.map(a => a.name).join(', ') : (v ?? ''),
+            render: ({ value }) => {
+                if (!Array.isArray(value) || !value.length) return '—';
+                return value.map((a, i) => (
+                    <React.Fragment key={a.id}>
+                        {i > 0 && ', '}
+                        <Link href={route('crm-accounts.edit', a.id)} className="link-text">
+                            {a.name}
+                        </Link>
+                    </React.Fragment>
+                ));
+            },
+        },
+        { key: 'avatar',     label: __('imagen'),    sort: false, filter: '', type: 'image', icon: 'user-tie', class_th: 'text-center', class_td: 'text-center', placeholder: '', defaultHidden: true, noExport: true },
+        { key: 'created_at', label: __('fecha_alta'), sort: true,  filter: 'date', dateKeys: ['date_from', 'date_to'], filterOnly: true, noExport: true },
+    ], [__]);
 
     const users = usersProp ?? pageProps.users ?? null;
 
@@ -73,21 +103,12 @@ export default function MarketingListMembersTab({
                 indexParams={indexParams}
                 filteredDataRoute={filteredDataRoute}
                 entityName={entityName}
+                columns={columns}
                 deleteUserRoute="marketing-list-users.destroy"
                 rowDeleteKey="mlu_id"
                 disablePagination={false}
                 userEditCompanyId={editCtxId}
                 labelName={'miembros'}
-                i18n={{
-                    name: __('nombre'),
-                    position: __('puesto'),
-                    phone: __('telefono'),
-                    whatsapp: 'WhatsApp',
-                    others: __('otros'),
-                    email: 'Email',
-                    none: '—',
-                    moreSuffix: __('mas')
-                }}
             />
         </div>
     );

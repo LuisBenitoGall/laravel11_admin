@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use App\Support\CompanyContext;
+use App\Support\Filters\WildcardPattern;
 use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
@@ -194,13 +195,14 @@ class MarketingListController extends Controller
                 return;
             }
 
-            $q->whereHas('createdBy', function ($sub) use ($v) {
-                $sub->where(function ($qq) use ($v) {
-                    $qq->where('users.name', 'like', "%{$v}%")
-                       ->orWhere('users.surname', 'like', "%{$v}%")
+            $like = WildcardPattern::toLike($v);
+            $q->whereHas('createdBy', function ($sub) use ($like) {
+                $sub->where(function ($qq) use ($like) {
+                    $qq->where('users.name', 'like', $like)
+                       ->orWhere('users.surname', 'like', $like)
                        ->orWhereRaw(
                            "CONCAT(TRIM(COALESCE(users.name, '')), ' ', TRIM(COALESCE(users.surname, ''))) LIKE ?",
-                           ["%{$v}%"]
+                           [$like]
                        );
                 });
             });
@@ -213,7 +215,7 @@ class MarketingListController extends Controller
                 if ($v === '') {
                     return;
                 }
-                $q->where('name', 'like', "%{$v}%");
+                $q->where('name', 'like', WildcardPattern::toLike($v));
             },
 
             // Aceptamos varias claves posibles desde el front
@@ -542,10 +544,12 @@ class MarketingListController extends Controller
     {
         $companyId = (int) $list->company_id;
 
-        $nameFilter     = trim((string) $request->input('name', ''));
-        $emailFilter    = trim((string) $request->input('email', ''));
-        $phonesFilter   = trim((string) $request->input('phones', ''));
-        $positionFilter = trim((string) $request->input('position', ''));
+        $nameFilter        = trim((string) $request->input('name', ''));
+        $emailFilter       = trim((string) $request->input('email', ''));
+        $phonesFilter      = trim((string) $request->input('phones', ''));
+        $otherEmailsFilter = trim((string) $request->input('other_emails', ''));
+        $positionFilter    = trim((string) $request->input('position', ''));
+        $accountsFilter    = trim((string) $request->input('accounts', ''));
 
         $dateFrom = $request->input('date_from');
         $dateTo   = $request->input('date_to');
@@ -570,6 +574,7 @@ class MarketingListController extends Controller
                 'users.email',
                 // aquí viene del CRM, no de users:
                 DB::raw('MIN(cc.position) AS position'),
+                DB::raw("GROUP_CONCAT(DISTINCT CONCAT(ca.id, CHAR(1), ca.name) ORDER BY ca.name SEPARATOR '\x1e') AS accounts_raw"),
                 'marketing_list_users.id AS mlu_id',
                 'marketing_list_users.observations',
                 'marketing_list_users.status AS mlu_status',
@@ -583,9 +588,13 @@ class MarketingListController extends Controller
                   ->where('cc.company_id', '=', $companyId)
                   ->whereNull('cc.deleted_at');
             })
+            ->leftJoin('crm_accounts AS ca', function ($j) {
+                $j->on('ca.id', '=', 'cc.crm_account_id')
+                  ->whereNull('ca.deleted_at');
+            })
             ->where('marketing_list_users.marketing_list_id', $list->id)
             ->where('users.status', 1)
-            ->with(['phones', 'avatar'])
+            ->with(['phones', 'avatar', 'emails'])
             ->groupBy(
                 'users.id',
                 'users.name',
@@ -606,23 +615,35 @@ class MarketingListController extends Controller
                     ' ',
                     TRIM(COALESCE(users.surname, ''))
                 ) LIKE ?
-            ", ["%{$nameFilter}%"]);
+            ", [WildcardPattern::toLike($nameFilter)]);
         }
 
         // Filtro por email
         if ($emailFilter !== '') {
-            $query->where('users.email', 'like', "%{$emailFilter}%");
+            $query->where('users.email', 'like', WildcardPattern::toLike($emailFilter));
         }
 
         // Filtro por cargo (posición del crm_contact)
         if ($positionFilter !== '') {
-            $query->where('cc.position', 'like', "%{$positionFilter}%");
+            $query->where('cc.position', 'like', WildcardPattern::toLike($positionFilter));
+        }
+
+        // Filtro por cuenta CRM
+        if ($accountsFilter !== '') {
+            $query->where('ca.name', 'like', WildcardPattern::toLike($accountsFilter));
         }
 
         // Filtro por teléfono (relación phones)
         if ($phonesFilter !== '') {
             $query->whereHas('phones', function ($q) use ($phonesFilter) {
-                $q->where('e164', 'like', "%{$phonesFilter}%");
+                $q->where('e164', 'like', WildcardPattern::toLike($phonesFilter));
+            });
+        }
+
+        // Filtro por otros emails (relación emails)
+        if ($otherEmailsFilter !== '') {
+            $query->whereHas('emails', function ($q) use ($otherEmailsFilter) {
+                $q->where('email', 'like', WildcardPattern::toLike($otherEmailsFilter));
             });
         }
 
@@ -744,6 +765,18 @@ class MarketingListController extends Controller
                 'mlu_id'        => $u->mlu_id,
                 'name'          => trim($salutation . ' ' . ucwords($u->name) . ' ' . ucwords($u->surname)),
                 'position'      => $u->position,
+                'accounts'      => (function () use ($u) {
+                    $raw = $u->accounts_raw ?? null;
+                    if (! $raw) return [];
+                    $accounts = [];
+                    foreach (explode("\x1e", $raw) as $item) {
+                        $parts = explode("\x01", $item, 2);
+                        if (count($parts) === 2) {
+                            $accounts[] = ['id' => (int) $parts[0], 'name' => $parts[1]];
+                        }
+                    }
+                    return $accounts;
+                })(),
                 'created_at'    => Carbon::parse($u->created_at)->format($locale[4]),
                 'email'         => $u->email,
                 'avatar'        => $u->avatar && $u->avatar->image
@@ -759,6 +792,9 @@ class MarketingListController extends Controller
                     'is_primary'  => $p->is_primary,
                     'is_whatsapp' => $p->is_whatsapp,
                 ])->values(),
+                'other_emails'  => $u->relationLoaded('emails')
+                    ? $u->emails->pluck('email')->filter()->values()
+                    : [],
             ];
         });
     }

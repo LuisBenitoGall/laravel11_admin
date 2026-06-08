@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use App\Services\CrmContactImportSampleGenerator;
 use App\Support\CompanyContext;
+use App\Support\Filters\WildcardPattern;
 use App\Support\ImportContactRowNormalizer;
 use Inertia\Inertia;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -230,14 +231,15 @@ class CrmContactController extends Controller{
             ->from('users')
             ->join('crm_contacts as cc', function ($j) use ($company_id, $leads) {
                 $j->on('cc.user_id', '=', 'users.id')
-                  ->where('cc.company_id', '=', $company_id);
+                  ->where('cc.company_id', '=', $company_id)
+                  ->whereNull('cc.deleted_at');
 
                 if ($leads) {
                     $j->where('cc.contact_type', '=', 'clp');
                 }
             })
             ->whereNull('users.deleted_at')
-            ->with(['avatar', 'phones', 'categories', 'companies']);
+            ->with(['avatar', 'phones', 'categories', 'companies', 'emails']);
 
         /**
          * 2) SELECT + agregados solo sobre crm_contacts
@@ -286,7 +288,7 @@ class CrmContactController extends Controller{
                     ' ',
                     TRIM(COALESCE(users.surname, ''))
                 ) LIKE ?
-            ", ["%{$fullNameFilter}%"]);
+            ", [WildcardPattern::toLike($fullNameFilter)]);
         }
 
         // companies: filtro de la columna "Empresa"
@@ -295,10 +297,11 @@ class CrmContactController extends Controller{
         $companiesFilter = is_string($companiesFilter) ? trim($companiesFilter) : '';
 
         if ($companiesFilter !== '') {
-            $query->whereHas('companies', function ($sub) use ($companiesFilter) {
-                $sub->where(function ($qq) use ($companiesFilter) {
-                    $qq->where('companies.name', 'like', "%{$companiesFilter}%")
-                       ->orWhere('companies.tradename', 'like', "%{$companiesFilter}%");
+            $like = WildcardPattern::toLike($companiesFilter);
+            $query->whereHas('companies', function ($sub) use ($like) {
+                $sub->where(function ($qq) use ($like) {
+                    $qq->where('companies.name', 'like', $like)
+                       ->orWhere('companies.tradename', 'like', $like);
                 });
             });
         }
@@ -313,7 +316,7 @@ class CrmContactController extends Controller{
                 if ($v === '') {
                     return;
                 }
-                $q->where('users.email', 'like', "%{$v}%");
+                $q->where('users.email', 'like', WildcardPattern::toLike($v));
             },
 
             // Sólo posición de contacto (crm_contacts)
@@ -323,7 +326,7 @@ class CrmContactController extends Controller{
                     return;
                 }
 
-                $q->where('cc.position', 'like', "%{$v}%");
+                $q->where('cc.position', 'like', WildcardPattern::toLike($v));
             },
 
             'contact_type' => function ($q, $v) {
@@ -359,7 +362,7 @@ class CrmContactController extends Controller{
                             $qq->where('categories.company_id', $company_id);
                         })
                         ->where('categories.module', 'users')
-                        ->where('categories.name', 'like', "%{$v}%");
+                        ->where('categories.name', 'like', WildcardPattern::toLike($v));
                 });
             },
 
@@ -369,9 +372,19 @@ class CrmContactController extends Controller{
                 if ($v === '') {
                     return;
                 }
-                $like = '%' . str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $v) . '%';
-                $q->whereHas('phones', function ($sub) use ($like) {
-                    $sub->where('e164', 'like', $like);
+                $q->whereHas('phones', function ($sub) use ($v) {
+                    $sub->where('e164', 'like', WildcardPattern::toLike($v));
+                });
+            },
+
+            // Filtro por otros emails (columna "Otros emails")
+            'other_emails' => function ($q, $v) {
+                $v = trim((string) $v);
+                if ($v === '') {
+                    return;
+                }
+                $q->whereHas('emails', function ($sub) use ($v) {
+                    $sub->where('email', 'like', WildcardPattern::toLike($v));
                 });
             },
         ];
@@ -414,6 +427,8 @@ class CrmContactController extends Controller{
         }
 
         if ($sortField === 'full_name') {
+            // Orden coherente con el valor mostrado por UserResource:
+            // full_name = name + ' ' + surname (nombre primero, apellido después)
             return $query->orderByRaw(
                 "CONCAT(TRIM(COALESCE(users.name, '')), ' ', TRIM(COALESCE(users.surname, ''))) {$sortDirection}"
             );
@@ -1066,7 +1081,7 @@ class CrmContactController extends Controller{
         }
 
         $colIndex = array_flip($headerRow);
-        $expectedCols = ['name', 'surname', 'user_email', 'user_nif', 'user_phone1', 'user_phone2', 'position', 'department', 'observations', 'company', 'company_nif', 'company_city', 'company_postal_code', 'company_street', 'company_phone', 'company_email', 'contact_type', 'contact_subtype'];
+        $expectedCols = ['name', 'surname', 'user_email', 'user_nif', 'user_phone1', 'user_phone2', 'position', 'department', 'observations', 'company', 'company_nif', 'company_city', 'company_postal_code', 'company_street', 'company_phone', 'company_email', 'account', 'contact_type', 'contact_subtype'];
         foreach ($expectedCols as $col) {
             if (!isset($colIndex[$col])) {
                 $colIndex[$col] = null;
@@ -1143,12 +1158,29 @@ class CrmContactController extends Controller{
                     }
                 }
 
+                // Columna Q (account): búsqueda por nombre exacto en cuentas existentes (case-insensitive).
+                // Si hay coincidencia única sobreescribe $crmAccount; si hay 0 o >1, se omite.
+                $accountFromQ = null;
+                $accountLabel = trim((string) ($row['account'] ?? ''));
+                if ($accountLabel !== '') {
+                    $accountMatches = CrmAccount::where('company_id', $currentCompanyId)
+                        ->whereRaw('LOWER(name) = ?', [mb_strtolower($accountLabel, 'UTF-8')])
+                        ->get();
+                    if ($accountMatches->count() === 1) {
+                        $accountFromQ = $accountMatches->first();
+                        $crmAccount   = $accountFromQ;
+                    }
+                }
+
                 $contact = CrmContact::where('company_id', $currentCompanyId)->where('user_id', $user->id)->first();
                 if ($contact === null) {
                     $contact = new CrmContact();
                     $contact->company_id = $currentCompanyId;
                     $contact->user_id = $user->id;
                     $contact->crm_account_id = $crmAccount?->id;
+                } elseif ($accountFromQ !== null) {
+                    // Contacto existente: actualizar crm_account_id solo si la columna Q produjo coincidencia
+                    $contact->crm_account_id = $accountFromQ->id;
                 }
 
                 // Siempre actualizar desde la fila importada (incluye reimportaciones)

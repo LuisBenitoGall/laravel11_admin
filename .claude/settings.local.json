@@ -9,7 +9,17 @@
       "Bash(Select-Object FullName)",
       "Bash(Get-ChildItem -Path \"C:\\\\laragon\\\\www\\\\laravel11_admin\\\\resources\\\\js\\\\Components\" -Filter \"*able*.jsx\")",
       "Bash(Select-Object Name)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\laragon\\\\www\\\\laravel11_admin\\\\resources\\\\js\\\\Pages\\\\Admin\" -Directory)",
+      "Bash(Select-Object -ExpandProperty Name)",
+      "Bash(php artisan *)",
+      "Bash(php \"C:\\\\laragon\\\\www\\\\laravel11_admin\\\\artisan\" tinker --execute=\"echo DB::select\\('SELECT VERSION\\(\\)'\\)[0]->{'VERSION\\(\\)'};\")",
+      "Bash(grep -rn \"str_replace.*%.*_.*\\\\\\\\\\\\\\\\\" /c/laragon/www/laravel11_admin/app/Http/Controllers/Admin/ --include=\"*.php\")",
+      "Bash(grep -rn \"Tests\\\\\\\\|tests\\\\b\" /c/laragon/www/laravel11_admin/tests --include=\"*.php\" -l)",
+      "Bash(Get-Content *)",
+      "Bash(C:\\\\laragon\\\\bin\\\\php\\\\php-8.2.6-Win32-vs16-x64\\\\php.exe *)",
+      "PowerShell(& \"C:\\\\laragon\\\\bin\\\\php\\\\php-8.2.6-Win32-vs16-x64\\\\php.exe\" \"C:\\\\laragon\\\\www\\\\laravel11_admin\\\\tmp_dedup.php\")",
+      "PowerShell(& \"C:\\\\laragon\\\\bin\\\\php\\\\php-8.2.6-Win32-vs16-x64\\\\php.exe\" \"C:\\\\laragon\\\\www\\\\laravel11_admin\\\\artisan\" tinker --execute=\"require storage_path\\('app/gen_test_import.php'\\);\" 2>&1)"
     ]
   }
 }

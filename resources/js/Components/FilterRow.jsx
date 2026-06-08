@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import { addYears } from 'date-fns';
 import * as locales from 'date-fns/locale';
+import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 
 //Components:
 import SelectInput from '@/Components/SelectInput';
@@ -163,33 +164,43 @@ export default function FilterRow({
                     const localValue = textValues[col.key] || '';
 
                     return (
-                        <th key={col.key} className={visibleColumns.includes(col.key) ? '' : 'd-none'}>
+                        <th key={col.key} className={(col.filterOnly || visibleColumns.includes(col.key)) ? '' : 'd-none'}>
                             <div className="input-group">
                                 {/* Filtro texto */}
                                 {col.filter === 'text' && (
-                                    <TextInput
-                                        className="form-control-sm input-rounded input-rounded-sm"
-                                        value={localValue}
-                                        placeholder={col.translatedPlaceholder}
-                                        onChange={e => {
-                                            const newValue = e.target.value;
-                                            setTextValues(prev => ({
-                                                ...prev,
-                                                [col.key]: newValue,
-                                            }));
+                                    <OverlayTrigger
+                                        placement="top"
+                                        trigger={['hover', 'focus']}
+                                        overlay={
+                                            <Tooltip id={`wc-${col.key}`}>
+                                                {__('filtro_comodin_hint')}
+                                            </Tooltip>
+                                        }
+                                    >
+                                        <TextInput
+                                            className="form-control-sm input-rounded input-rounded-sm"
+                                            value={localValue}
+                                            placeholder={col.translatedPlaceholder}
+                                            onChange={e => {
+                                                const newValue = e.target.value;
+                                                setTextValues(prev => ({
+                                                    ...prev,
+                                                    [col.key]: newValue,
+                                                }));
 
-                                            if (!isManualFiltering) {
-                                                SearchFieldChanged(col.key, newValue.trim());
-                                            }
-                                        }}
-                                        onBlur={() => {
-                                            if (isManualFiltering) {
-                                                SearchFieldChanged(col.key, localValue.trim());
-                                            }
-                                        }}
-                                        onKeyPress={handleKeyPress(col.key)}
-                                        type="search"
-                                    />
+                                                if (!isManualFiltering) {
+                                                    SearchFieldChanged(col.key, newValue.trim());
+                                                }
+                                            }}
+                                            onBlur={() => {
+                                                if (isManualFiltering) {
+                                                    SearchFieldChanged(col.key, localValue.trim());
+                                                }
+                                            }}
+                                            onKeyPress={handleKeyPress(col.key)}
+                                            type="search"
+                                        />
+                                    </OverlayTrigger>
                                 )}
 
                                 {/* Filtro select */}

@@ -115,6 +115,7 @@ class User extends Authenticatable implements MustVerifyEmail{
     public function companies(){
         return $this->belongsToMany(Company::class, 'user_companies')
             ->withPivot('position')
+            ->wherePivotNull('deleted_at')
             ->where('companies.status', 1);
     }
 

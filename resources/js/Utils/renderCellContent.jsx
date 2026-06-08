@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from '@inertiajs/react';
 import { parseISO, format as formatDate } from 'date-fns';
+import EmailsCell from '@/Components/EmailsCell';
 import PhonesCell from '@/Components/PhonesCell';
 
 export default function renderCellContent(value, column, rowData = {}) {
@@ -77,6 +78,11 @@ export default function renderCellContent(value, column, rowData = {}) {
 	// Teléfonos: delegado a PhonesCell (primer teléfono + badge con popover del resto)
 	if (column.key === 'phones') {
 		return <PhonesCell phones={value} />;
+	}
+
+	// Otros emails: delegado a EmailsCell (primer email + badge con popover del resto)
+	if (column.key === 'other_emails') {
+		return <EmailsCell emails={value} />;
 	}
 
 	// Fecha de alta CRM: ya viene formateada desde el backend según sesión

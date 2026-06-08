@@ -72,9 +72,9 @@ class UserResource extends JsonResource
 
         return [
             'id'        => $this->id,
-            'name'      => $salutation.' '.ucwords($this->name),
+            'name'      => trim(($salutation ? $salutation.' ' : '').ucwords($this->name ?? '')),
             'surname'   => $this->surname,
-            'full_name'  => $salutation.' '.ucwords($this->name).' '.$this->surname,
+            'full_name'  => trim(ucwords($this->name ?? '').' '.($this->surname ?? '')),
             'nickname'  => $this->nickname,
             'email'     => $this->email,
             'sex'       => $this->sex ? strtolower(trim($this->sex))[0] : null,
@@ -97,6 +97,10 @@ class UserResource extends JsonResource
                 'is_primary'  => $p->is_primary,
                 'is_whatsapp' => $p->is_whatsapp,
             ])->values(),
+
+            'other_emails' => $this->whenLoaded('emails', function () {
+                return $this->emails->pluck('email')->filter()->values();
+            }, []),
 
             'categories' => $this->whenLoaded('categories', function () {
                 return $this->categories->pluck('name')->toArray();

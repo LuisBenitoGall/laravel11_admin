@@ -15,7 +15,7 @@ const ColumnFilter = ({ columns, visibleColumns, toggleColumn }) => {
             </button>
             {isOpen && (
                 <ul className="dropdown-menu show position-absolute">
-                    {columns.map(({ key, label }) => (
+                    {columns.filter(col => !col.filterOnly).map(({ key, label }) => (
                         <li key={key} className="dropdown-item d-flex justify-content-between align-items-center">
                             <label className="d-flex w-100 justify-content-between align-items-center">
                                 <span>{label}</span>

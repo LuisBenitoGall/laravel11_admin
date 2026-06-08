@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use App\Support\CompanyContext;
 use App\Support\Filters\AdHocFilterApplier;
+use App\Support\Filters\WildcardPattern;
 use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
@@ -200,26 +201,36 @@ class UserController extends Controller{
 
         // Filtros dinámicos
         $filters = [
-            'name' => fn($q, $v) => $q->where(function ($sub) use ($v) {
-                $sub->where('name', 'like', "%$v%")
-                    ->orWhere('surname', 'like', "%$v%");
-            }),
-            'email' => fn($q, $v) => $q->where('email', 'like', "%$v%"),
+            'name' => function ($q, $v) {
+                $v = trim((string) $v);
+                if ($v === '') return;
+                $like = WildcardPattern::toLike($v);
+                $q->where(function ($sub) use ($like) {
+                    $sub->where('name', 'like', $like)
+                        ->orWhere('surname', 'like', $like);
+                });
+            },
+            'email' => function ($q, $v) {
+                $v = trim((string) $v);
+                if ($v === '') return;
+                $q->where('email', 'like', WildcardPattern::toLike($v));
+            },
             'phones' => function ($q, $v) {
                 $v = trim((string) $v);
-                if ($v === '') {
-                    return;
-                }
-                $like = '%' . str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $v) . '%';
-                $q->whereHas('phones', fn ($sub) => $sub->where('e164', 'like', $like));
+                if ($v === '') return;
+                $q->whereHas('phones', fn ($sub) => $sub->where('e164', 'like', WildcardPattern::toLike($v)));
             },
-            'categories' => fn($q, $v) => $q->whereHas('categories', function ($sub) use ($company_id, $v) {
-                if ($company_id !== 'all') {
-                    $sub->where('categories.company_id', $company_id);
-                }
-                $sub->where('categories.module', 'users')
-                    ->where('categories.name', 'like', "%$v%");
-            })
+            'categories' => function ($q, $v) use ($company_id) {
+                $v = trim((string) $v);
+                if ($v === '') return;
+                $q->whereHas('categories', function ($sub) use ($company_id, $v) {
+                    if ($company_id !== 'all') {
+                        $sub->where('categories.company_id', $company_id);
+                    }
+                    $sub->where('categories.module', 'users')
+                        ->where('categories.name', 'like', WildcardPattern::toLike($v));
+                });
+            },
         ];
 
         foreach ($filters as $key => $callback) {
@@ -769,12 +780,19 @@ class UserController extends Controller{
             ['position' => null, 'department' => null]
         );
 
-        $cc = new CrmContact();
-        $cc->company_id = session('currentCompany');
-        $cc->user_id = $userId;
+        // Reutilizar contacto existente sin cuenta asignada; si no hay, crear uno nuevo.
+        $cc = CrmContact::where('company_id', session('currentCompany'))
+            ->where('user_id', $userId)
+            ->whereNull('crm_account_id')
+            ->first()
+            ?? new CrmContact([
+                'company_id' => session('currentCompany'),
+                'user_id'    => $userId,
+                'owner_id'   => Auth::id(),
+                'validated'  => Carbon::now(),
+            ]);
+
         $cc->crm_account_id = $crmAccountId;
-        $cc->owner_id = Auth::id();
-        $cc->validated = Carbon::now();
         $cc->save();
 
         if ($request->filled('redirect_to')) {
@@ -1589,32 +1607,46 @@ class UserController extends Controller{
         // 6) Filtros
         $filters = [
             'name' => function ($q, $v) {
-                $q->where(function ($sub) use ($v) {
-                    $sub->where('users.name', 'like', "%$v%")
-                        ->orWhere('users.surname', 'like', "%$v%");
+                $v = trim((string) $v);
+                if ($v === '') return;
+                $like = WildcardPattern::toLike($v);
+                $q->where(function ($sub) use ($like) {
+                    $sub->where('users.name', 'like', $like)
+                        ->orWhere('users.surname', 'like', $like);
                 });
             },
-            'email' => fn ($q, $v) => $q->where('users.email', 'like', "%$v%"),
+            'email' => function ($q, $v) {
+                $v = trim((string) $v);
+                if ($v === '') return;
+                $q->where('users.email', 'like', WildcardPattern::toLike($v));
+            },
             'phones' => function ($q, $v) {
                 $v = trim((string) $v);
-                if ($v === '') {
-                    return;
-                }
-                $like = '%' . str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $v) . '%';
-                $q->whereHas('phones', fn ($sub) => $sub->where('e164', 'like', $like));
+                if ($v === '') return;
+                $q->whereHas('phones', fn ($sub) => $sub->where('e164', 'like', WildcardPattern::toLike($v)));
             },
             'categories' => function ($q, $v) use ($company_id) {
+                $v = trim((string) $v);
+                if ($v === '') return;
                 $q->whereHas('categories', function ($sub) use ($company_id, $v) {
                     if ($company_id !== 'all') {
                         $sub->where('categories.company_id', $company_id);
                     }
                     $sub->where('categories.module', 'users')
-                        ->where('categories.name', 'like', "%$v%");
+                        ->where('categories.name', 'like', WildcardPattern::toLike($v));
                 });
             },
-            'position' => fn ($q, $v) => $q->where('uc.position', 'like', "%{$v}%"),
+            'position' => function ($q, $v) {
+                $v = trim((string) $v);
+                if ($v === '') return;
+                $q->where('uc.position', 'like', WildcardPattern::toLike($v));
+            },
             'contact_type' => fn ($q, $v) => $q->where('cc.contact_type', $v),
-            'companies' => fn ($q, $v) => $q->where('c.name', 'like', "%{$v}%")
+            'companies' => function ($q, $v) {
+                $v = trim((string) $v);
+                if ($v === '') return;
+                $q->where('c.name', 'like', WildcardPattern::toLike($v));
+            },
         ];
 
         foreach ($filters as $key => $callback) {
@@ -1708,30 +1740,44 @@ class UserController extends Controller{
         // 3) Filtros “cabecera” (los de tu FilterRow)
         $filters = [
             'name' => function ($q, $v) {
-                $q->where(function ($sub) use ($v) {
-                    $sub->where('users.name', 'like', "%$v%")
-                        ->orWhere('users.surname', 'like', "%$v%");
+                $v = trim((string) $v);
+                if ($v === '') return;
+                $like = WildcardPattern::toLike($v);
+                $q->where(function ($sub) use ($like) {
+                    $sub->where('users.name', 'like', $like)
+                        ->orWhere('users.surname', 'like', $like);
                 });
             },
-            'email' => fn ($q, $v) => $q->where('users.email', 'like', "%$v%"),
+            'email' => function ($q, $v) {
+                $v = trim((string) $v);
+                if ($v === '') return;
+                $q->where('users.email', 'like', WildcardPattern::toLike($v));
+            },
             'phones' => function ($q, $v) {
                 $v = trim((string) $v);
-                if ($v === '') {
-                    return;
-                }
-                $like = '%' . str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $v) . '%';
-                $q->whereHas('phones', fn ($sub) => $sub->where('e164', 'like', $like));
+                if ($v === '') return;
+                $q->whereHas('phones', fn ($sub) => $sub->where('e164', 'like', WildcardPattern::toLike($v)));
             },
             'categories' => function ($q, $v) use ($company_id) {
+                $v = trim((string) $v);
+                if ($v === '') return;
                 $q->whereHas('categories', function ($sub) use ($company_id, $v) {
                     $sub->where('categories.company_id', $company_id)
                         ->where('categories.module', 'users')
-                        ->where('categories.name', 'like', "%$v%");
+                        ->where('categories.name', 'like', WildcardPattern::toLike($v));
                 });
             },
-            'position' => fn ($q, $v) => $q->where('uc.position', 'like', "%{$v}%"),
+            'position' => function ($q, $v) {
+                $v = trim((string) $v);
+                if ($v === '') return;
+                $q->where('uc.position', 'like', WildcardPattern::toLike($v));
+            },
             'contact_type' => fn ($q, $v) => $q->where('cc.contact_type', $v),
-            'companies' => fn ($q, $v) => $q->where('c.name', 'like', "%{$v}%"),
+            'companies' => function ($q, $v) {
+                $v = trim((string) $v);
+                if ($v === '') return;
+                $q->where('c.name', 'like', WildcardPattern::toLike($v));
+            },
         ];
 
         foreach ($filters as $key => $callback) {

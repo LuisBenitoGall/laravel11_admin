@@ -144,6 +144,7 @@ export default function TableUsers({
         dateKeys: ['date_from', 'date_to']
     },
     { key: 'email', label: __('email'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('email_filtrar') },
+    { key: 'other_emails', label: __('otros_emails'), sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('otros_emails_filtrar'), exportValue: (v) => Array.isArray(v) ? v.filter(Boolean).join('; ') : (v ?? '') },
     {
       key: 'phones',
       label: __('telefonos'),
@@ -152,6 +153,7 @@ export default function TableUsers({
       class_th: '',
       class_td: '',
       placeholder: __('telefonos_filtrar'),
+      exportValue: (v) => Array.isArray(v) ? v.map(p => p.e164).filter(Boolean).join('; ') : (v ?? ''),
       // Render muestra principal + badge con tooltip del resto
       render: ({ rowData, value }) => {
         const list = Array.isArray(value) ? value : [];
@@ -189,6 +191,8 @@ export default function TableUsers({
     // Desvincular fila: override explícito (CRM, empresa, etc.) o `destroyRoute` (p. ej. listas marketing)
     const effectiveDestroyRoute = deleteUserRoute ?? destroyRoute;
 
+    const defaultHiddenKeys = columns.filter(c => c.defaultHidden).map(c => c.key);
+
     const {
         permissions,
         sortParams,
@@ -205,6 +209,7 @@ export default function TableUsers({
     } = useTableManagement({
         table: tableId,
         allColumnKeys: columns.map(col => col.key),
+        defaultHiddenKeys,
         entityName,
         indexRoute: disablePagination ? null : indexRoute,
         routeParams: indexParams,
@@ -246,7 +251,7 @@ export default function TableUsers({
                             {columns.map(col => (
                                 <th
                                 key={col.key}
-                                className={`${col.class_th ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}
+                                className={`${col.class_th ?? ''} ${col.filterOnly || !visibleColumns.includes(col.key) ? 'd-none' : ''}`.trim()}
                                 >
                                 {__(col.label)}
 
@@ -287,7 +292,7 @@ export default function TableUsers({
                             {columns.map(col => (
                             <td
                                 key={col.key}
-                                className={`${col.class_td ?? ''} ${visibleColumns.includes(col.key) ? '' : 'd-none'}`.trim()}
+                                className={`${col.class_td ?? ''} ${col.filterOnly || !visibleColumns.includes(col.key) ? 'd-none' : ''}`.trim()}
                             >
                                 {/* renderCellContent maneja type, render y value */}
                                 {renderCellContent(user[col.key], col, user)}
