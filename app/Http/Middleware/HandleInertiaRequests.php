@@ -97,6 +97,8 @@ class HandleInertiaRequests extends Middleware{
                 'location' => $request->url(),
             ],
             'status' => session('status'),
+            'msg'    => fn () => session('msg'),
+            'alert'  => fn () => session('alert'),
             //Idioma actual:
             'locale' => function (){
                 return session('locale')? session('locale'):app()->getLocale();

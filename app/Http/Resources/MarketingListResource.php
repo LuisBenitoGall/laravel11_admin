@@ -36,7 +36,12 @@ class MarketingListResource extends JsonResource
             'updated_by' => new UserResource($this->updatedBy),
             'deleted_at' => $this->deleted_at,
             'created_at' => Carbon::parse($this->created_at)->format($locale[4]),
-            'updated_at' => Carbon::parse($this->updated_at)->format($locale[4])
+            'updated_at' => Carbon::parse($this->updated_at)->format($locale[4]),
+            'brevo_list_id'    => $this->brevo_list_id,
+            'brevo_sync_status' => $this->brevo_sync_status,
+            'brevo_synced_at'  => $this->brevo_synced_at
+                ? Carbon::parse($this->brevo_synced_at)->format($locale[4].' H:i')
+                : null,
         ];
     }
 }

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Link, useForm, usePage } from '@inertiajs/react';
-import { Inertia } from '@inertiajs/inertia';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { Container } from "react-bootstrap";
 
 import Header from '../../Pages/Admin/Partials/Header';
@@ -84,7 +83,7 @@ export default function AdminAuthenticated({
         try {
             await axios.post(route('companies.select'), { selectedCompany: selectedId });
             setShowModalCompaniesSession(false);
-            Inertia.reload({ preserveState: false, preserveScroll: true });
+            router.reload({ preserveState: false, preserveScroll: true });
         } catch (err) {
             showAlert('Error', __('empresa_selec_aviso'), 'error');
         }

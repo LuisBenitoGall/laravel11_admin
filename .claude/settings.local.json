@@ -19,7 +19,8 @@
       "Bash(Get-Content *)",
       "Bash(C:\\\\laragon\\\\bin\\\\php\\\\php-8.2.6-Win32-vs16-x64\\\\php.exe *)",
       "PowerShell(& \"C:\\\\laragon\\\\bin\\\\php\\\\php-8.2.6-Win32-vs16-x64\\\\php.exe\" \"C:\\\\laragon\\\\www\\\\laravel11_admin\\\\tmp_dedup.php\")",
-      "PowerShell(& \"C:\\\\laragon\\\\bin\\\\php\\\\php-8.2.6-Win32-vs16-x64\\\\php.exe\" \"C:\\\\laragon\\\\www\\\\laravel11_admin\\\\artisan\" tinker --execute=\"require storage_path\\('app/gen_test_import.php'\\);\" 2>&1)"
+      "PowerShell(& \"C:\\\\laragon\\\\bin\\\\php\\\\php-8.2.6-Win32-vs16-x64\\\\php.exe\" \"C:\\\\laragon\\\\www\\\\laravel11_admin\\\\artisan\" tinker --execute=\"require storage_path\\('app/gen_test_import.php'\\);\" 2>&1)",
+      "Bash(xargs grep -l \"brevo_exportar\\\\|exportacion_listado\\\\|lista_export_brevo\")"
     ]
   }
 }

@@ -62,12 +62,26 @@ export default function Index({
                 router.post(
                     route('marketing-lists.export-brevo', [list.id]),
                     {},
-                    {
-                        preserveScroll: true,
-                    }
+                    { preserveScroll: true }
                 );
             },
         });
+    };
+
+    const getBrevoStatusConfig = (list) => {
+        if (!list.brevo_synced_at && !list.brevo_sync_status) {
+            return { icon: 'la-cloud', color: 'text-muted', tooltip: __('brevo_nunca_sincronizado') };
+        }
+        if (list.brevo_sync_status === 'ok') {
+            return { icon: 'la-cloud-upload-alt', color: 'text-success', tooltip: `${__('brevo_sincronizado_el')} ${list.brevo_synced_at}` };
+        }
+        if (list.brevo_sync_status === 'error') {
+            return { icon: 'la-cloud', color: 'text-danger', tooltip: __('brevo_sync_error') };
+        }
+        if (list.brevo_sync_status === 'partial') {
+            return { icon: 'la-cloud-upload-alt', color: 'text-warning', tooltip: __('brevo_sync_partial') };
+        }
+        return { icon: 'la-cloud', color: 'text-muted', tooltip: __('brevo_nunca_sincronizado') };
     };
 
     //Columnas:
@@ -198,6 +212,22 @@ export default function Index({
                                                 />
                                             </OverlayTrigger>
                                         )}
+
+                                        {/* Estado sync Brevo */}
+                                        {(() => {
+                                            const s = getBrevoStatusConfig(list);
+                                            return (
+                                                <OverlayTrigger
+                                                    key={"brevo-status-"+list.id}
+                                                    placement="top"
+                                                    overlay={<Tooltip className="ttp-top">{s.tooltip}</Tooltip>}
+                                                >
+                                                    <span className={`ms-1 ${s.color}`} style={{ fontSize: '1.1rem', verticalAlign: 'middle' }}>
+                                                        <i className={`la ${s.icon}`}></i>
+                                                    </span>
+                                                </OverlayTrigger>
+                                            );
+                                        })()}
 
                                         {/* Exportar a Brevo */}
                                         {permissions?.['marketing-lists.edit'] && (

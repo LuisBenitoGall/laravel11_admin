@@ -87,10 +87,6 @@ export default function Index({
         status: list.status
     });
 
-    // ⬅️ NUEVO: inicializamos el hook de SweetAlert
-    const { confirm } = useSweetAlert?.() || { confirm: null };
-
-    // ⬅️ NUEVO: handler de exportación a Brevo usando SweetAlert
     const handleExportToBrevo = (e) => {
         if (e && e.preventDefault) {
             e.preventDefault();
