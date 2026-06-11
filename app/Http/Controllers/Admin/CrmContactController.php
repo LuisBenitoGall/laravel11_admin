@@ -957,16 +957,21 @@ class CrmContactController extends Controller{
         $userId = $contact->user_id;
 
         try {
-            $contact->delete();
+            if ($crmAccountId) {
+                // Desvincular: solo romper el lazo con la cuenta, conservar el registro CRM
+                $contact->crm_account_id = null;
+                $contact->save();
 
-            // Eliminar también el vínculo user_companies creado al añadir este contacto
-            if ($userId && $crmAccountId) {
+                // Eliminar el vínculo user_companies creado al añadir este contacto a la cuenta
                 $account = CrmAccount::find($crmAccountId);
-                if ($account && $account->linked_company_id) {
+                if ($account && $account->linked_company_id && $userId) {
                     UserCompany::where('user_id', $userId)
                         ->where('company_id', $account->linked_company_id)
                         ->delete();
                 }
+            } else {
+                // Sin cuenta asociada: eliminar el registro CRM directamente
+                $contact->delete();
             }
         } catch (\Throwable $e) {
             if ($request->header('X-Inertia')) {
@@ -1158,19 +1163,18 @@ class CrmContactController extends Controller{
                     }
                 }
 
-                // Columna Q (account): búsqueda por nombre exacto en cuentas existentes (case-insensitive).
-                // Si hay coincidencia única sobreescribe $crmAccount; si hay 0 o >1, se omite.
-                $accountFromQ = null;
-                $accountLabel = trim((string) ($row['account'] ?? ''));
-                if ($accountLabel !== '') {
-                    $accountMatches = CrmAccount::where('company_id', $currentCompanyId)
-                        ->whereRaw('LOWER(name) = ?', [mb_strtolower($accountLabel, 'UTF-8')])
-                        ->get();
-                    if ($accountMatches->count() === 1) {
-                        $accountFromQ = $accountMatches->first();
-                        $crmAccount   = $accountFromQ;
-                    }
-                }
+                // Columna Q (account): DESACTIVADO — 2026-06-11
+                // $accountFromQ = null;
+                // $accountLabel = trim((string) ($row['account'] ?? ''));
+                // if ($accountLabel !== '') {
+                //     $accountMatches = CrmAccount::where('company_id', $currentCompanyId)
+                //         ->whereRaw('LOWER(name) = ?', [mb_strtolower($accountLabel, 'UTF-8')])
+                //         ->get();
+                //     if ($accountMatches->count() === 1) {
+                //         $accountFromQ = $accountMatches->first();
+                //         $crmAccount   = $accountFromQ;
+                //     }
+                // }
 
                 $contact = CrmContact::where('company_id', $currentCompanyId)->where('user_id', $user->id)->first();
                 if ($contact === null) {
@@ -1178,10 +1182,11 @@ class CrmContactController extends Controller{
                     $contact->company_id = $currentCompanyId;
                     $contact->user_id = $user->id;
                     $contact->crm_account_id = $crmAccount?->id;
-                } elseif ($accountFromQ !== null) {
-                    // Contacto existente: actualizar crm_account_id solo si la columna Q produjo coincidencia
-                    $contact->crm_account_id = $accountFromQ->id;
                 }
+                // elseif ($accountFromQ !== null) {
+                //     // Contacto existente: actualizar crm_account_id solo si la columna Q produjo coincidencia
+                //     $contact->crm_account_id = $accountFromQ->id;
+                // }
 
                 // Siempre actualizar desde la fila importada (incluye reimportaciones)
                 $contact->position = (($row['position'] ?? '') !== '') ? $row['position'] : null;

@@ -20,7 +20,18 @@
       "Bash(C:\\\\laragon\\\\bin\\\\php\\\\php-8.2.6-Win32-vs16-x64\\\\php.exe *)",
       "PowerShell(& \"C:\\\\laragon\\\\bin\\\\php\\\\php-8.2.6-Win32-vs16-x64\\\\php.exe\" \"C:\\\\laragon\\\\www\\\\laravel11_admin\\\\tmp_dedup.php\")",
       "PowerShell(& \"C:\\\\laragon\\\\bin\\\\php\\\\php-8.2.6-Win32-vs16-x64\\\\php.exe\" \"C:\\\\laragon\\\\www\\\\laravel11_admin\\\\artisan\" tinker --execute=\"require storage_path\\('app/gen_test_import.php'\\);\" 2>&1)",
-      "Bash(xargs grep -l \"brevo_exportar\\\\|exportacion_listado\\\\|lista_export_brevo\")"
+      "Bash(xargs grep -l \"brevo_exportar\\\\|exportacion_listado\\\\|lista_export_brevo\")",
+      "Bash(cd /d C:\\\\laragon\\\\www\\\\laravel11_admin)",
+      "Bash(dir database\\\\migrations)",
+      "Bash(grep *)",
+      "Bash(npm --version)",
+      "Bash(node *)",
+      "Bash(npm install *)",
+      "Bash(npx vite *)",
+      "Bash(echo \"exit: $?\")",
+      "PowerShell($env:NODE_OPTIONS; node -e \"const c = require\\('node:crypto'\\); console.log\\(typeof c.getRandomValues\\)\")",
+      "PowerShell(Receive-Job *)",
+      "PowerShell([System.Environment]::GetEnvironmentVariable\\(\"NODE_OPTIONS\", \"Machine\"\\); [System.Environment]::GetEnvironmentVariable\\(\"NODE_OPTIONS\", \"User\"\\); [System.Environment]::GetEnvironmentVariable\\(\"NODE_OPTIONS\", \"Process\"\\))"
     ]
   }
 }
