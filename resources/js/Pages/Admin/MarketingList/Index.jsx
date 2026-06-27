@@ -81,6 +81,9 @@ export default function Index({
         if (list.brevo_sync_status === 'partial') {
             return { icon: 'la-cloud-upload-alt', color: 'text-warning', tooltip: __('brevo_sync_partial') };
         }
+        if (list.brevo_sync_status === 'pending') {
+            return { icon: 'la-sync', color: 'text-info', tooltip: __('lista_export_brevo_en_proceso') };
+        }
         return { icon: 'la-cloud', color: 'text-muted', tooltip: __('brevo_nunca_sincronizado') };
     };
 

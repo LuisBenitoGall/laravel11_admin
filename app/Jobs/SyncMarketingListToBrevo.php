@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 
 //Models:
 use App\Models\MarketingList;
+use App\Models\MarketingListUser;
 
 class SyncMarketingListToBrevo implements ShouldQueue
 {
@@ -22,14 +23,21 @@ class SyncMarketingListToBrevo implements ShouldQueue
 
     /**
      * Tiempo máximo de la Job (segundos).
-     * Ajusta esto según el tamaño típico de las listas.
+     * Se ajusta en el constructor según el tamaño de la lista.
      */
-    public $timeout = 300; // o config('brevo.sync_job_timeout', 300)
+    public $timeout = 300;
 
     public function __construct(int $listId, ?int $triggeredBy = null)
     {
-        $this->listId     = $listId;
+        $this->listId      = $listId;
         $this->triggeredBy = $triggeredBy;
+
+        $memberCount = MarketingListUser::query()
+            ->where('marketing_list_id', $listId)
+            ->where('status', 1)
+            ->count();
+
+        $this->timeout = max(300, min(3600, ($memberCount * 2) + 120));
     }
 
     public function handle(BrevoMarketingService $brevo)
@@ -55,6 +63,22 @@ class SyncMarketingListToBrevo implements ShouldQueue
             ]);
 
             // El propio servicio ya actualiza brevo_sync_status / brevo_sync_error
+        }
+    }
+
+    public function failed(\Throwable $e): void
+    {
+        $list = MarketingList::find($this->listId);
+
+        if (! $list) {
+            return;
+        }
+
+        if ($list->brevo_sync_status === 'pending') {
+            $list->forceFill([
+                'brevo_sync_status' => 'error',
+                'brevo_sync_error'  => $e->getMessage(),
+            ])->save();
         }
     }
 }

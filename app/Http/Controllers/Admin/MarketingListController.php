@@ -830,7 +830,7 @@ class MarketingListController extends Controller
         }
     }
 
-    public function exportToBrevo(MarketingList $list, BrevoMarketingService $brevo)
+    public function exportToBrevo(MarketingList $list)
     {
         $ctx = app(\App\Support\CompanyContext::class);
         $currentCompanyId = (int) $ctx->id();
@@ -839,19 +839,18 @@ class MarketingListController extends Controller
             abort(403, 'Empresa no válida para esta lista.');
         }
 
-        try {
-            $brevo->ensureRemoteList($list);
-            $brevo->syncListMembers($list);
-
-            return back()->with('msg', __('lista_exportada_a_brevo_ok'));
-        } catch (\Throwable $e) {
-            \Log::error('Error exporting list to Brevo', [
-                'list_id' => $list->id,
-                'error'   => $e->getMessage(),
-            ]);
-
-            return back()->with('alert', __('error_exportando_lista_brevo').': '.$e->getMessage());
+        if ($list->brevo_sync_status === 'pending') {
+            return back()->with('msg', __('lista_export_brevo_en_proceso'));
         }
+
+        $list->forceFill([
+            'brevo_sync_status' => 'pending',
+            'brevo_sync_error'  => null,
+        ])->save();
+
+        SyncMarketingListToBrevo::dispatch($list->id, Auth::id());
+
+        return back()->with('msg', __('lista_export_brevo_en_proceso'));
     }
 
 }

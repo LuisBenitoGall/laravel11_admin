@@ -322,11 +322,15 @@ class BrevoMarketingListExportTest extends TestCase
         $this->actingAs($this->user)
             ->withSession(['currentCompany' => 1])
             ->post(route('marketing-lists.export-brevo', $list->id))
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHas('msg', __('lista_export_brevo_en_proceso'));
 
         Queue::assertPushed(SyncMarketingListToBrevo::class, function ($job) use ($list) {
             return $job->listId === $list->id;
         });
+
+        $list->refresh();
+        $this->assertEquals('pending', $list->brevo_sync_status);
     }
 
     /** @test */
