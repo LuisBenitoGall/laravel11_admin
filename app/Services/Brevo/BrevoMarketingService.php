@@ -494,7 +494,35 @@ class BrevoMarketingService
     protected function ensureRemoteFolder(MarketingList $list): void
     {
         if ($list->brevo_folder_id) {
-            return;
+            $check = $this->client()
+                ->get($this->url("/contacts/folders/{$list->brevo_folder_id}"));
+
+            if ($check->successful()) {
+                return;
+            }
+
+            $gone = in_array($check->status(), [404, 410], true);
+
+            if ($gone) {
+                Log::info('Brevo: carpeta remota inexistente, se vuelve a crear', [
+                    'crm_list_id' => $list->id,
+                    'brevo_folder_id' => $list->brevo_folder_id,
+                ]);
+
+                $list->brevo_folder_id = null;
+                $list->brevo_list_id = null;
+                $list->save();
+                $list->refresh();
+            } else {
+                $body = $check->json();
+                $message = is_array($body) ? ($body['message'] ?? $check->body()) : $check->body();
+
+                $list->brevo_sync_status = 'error';
+                $list->brevo_sync_error = $message;
+                $list->save();
+
+                throw new \RuntimeException('Brevo error validating folder: '.$check->body());
+            }
         }
 
         // Nombre base de la carpeta

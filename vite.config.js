@@ -22,6 +22,13 @@ export default defineConfig({
             '@': path.resolve(__dirname, 'resources/js'), 
         },
     },
+    css: {
+        preprocessorOptions: {
+            scss: {
+                api: 'legacy',
+            },
+        },
+    },
     build: {
         assetsDir: 'assets'
     },

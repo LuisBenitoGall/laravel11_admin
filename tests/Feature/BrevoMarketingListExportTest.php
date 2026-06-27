@@ -78,6 +78,7 @@ class BrevoMarketingListExportTest extends TestCase
         ]);
 
         Http::fake([
+            '*/contacts/folders/55' => Http::response(['id' => 55, 'name' => 'ERP folder'], 200),
             '*/contacts/lists' => Http::response(['id' => 99], 201),
         ]);
 
@@ -87,7 +88,7 @@ class BrevoMarketingListExportTest extends TestCase
         $list->refresh();
 
         $this->assertEquals(99, $list->brevo_list_id);
-        Http::assertSentCount(1); // sólo POST lista, no POST carpeta
+        Http::assertSentCount(2); // GET carpeta existente + POST lista
     }
 
     // -------------------------------------------------------------------------
@@ -103,6 +104,7 @@ class BrevoMarketingListExportTest extends TestCase
         ]);
 
         Http::fake([
+            '*/contacts/folders/55' => Http::response(['id' => 55, 'name' => 'ERP folder'], 200),
             '*/contacts/lists/99' => Http::response([], 200),
         ]);
 
@@ -127,6 +129,7 @@ class BrevoMarketingListExportTest extends TestCase
         ]);
 
         Http::fake([
+            '*/contacts/folders/55' => Http::response(['id' => 55, 'name' => 'ERP folder'], 200),
             // PUT 404: lista ya no existe en Brevo
             '*/contacts/lists/99'  => Http::response(['message' => 'List not found'], 404),
             // Recrea la lista
@@ -150,6 +153,7 @@ class BrevoMarketingListExportTest extends TestCase
         ]);
 
         Http::fake([
+            '*/contacts/folders/55' => Http::response(['id' => 55, 'name' => 'ERP folder'], 200),
             '*/contacts/lists/99' => Http::response(['message' => 'Internal error'], 500),
         ]);
 
@@ -175,6 +179,7 @@ class BrevoMarketingListExportTest extends TestCase
         $remoteName = "Mi Lista [ERP#1-{$list->id}]";
 
         Http::fake([
+            '*/contacts/folders/55' => Http::response(['id' => 55, 'name' => 'ERP folder'], 200),
             // POST /contacts/lists rechazado (nombre duplicado)
             '*/contacts/lists' => Http::response(['message' => 'List already exists'], 400),
             // Búsqueda de la lista existente por nombre (GET con query params)
@@ -191,6 +196,44 @@ class BrevoMarketingListExportTest extends TestCase
         $list->refresh();
 
         $this->assertEquals(77, $list->brevo_list_id);
+        $this->assertEquals('ok', $list->brevo_sync_status);
+    }
+
+    /** @test */
+    public function recreates_folder_when_brevo_returns_404_on_folder_validation(): void
+    {
+        $list = MarketingList::factory()->create([
+            'company_id'      => 1,
+            'brevo_folder_id' => 33,
+            'brevo_list_id'   => null,
+        ]);
+
+        Http::fake(function ($request) {
+            $url = $request->url();
+            $path = parse_url($url, PHP_URL_PATH) ?? '';
+
+            if ($request->method() === 'GET' && str_contains($path, '/contacts/folders/33')) {
+                return Http::response(['code' => 'document_not_found', 'message' => 'Folder ID does not exist'], 404);
+            }
+
+            if ($request->method() === 'POST' && preg_match('#/contacts/folders$#', $path)) {
+                return Http::response(['id' => 88], 201);
+            }
+
+            if ($request->method() === 'POST' && str_contains($path, '/contacts/lists')) {
+                return Http::response(['id' => 99], 201);
+            }
+
+            return Http::response([], 404);
+        });
+
+        $service = new BrevoMarketingService();
+        $service->ensureRemoteList($list);
+
+        $list->refresh();
+
+        $this->assertEquals(88, $list->brevo_folder_id);
+        $this->assertEquals(99, $list->brevo_list_id);
         $this->assertEquals('ok', $list->brevo_sync_status);
     }
 
