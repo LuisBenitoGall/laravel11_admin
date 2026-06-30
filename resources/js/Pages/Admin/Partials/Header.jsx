@@ -331,9 +331,23 @@ export default function Header({
                 const onClick = action.onClick || null;
 
                 if (modal) {
+                    const isLoading = !!action.loading;
+                    const isDisabled = !!action.disabled || isLoading;
+
                     return (
-                    <button type="button" key={index} className="btn btn-primary btn-rdn ms-2" onClick={onClick}>
-                        {icon && <i className={`la ${icon}`}></i>} {text}
+                    <button
+                        type="button"
+                        key={index}
+                        className="btn btn-primary btn-rdn ms-2"
+                        onClick={onClick}
+                        disabled={isDisabled}
+                    >
+                        {isLoading ? (
+                            <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" />
+                        ) : (
+                            icon && <i className={`la ${icon}`}></i>
+                        )}{' '}
+                        {text}
                     </button>
                     );
                 }

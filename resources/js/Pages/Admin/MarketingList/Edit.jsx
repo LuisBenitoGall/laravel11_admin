@@ -5,6 +5,8 @@ import { Tooltip } from 'react-tooltip';
 import { useEffect, useState } from 'react';
 
 //Components:
+import BrevoExportAlert from '@/Components/BrevoExportAlert';
+import BrevoSyncStatus from '@/Components/BrevoSyncStatus';
 import CategoryAssigner from '@/Components/CategoryAssigner';
 import Checkbox from '@/Components/Checkbox';
 import InfoPopover from '@/Components/InfoPopover';
@@ -15,6 +17,7 @@ import Tabs from '@/Components/Tabs';
 import TextInput from '@/Components/TextInput';
 
 //Hooks:
+import { useMarketingListBrevoExport } from '@/Hooks/useMarketingListBrevoExport';
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTranslation } from '@/Hooks/useTranslation';
 
@@ -87,37 +90,29 @@ export default function Index({
         status: list.status
     });
 
-    const handleExportToBrevo = (e) => {
-        if (e && e.preventDefault) {
-            e.preventDefault();
-        }
-
-        showConfirm({
-            title: __('exportacion_listado'),
-            text: __('exportacion_listado_confirm'),
-            icon: 'warning',
-            onConfirm: () => {
-                router.post(
-                    route('marketing-lists.export-brevo', [list.id]),
-                    {},
-                    {
-                        preserveScroll: true,
-                        onSuccess: () => {
-                            router.reload({
-                                data: {
-                                    ...(queryParams || {}),
-                                    page: queryParams.page || 1,
-                                },
-                                only: ['list', 'users', 'rows'],
-                                preserveState: true,
-                                preserveScroll: true,
-                            });
-                        },
-                    }
-                );
+    const reloadList = () => {
+        router.reload({
+            data: {
+                ...(queryParams || {}),
+                page: queryParams.page || 1,
             },
+            only: ['list'],
+            preserveState: true,
+            preserveScroll: true,
         });
     };
+
+    const isBrevoPending = list.brevo_sync_status === 'pending';
+
+    const { exportingListId, handleExportToBrevo, isExporting } = useMarketingListBrevoExport({
+        showConfirm,
+        __,
+        onExportSuccess: reloadList,
+        reloadWhilePending: reloadList,
+        isPending: isBrevoPending,
+    });
+
+    const brevoExportInProgress = isExporting(list) || exportingListId === list.id;
 
     //Acciones:
     const actions = [];
@@ -166,7 +161,14 @@ export default function Index({
             icon: 'la-file-export',
             url: '',
             modal: true,
-            onClick: handleExportToBrevo
+            loading: brevoExportInProgress,
+            disabled: brevoExportInProgress,
+            onClick: (e) => {
+                if (e?.preventDefault) {
+                    e.preventDefault();
+                }
+                handleExportToBrevo(list);
+            },
         });
     }
 
@@ -181,6 +183,8 @@ export default function Index({
 
             {/* Contenido */}
             <div className="contents pb-4">
+                <BrevoExportAlert __={__} visible={brevoExportInProgress} />
+
                 <div className="row">
                     <div className="col-12">
                         <h2>
@@ -202,6 +206,10 @@ export default function Index({
 
                         <span className="text-muted">
                             {__('actualizado')}: <strong>{list.formatted_updated_at}</strong>
+                        </span>
+
+                        <span className="text-muted ms-5 d-inline-flex align-items-center">
+                            <BrevoSyncStatus list={list} __={__} isSubmitting={exportingListId === list.id} />
                         </span>
                     </div>
                 </div>

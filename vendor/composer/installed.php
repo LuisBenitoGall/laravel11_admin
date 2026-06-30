@@ -3,7 +3,7 @@
         'name' => 'laravel/laravel',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '2fd8a0dc4c6048d6a110cc9419b29efcbf20f579',
+        'reference' => '16f200c8af6eb7eb175d5dad928a0dde425bddde',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -691,7 +691,7 @@
         'laravel/laravel' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '2fd8a0dc4c6048d6a110cc9419b29efcbf20f579',
+            'reference' => '16f200c8af6eb7eb175d5dad928a0dde425bddde',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -1071,6 +1071,15 @@
             'install_path' => __DIR__ . '/../phpunit/phpunit',
             'aliases' => array(),
             'dev_requirement' => true,
+        ),
+        'plesk/ext-laravel-integration' => array(
+            'pretty_version' => '7.0.0',
+            'version' => '7.0.0.0',
+            'reference' => '73dc4ea3f99e033396497f147aa033eb0602f943',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../plesk/ext-laravel-integration',
+            'aliases' => array(),
+            'dev_requirement' => false,
         ),
         'predis/predis' => array(
             'pretty_version' => 'v3.3.0',

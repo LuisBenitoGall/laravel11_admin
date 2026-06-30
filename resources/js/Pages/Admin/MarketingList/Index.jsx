@@ -1,10 +1,11 @@
 import AdminAuthenticatedLayout from '@/Layouts/Admin/AdminAuthenticatedLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { OverlayTrigger, Table, Tooltip } from 'react-bootstrap';
 import axios from 'axios';
 
 //Components:
+import BrevoSyncStatus from '@/Components/BrevoSyncStatus';
 import ColumnFilter from '@/Components/ColumnFilter';
 import FilterRow from '@/Components/FilterRow';
 import { Pagination } from '@/Components/Pagination';
@@ -16,6 +17,7 @@ import StatusButton from '@/Components/StatusButton';
 import TableExporter from '@/Components/TableExporter';
 
 //Hooks:
+import { useMarketingListBrevoExport } from '@/Hooks/useMarketingListBrevoExport';
 import { useSweetAlert } from '@/Hooks/useSweetAlert';
 import { useTableManagement } from '@/Hooks/useTableManagement';
 import { useTranslation } from '@/Hooks/useTranslation';
@@ -53,39 +55,22 @@ export default function Index({
         setShowId(null);
     };
 
-    const handleExportToBrevo = (list) => {
-        showConfirm({
-            title: __('exportacion_listado'),
-            text: __('exportacion_listado_confirm'),
-            icon: 'warning',
-            onConfirm: () => {
-                router.post(
-                    route('marketing-lists.export-brevo', [list.id]),
-                    {},
-                    { preserveScroll: true }
-                );
-            },
+    const reloadLists = () => {
+        router.reload({
+            only: ['lists'],
+            preserveState: true,
+            preserveScroll: true,
         });
     };
 
-    const getBrevoStatusConfig = (list) => {
-        if (!list.brevo_synced_at && !list.brevo_sync_status) {
-            return { icon: 'la-cloud', color: 'text-muted', tooltip: __('brevo_nunca_sincronizado') };
-        }
-        if (list.brevo_sync_status === 'ok') {
-            return { icon: 'la-cloud-upload-alt', color: 'text-success', tooltip: `${__('brevo_sincronizado_el')} ${list.brevo_synced_at}` };
-        }
-        if (list.brevo_sync_status === 'error') {
-            return { icon: 'la-cloud', color: 'text-danger', tooltip: __('brevo_sync_error') };
-        }
-        if (list.brevo_sync_status === 'partial') {
-            return { icon: 'la-cloud-upload-alt', color: 'text-warning', tooltip: __('brevo_sync_partial') };
-        }
-        if (list.brevo_sync_status === 'pending') {
-            return { icon: 'la-sync', color: 'text-info', tooltip: __('lista_export_brevo_en_proceso') };
-        }
-        return { icon: 'la-cloud', color: 'text-muted', tooltip: __('brevo_nunca_sincronizado') };
-    };
+    const hasPendingExport = lists.data.some((list) => list.brevo_sync_status === 'pending');
+
+    const { exportingListId, handleExportToBrevo, isExporting } = useMarketingListBrevoExport({
+        showConfirm,
+        __,
+        reloadWhilePending: reloadLists,
+        isPending: hasPendingExport,
+    });
 
     //Columnas:
     const columns = [
@@ -216,21 +201,11 @@ export default function Index({
                                             </OverlayTrigger>
                                         )}
 
-                                        {/* Estado sync Brevo */}
-                                        {(() => {
-                                            const s = getBrevoStatusConfig(list);
-                                            return (
-                                                <OverlayTrigger
-                                                    key={"brevo-status-"+list.id}
-                                                    placement="top"
-                                                    overlay={<Tooltip className="ttp-top">{s.tooltip}</Tooltip>}
-                                                >
-                                                    <span className={`ms-1 ${s.color}`} style={{ fontSize: '1.1rem', verticalAlign: 'middle' }}>
-                                                        <i className={`la ${s.icon}`}></i>
-                                                    </span>
-                                                </OverlayTrigger>
-                                            );
-                                        })()}
+                                        <BrevoSyncStatus
+                                            list={list}
+                                            __={__}
+                                            isSubmitting={exportingListId === list.id}
+                                        />
 
                                         {/* Exportar a Brevo */}
                                         {permissions?.['marketing-lists.edit'] && (
@@ -242,12 +217,21 @@ export default function Index({
                                             <button
                                                 type="button"
                                                 className="btn btn-sm btn-info ms-1"
+                                                disabled={isExporting(list)}
                                                 onClick={(e) => {
                                                     e.preventDefault();
                                                     handleExportToBrevo(list);
                                                 }}
                                             >
-                                                <i className="la la-file-export"></i>
+                                                {exportingListId === list.id ? (
+                                                    <span
+                                                        className="spinner-border spinner-border-sm"
+                                                        role="status"
+                                                        aria-hidden="true"
+                                                    />
+                                                ) : (
+                                                    <i className="la la-file-export"></i>
+                                                )}
                                             </button>
                                         </OverlayTrigger>
                                         )}
