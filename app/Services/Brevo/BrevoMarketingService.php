@@ -45,12 +45,9 @@ class BrevoMarketingService
 
         // 1) Ya tenemos ID remoto: actualizar nombre; si la lista ya no existe, recrear/re-enlazar
         if ($list->brevo_list_id) {
-            $put = $this->client()
-                ->put($this->url("/contacts/lists/{$list->brevo_list_id}"), [
-                    'name' => $remoteName,
-                ]);
+            $alignResult = $this->alignRemoteListName($list, $remoteName);
 
-            if ($put->successful()) {
+            if ($alignResult === 'ok') {
                 $list->brevo_sync_status = 'ok';
                 $list->brevo_sync_error = null;
                 $list->save();
@@ -58,31 +55,11 @@ class BrevoMarketingService
                 return $list;
             }
 
-            $gone = in_array($put->status(), [404, 410], true);
-
-            if ($gone) {
-                Log::info('Brevo: lista remota inexistente, se vuelve a crear o enlazar', [
-                    'crm_list_id' => $list->id,
-                    'brevo_list_id' => $list->brevo_list_id,
-                    'status' => $put->status(),
-                ]);
-                $list->brevo_list_id = null;
-                $list->save();
-                $list->refresh();
-            } else {
-                $putBody = $put->json();
-                Log::warning('Brevo: error al actualizar lista remota', [
-                    'list_id' => $list->id,
-                    'brevo_id' => $list->brevo_list_id,
-                    'status' => $put->status(),
-                    'body' => $put->body(),
-                ]);
-                $list->brevo_sync_status = 'error';
-                $list->brevo_sync_error  = is_array($putBody) ? ($putBody['message'] ?? $put->body()) : $put->body();
-                $list->save();
-
+            if ($alignResult === 'error') {
                 return $list;
             }
+
+            $list->refresh();
         }
 
         // 2) Crear lista en Brevo o enlazar una ya existente en la misma carpeta (mismo nombre)
@@ -114,8 +91,7 @@ class BrevoMarketingService
                     $list->brevo_sync_error = null;
                     $list->save();
 
-                    // Alinear nombre remoto por si cambió solo en CRM
-                    $this->client()->put($this->url("/contacts/lists/{$existingId}"), ['name' => $remoteName]);
+                    $this->alignRemoteListName($list, $remoteName);
 
                     return $list;
                 }
@@ -141,6 +117,118 @@ class BrevoMarketingService
         }
 
         return $list;
+    }
+
+    /**
+     * Alinea el nombre de la lista remota con el del CRM.
+     *
+     * @return 'ok'|'recreate'|'error'
+     */
+    protected function alignRemoteListName(MarketingList $list, string $remoteName): string
+    {
+        if (! $list->brevo_list_id) {
+            return 'ok';
+        }
+
+        $remoteList = $this->fetchRemoteList((int) $list->brevo_list_id);
+
+        if ($remoteList === null) {
+            Log::warning('Brevo: no se pudo leer la lista remota antes de renombrar', [
+                'list_id' => $list->id,
+                'brevo_list_id' => $list->brevo_list_id,
+            ]);
+        } elseif (! empty($remoteList['gone'])) {
+            Log::info('Brevo: lista remota inexistente, se vuelve a crear o enlazar', [
+                'crm_list_id' => $list->id,
+                'brevo_list_id' => $list->brevo_list_id,
+            ]);
+            $list->brevo_list_id = null;
+            $list->save();
+
+            return 'recreate';
+        } elseif (isset($remoteList['name']) && trim((string) $remoteList['name']) === trim($remoteName)) {
+            return 'ok';
+        }
+
+        $put = $this->client()
+            ->put($this->url("/contacts/lists/{$list->brevo_list_id}"), [
+                'name' => $remoteName,
+            ]);
+
+        if ($put->successful()) {
+            return 'ok';
+        }
+
+        if (in_array($put->status(), [404, 410], true)) {
+            Log::info('Brevo: lista remota inexistente al renombrar, se vuelve a crear o enlazar', [
+                'crm_list_id' => $list->id,
+                'brevo_list_id' => $list->brevo_list_id,
+                'status' => $put->status(),
+            ]);
+            $list->brevo_list_id = null;
+            $list->save();
+
+            return 'recreate';
+        }
+
+        $putBody = $put->json();
+        $message = is_array($putBody) ? (string) ($putBody['message'] ?? $put->body()) : $put->body();
+
+        if ($this->isRenameNoOpError($message)) {
+            Log::info('Brevo: rename omitido, el nombre remoto ya está vigente', [
+                'list_id' => $list->id,
+                'brevo_list_id' => $list->brevo_list_id,
+            ]);
+
+            return 'ok';
+        }
+
+        Log::warning('Brevo: error al actualizar lista remota', [
+            'list_id' => $list->id,
+            'brevo_id' => $list->brevo_list_id,
+            'status' => $put->status(),
+            'body' => $put->body(),
+        ]);
+        $list->brevo_sync_status = 'error';
+        $list->brevo_sync_error = $message;
+        $list->save();
+
+        return 'error';
+    }
+
+    /**
+     * @return array{name?: string, gone?: true}|null
+     */
+    protected function fetchRemoteList(int $brevoListId): ?array
+    {
+        try {
+            $response = $this->client()
+                ->get($this->url("/contacts/lists/{$brevoListId}"));
+
+            if (in_array($response->status(), [404, 410], true)) {
+                return ['gone' => true];
+            }
+
+            if ($response->failed()) {
+                return null;
+            }
+
+            $data = $response->json();
+
+            return is_array($data) ? $data : null;
+        } catch (Throwable $e) {
+            Log::warning('Brevo: exception fetching remote list', [
+                'brevo_list_id' => $brevoListId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    protected function isRenameNoOpError(string $message): bool
+    {
+        return str_contains(strtolower($message), 'pass new list name to rename');
     }
 
     /**

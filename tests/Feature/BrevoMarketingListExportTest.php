@@ -103,9 +103,13 @@ class BrevoMarketingListExportTest extends TestCase
             'name'       => 'Lista Actualizada',
         ]);
 
+        $remoteName = "Lista Actualizada [ERP#1-{$list->id}]";
+
         Http::fake([
             '*/contacts/folders/55' => Http::response(['id' => 55, 'name' => 'ERP folder'], 200),
-            '*/contacts/lists/99' => Http::response([], 200),
+            '*/contacts/lists/99' => Http::sequence()
+                ->push(['name' => 'Nombre antiguo'], 200)
+                ->push([], 200),
         ]);
 
         $service = new BrevoMarketingService();
@@ -154,7 +158,9 @@ class BrevoMarketingListExportTest extends TestCase
 
         Http::fake([
             '*/contacts/folders/55' => Http::response(['id' => 55, 'name' => 'ERP folder'], 200),
-            '*/contacts/lists/99' => Http::response(['message' => 'Internal error'], 500),
+            '*/contacts/lists/99' => Http::sequence()
+                ->push(['name' => 'Nombre antiguo'], 200)
+                ->push(['message' => 'Internal error'], 500),
         ]);
 
         $service = new BrevoMarketingService();
@@ -164,6 +170,57 @@ class BrevoMarketingListExportTest extends TestCase
 
         $this->assertEquals('error', $list->brevo_sync_status);
         $this->assertNotNull($list->brevo_sync_error);
+    }
+
+    /** @test */
+    public function skips_put_when_remote_list_name_already_matches(): void
+    {
+        $list = MarketingList::factory()->syncedWithBrevo(99, 55)->create([
+            'company_id' => 1,
+            'name'       => 'Mi Lista',
+        ]);
+
+        $remoteName = "Mi Lista [ERP#1-{$list->id}]";
+
+        Http::fake([
+            '*/contacts/folders/55' => Http::response(['id' => 55, 'name' => 'ERP folder'], 200),
+            '*/contacts/lists/99' => Http::response(['name' => $remoteName], 200),
+        ]);
+
+        $service = new BrevoMarketingService();
+        $service->ensureRemoteList($list);
+
+        $list->refresh();
+
+        $this->assertEquals('ok', $list->brevo_sync_status);
+
+        Http::assertNotSent(function ($request) {
+            return str_contains($request->url(), '/contacts/lists/99')
+                && $request->method() === 'PUT';
+        });
+    }
+
+    /** @test */
+    public function tolerates_rename_no_op_error_from_brevo(): void
+    {
+        $list = MarketingList::factory()->syncedWithBrevo(99, 55)->create([
+            'company_id' => 1,
+        ]);
+
+        Http::fake([
+            '*/contacts/folders/55' => Http::response(['id' => 55, 'name' => 'ERP folder'], 200),
+            '*/contacts/lists/99' => Http::sequence()
+                ->push(['name' => 'Otro nombre'], 200)
+                ->push(['message' => 'Pass new list name to rename'], 400),
+        ]);
+
+        $service = new BrevoMarketingService();
+        $service->ensureRemoteList($list);
+
+        $list->refresh();
+
+        $this->assertEquals('ok', $list->brevo_sync_status);
+        $this->assertNull($list->brevo_sync_error);
     }
 
     /** @test */
@@ -186,8 +243,8 @@ class BrevoMarketingListExportTest extends TestCase
             '*/contacts/folders/55/lists*' => Http::response([
                 'lists' => [['id' => 77, 'name' => $remoteName]],
             ], 200),
-            // PUT para alinear nombre
-            '*/contacts/lists/77' => Http::response([], 200),
+            '*/contacts/lists/77' => Http::sequence()
+                ->push(['name' => $remoteName], 200),
         ]);
 
         $service = new BrevoMarketingService();
