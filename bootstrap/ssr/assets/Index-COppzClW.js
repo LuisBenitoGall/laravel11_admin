@@ -10,7 +10,7 @@ import { T as TableExporter } from "./TableExporter-CrDOX5NX.js";
 import "sweetalert2";
 import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
 import { u as useTableManagement } from "./useTableManagement-UWRr8jtd.js";
-import CrmOpportunitiesShowView from "./CrmOpportunitiesShowView-CkefcoJW.js";
+import CrmOpportunitiesShowView from "./CrmOpportunitiesShowView-DSLH4Rwy.js";
 import { r as renderCellContent } from "./renderCellContent-DJWyVzIY.js";
 import "./Header-BFeBcT5X.js";
 import "@inertiajs/inertia";
@@ -27,7 +27,7 @@ import "date-fns";
 import "date-fns/locale";
 import "./SelectInput-BpRRLwUE.js";
 import "prop-types";
-import "./ManagePhones-LdkmCbcO.js";
+import "./ManagePhones-8V9K-iFw.js";
 function Index({ auth, session, title, subtitle, opportunities, queryParams: rawQueryParams = {}, availableLocales }) {
   const queryParams = typeof rawQueryParams === "object" && rawQueryParams !== null ? rawQueryParams : {};
   const __ = useTranslation();

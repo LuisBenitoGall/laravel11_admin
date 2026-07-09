@@ -8,7 +8,7 @@ import { T as TableExporter } from "./TableExporter-CrDOX5NX.js";
 import "./StatusButton-DfO41WfJ.js";
 import { u as useTableManagement } from "./useTableManagement-UWRr8jtd.js";
 import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
-import UserShowView from "./UserShowView-CJCAJiz0.js";
+import UserShowView from "./UserShowView-Uc93NpSJ.js";
 import { r as renderCellContent } from "./renderCellContent-DJWyVzIY.js";
 function TableUsers({
   users,

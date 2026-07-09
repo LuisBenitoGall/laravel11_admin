@@ -258,6 +258,7 @@ export default function Edit({
                     crm_account={crm_account}
                     business_types={business_types ?? []}
                     cost_centers={cost_centers ?? []}
+                    phonesRedirectTo={isCrmAccount ? { route: 'crm-accounts.edit', params: [crm_account.id] } : null}
                 />
             ),
         },

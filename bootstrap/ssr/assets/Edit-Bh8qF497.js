@@ -4,13 +4,14 @@ import { usePage, useForm, Head } from "@inertiajs/react";
 import "@inertiajs/inertia";
 import "react-tooltip";
 import { useState } from "react";
+import { C as CategoryAssigner } from "./CategoryAssigner-771-XyNo.js";
 import { T as Tabs } from "./Tabs-CZO-HKNH.js";
 import "./TextInput-CzxrbIpp.js";
 import { u as useSweetAlert } from "./useSweetAlert-D4PAsWYN.js";
 import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
 import { M as ModalUserCreate } from "./ModalUserCreate-BeQPp-U2.js";
-import CompanyInfoTab from "./CompanyInfoTab-DPuXbufB.js";
-import CompanyUsersTab from "./CompanyUsersTab-BHE6uVis.js";
+import CompanyInfoTab from "./CompanyInfoTab-DkS-YmJG.js";
+import CompanyUsersTab from "./CompanyUsersTab-Bgo-0DL1.js";
 import "./Header-BFeBcT5X.js";
 import "react-bootstrap";
 import "sweetalert2";
@@ -20,19 +21,19 @@ import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "./NavLink-k73-0cwm.js";
 import "./Dropdown-DLZR1XDp.js";
 import "@headlessui/react";
+import "./InputError-DME5vguS.js";
 import "./DatePickerToForm-BNatYC8y.js";
 import "react-datepicker";
 /* empty css                          */
 import "date-fns/locale";
-import "./InputError-DME5vguS.js";
 import "./ModalTemplate-BiHkGcpB.js";
 import "./SelectInput-BpRRLwUE.js";
 import "./UserSearch-Bn5gVs5d.js";
 import "./FileInput-U7oe6ye3.js";
 import "./InfoPopover-CwWEvwXq.js";
-import "./ManagePhones-LdkmCbcO.js";
+import "./ManagePhones-8V9K-iFw.js";
 import "./PrimaryButton-CIbKPOjQ.js";
-import "./TableUsers-DnSnGial.js";
+import "./TableUsers-Bq29FRJM.js";
 import "./SortControl-B-edZX2D.js";
 import "date-fns";
 import "./ShowRegisterButton-DPAZE_RX.js";
@@ -40,14 +41,14 @@ import "prop-types";
 import "./TableExporter-CrDOX5NX.js";
 import "./StatusButton-DfO41WfJ.js";
 import "./useTableManagement-UWRr8jtd.js";
-import "./UserShowView-CJCAJiz0.js";
+import "./UserShowView-Uc93NpSJ.js";
 import "./renderCellContent-DJWyVzIY.js";
 function Index({
   auth,
   session,
   title,
   subtitle,
-  provider,
+  customer,
   relation,
   users,
   rows,
@@ -65,7 +66,7 @@ function Index({
   const permissions = props.permissions || {};
   const [activeTab, setActiveTab] = useState(tab || "info");
   const { data, setData, errors, processing } = useForm({
-    name: provider.name || "",
+    name: customer.name || "",
     status: relation.status
   });
   const [showModalUserCreate, setShowModalUserCreate] = useState(false);
@@ -74,19 +75,19 @@ function Index({
   const handleCloseModalUserCreate = () => setShowModalUserCreate(false);
   const refreshUsersTable = () => setRefreshKey((prev) => prev + 1);
   const actions = [];
-  if (permissions == null ? void 0 : permissions["providers.index"]) {
+  if (permissions == null ? void 0 : permissions["customers.index"]) {
     actions.push({
-      text: __("proveedores_volver"),
+      text: __("clientes_volver"),
       icon: "la-angle-left",
-      url: "providers.index",
+      url: "customers.index",
       modal: false
     });
   }
-  if (permissions == null ? void 0 : permissions["providers.create"]) {
+  if (permissions == null ? void 0 : permissions["customers.create"]) {
     actions.push({
-      text: __("proveedor_nuevo"),
+      text: __("cliente_nuevo"),
       icon: "la-plus",
-      url: "providers.create",
+      url: "customers.create",
       modal: false
     });
   }
@@ -104,7 +105,7 @@ function Index({
       text: __("centros_trabajo"),
       icon: "la-map-marker-alt",
       url: "workplaces.index",
-      params: [provider.id],
+      params: [customer.id],
       modal: false
     });
   }
@@ -113,22 +114,35 @@ function Index({
       text: __("centros_coste"),
       icon: "la-comment-dollar",
       url: "cost-centers.index",
-      params: [provider.id],
+      params: [customer.id],
       modal: false
     });
   }
-  if (permissions == null ? void 0 : permissions["providers.destroy"]) {
+  if (permissions == null ? void 0 : permissions["customers.destroy"]) {
     actions.push({
       text: __("eliminar"),
       icon: "la-trash",
       method: "delete",
-      url: "providers.destroy",
+      url: "customers.destroy",
       params: [relation.id],
-      title: __("proveedor_eliminar"),
-      message: __("proveedor_eliminar_confirm"),
+      title: __("cliente_eliminar"),
+      message: __("cliente_eliminar_confirm"),
       modal: false
     });
   }
+  const envForCategories = "sectors";
+  const categoryEndpoints = {
+    list: route("categorizables.list"),
+    // GET  ?environment=&type=&id=
+    assign: route("categorizables.assign"),
+    // POST body {environment,type,id,category_ids}
+    unassign: route("categorizables.unassign"),
+    // POST body {environment,type,id,category_ids}
+    tree: route("categories.tree", { environment: envForCategories }),
+    // GET  ?environment=
+    create: route("categories.store", { environment: envForCategories })
+    // POST body {environment,name,parent_id?}
+  };
   return /* @__PURE__ */ jsxs(
     AdminAuthenticated,
     {
@@ -141,9 +155,9 @@ function Index({
         /* @__PURE__ */ jsxs("div", { className: "contents pb-4", children: [
           /* @__PURE__ */ jsxs("div", { className: "row", children: [
             /* @__PURE__ */ jsx("div", { className: "col-12", children: /* @__PURE__ */ jsxs("h2", { children: [
-              __("proveedor"),
+              __("cliente"),
               " ",
-              /* @__PURE__ */ jsx("u", { children: provider.name })
+              /* @__PURE__ */ jsx("u", { children: customer.name })
             ] }) }),
             /* @__PURE__ */ jsxs("div", { className: "col-12 mt-2 mb-4", children: [
               /* @__PURE__ */ jsxs("span", { className: "text-muted me-5", children: [
@@ -168,10 +182,10 @@ function Index({
                   content: /* @__PURE__ */ jsx(
                     CompanyInfoTab,
                     {
-                      company: provider,
-                      side: "providers",
+                      company: customer,
+                      side: "customers",
                       updateRoute: "companies.update",
-                      updateParams: [provider.id]
+                      updateParams: [customer.id]
                     }
                   )
                 },
@@ -183,11 +197,26 @@ function Index({
                     {
                       users: users ?? null,
                       rows: rows ?? [],
-                      indexRoute: "providers.edit",
-                      indexParams: provider.id,
+                      indexRoute: "customers.edit",
+                      indexParams: customer.id,
                       tableId: "tblCompanyUsers"
                     }
                   )
+                },
+                {
+                  key: "categories",
+                  label: __("categorias"),
+                  content: /* @__PURE__ */ jsx("div", { className: "mt-3", children: /* @__PURE__ */ jsx(
+                    CategoryAssigner,
+                    {
+                      environment: envForCategories,
+                      categorizable: { type: "App\\Models\\Company", id: customer.id },
+                      endpoints: categoryEndpoints,
+                      title: __("sectores"),
+                      allowCreate: true,
+                      readOnly: false
+                    }
+                  ) })
                 }
               ],
               defaultActive: tab
@@ -199,8 +228,8 @@ function Index({
               show: showModalUserCreate,
               onClose: handleCloseModalUserCreate,
               onCreate: refreshUsersTable,
-              companyId: provider.id,
-              side: "providers",
+              companyId: customer.id,
+              side: "customers",
               salutations,
               contact_subtypes,
               contact_types: []

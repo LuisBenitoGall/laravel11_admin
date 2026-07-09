@@ -16,8 +16,8 @@ import { P as PrimaryButton } from "./PrimaryButton-CIbKPOjQ.js";
 import { M as ModalUserCreate } from "./ModalUserCreate-BeQPp-U2.js";
 import { C as Checkbox } from "./Checkbox-C9HPJULq.js";
 import CompanyNotes from "./CompanyNotes-CVsKedof.js";
-import CompanyInfoTab from "./CompanyInfoTab-DPuXbufB.js";
-import CompanyUsersTab from "./CompanyUsersTab-BHE6uVis.js";
+import CompanyInfoTab from "./CompanyInfoTab-DkS-YmJG.js";
+import CompanyUsersTab from "./CompanyUsersTab-Bgo-0DL1.js";
 import CrmAccountAddressTab from "./CrmAccountAddressTab-CUiFwONu.js";
 import "./Header-BFeBcT5X.js";
 import "@inertiajs/inertia";
@@ -41,8 +41,8 @@ import "./SelectInput-BpRRLwUE.js";
 import "./UserSearch-Bn5gVs5d.js";
 import "./FileInput-U7oe6ye3.js";
 import "./InfoPopover-CwWEvwXq.js";
-import "./ManagePhones-LdkmCbcO.js";
-import "./TableUsers-DnSnGial.js";
+import "./ManagePhones-8V9K-iFw.js";
+import "./TableUsers-Bq29FRJM.js";
 import "./SortControl-B-edZX2D.js";
 import "date-fns";
 import "./ShowRegisterButton-DPAZE_RX.js";
@@ -50,7 +50,7 @@ import "prop-types";
 import "./TableExporter-CrDOX5NX.js";
 import "./StatusButton-DfO41WfJ.js";
 import "./useTableManagement-UWRr8jtd.js";
-import "./UserShowView-CJCAJiz0.js";
+import "./UserShowView-Uc93NpSJ.js";
 import "./renderCellContent-DJWyVzIY.js";
 function UserNoteForm({
   company,
@@ -535,7 +535,8 @@ function Edit({
           updateParams: [company.id],
           crm_account,
           business_types: business_types ?? [],
-          cost_centers: cost_centers ?? []
+          cost_centers: cost_centers ?? [],
+          phonesRedirectTo: isCrmAccount ? { route: "crm-accounts.edit", params: [crm_account.id] } : null
         }
       )
     }

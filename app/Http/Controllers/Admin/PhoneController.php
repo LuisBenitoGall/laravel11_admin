@@ -157,7 +157,17 @@ class PhoneController extends Controller{
 
         Phone::addOrUpdateFor($owner, $items, ['default_region' => 'ES']);
 
-        // 5) Redirección coherente
+        // 5) Redirección explícita indicada por el cliente (p. ej. desde ManagePhones en Company/Edit → CrmAccount)
+        if ($request->filled('redirect_to')) {
+            $params = $request->input('redirect_params');
+            if (is_string($params)) {
+                $params = json_decode($params, true) ?: [];
+            }
+            $params = is_array($params) ? array_values(array_filter($params, fn ($v) => is_scalar($v))) : [];
+            return redirect()->route($request->input('redirect_to'), $params)->with('msg', __('telefono_creado_msg'));
+        }
+
+        // Redirección coherente por defecto
         $routeMap = [
             User::class       => 'users.edit',
             Company::class    => 'companies.edit',
@@ -271,6 +281,16 @@ class PhoneController extends Controller{
                 $phone->save();
             });
 
+            // Redirección explícita indicada por el cliente (p. ej. desde ManagePhones en Company/Edit → CrmAccount)
+            if ($request->filled('redirect_to')) {
+                $params = $request->input('redirect_params');
+                if (is_string($params)) {
+                    $params = json_decode($params, true) ?: [];
+                }
+                $params = is_array($params) ? array_values(array_filter($params, fn ($v) => is_scalar($v))) : [];
+                return redirect()->route($request->input('redirect_to'), $params)->with('msg', __('telefono_actualizado_msg'));
+            }
+
             return redirect()->route($route, $ownerId)->with('msg', __('telefono_actualizado_msg'));
 
         }catch(\Throwable $e){
@@ -282,22 +302,27 @@ class PhoneController extends Controller{
     /**
      * 4. Eliminar teléfono.
      */
-    public function destroy(Phone $phone){
+    public function destroy(Request $request, Phone $phone){
         $id = $phone->phoneable_id;
 
-        switch($phone->phoneable_type){
-            case 'App\Models\User':
-                $route = 'users.edit';
-                break;
-            case 'App\Models\Company':
-                $route = 'companies.edit';
-                break;
-            default:
-                // code...
-                break;
+        $phone->delete();
+
+        // Redirección explícita indicada por el cliente (p. ej. desde ManagePhones en Company/Edit → CrmAccount)
+        if ($request->filled('redirect_to')) {
+            $params = $request->input('redirect_params');
+            if (is_string($params)) {
+                $params = json_decode($params, true) ?: [];
+            }
+            $params = is_array($params) ? array_values(array_filter($params, fn ($v) => is_scalar($v))) : [];
+            return redirect()->route($request->input('redirect_to'), $params)->with('msg', __('telefono_eliminado_msg'));
         }
 
-        $phone->delete();
+        $routeMap = [
+            'App\Models\User'       => 'users.edit',
+            'App\Models\Company'    => 'companies.edit',
+            'App\Models\CrmContact' => 'contacts.edit',
+        ];
+        $route = $routeMap[$phone->phoneable_type] ?? 'dashboard';
 
         return redirect()->route($route, $id)->with('msg', __('telefono_eliminado_msg'));
     }

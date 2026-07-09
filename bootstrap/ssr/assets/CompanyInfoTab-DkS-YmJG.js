@@ -7,7 +7,7 @@ import { I as InputError } from "./InputError-DME5vguS.js";
 import { Button, Spinner, Row, Col, Card, OverlayTrigger, Tooltip, Modal, Form } from "react-bootstrap";
 import { u as useSweetAlert } from "./useSweetAlert-D4PAsWYN.js";
 import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
-import { M as ManagePhones } from "./ManagePhones-LdkmCbcO.js";
+import { M as ManagePhones } from "./ManagePhones-8V9K-iFw.js";
 import { P as PrimaryButton } from "./PrimaryButton-CIbKPOjQ.js";
 import { T as TextInput } from "./TextInput-CzxrbIpp.js";
 import { S as SelectInput } from "./SelectInput-BpRRLwUE.js";
@@ -333,7 +333,8 @@ function CompanyFormEdit({
   updateParams = null,
   crm_account = false,
   business_types = [],
-  cost_centers = []
+  cost_centers = [],
+  phonesRedirectTo = null
 }) {
   const __ = useTranslation();
   const { showConfirm } = useSweetAlert();
@@ -544,7 +545,8 @@ function CompanyFormEdit({
       {
         phoneableType: "Company",
         phoneableId: company.id,
-        defaultWaMessage: __("whatsapp_mensaje")
+        defaultWaMessage: __("whatsapp_mensaje"),
+        redirectTo: phonesRedirectTo
       }
     ),
     /* @__PURE__ */ jsx(
@@ -562,7 +564,8 @@ function CompanyInfoTab({
   updateParams = null,
   crm_account = false,
   business_types = [],
-  cost_centers = []
+  cost_centers = [],
+  phonesRedirectTo = null
 }) {
   return /* @__PURE__ */ jsx(
     CompanyFormEdit,
@@ -573,7 +576,8 @@ function CompanyInfoTab({
       updateParams,
       crm_account,
       business_types: business_types ?? [],
-      cost_centers: cost_centers ?? []
+      cost_centers: cost_centers ?? [],
+      phonesRedirectTo
     }
   );
 }

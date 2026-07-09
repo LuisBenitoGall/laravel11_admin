@@ -23,7 +23,8 @@ export default function CompanyFormEdit({
     updateParams = null,
     crm_account = false,
     business_types = [],
-    cost_centers = []
+    cost_centers = [],
+    phonesRedirectTo = null
 }){
     const __ = useTranslation();
     const { showConfirm } = useSweetAlert();
@@ -274,10 +275,11 @@ export default function CompanyFormEdit({
             </form>
 
             {/* Teléfonos */}
-            <ManagePhones 
+            <ManagePhones
                 phoneableType="Company"
                 phoneableId={company.id}
                 defaultWaMessage={__('whatsapp_mensaje')}
+                redirectTo={phonesRedirectTo}
             />
 
             {/* Emails */}

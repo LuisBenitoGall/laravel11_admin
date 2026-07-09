@@ -17,7 +17,7 @@ import { I as InputError } from "./InputError-DME5vguS.js";
 import { U as UserSearch } from "./UserSearch-Bn5gVs5d.js";
 import { S as SelectSearch } from "./SelectSearch-x7o6yKJV.js";
 import MarketingListInfoTab from "./MarketingListInfoTab-DnS353qq.js";
-import MarketingListMembersTab from "./MarketingListMembersTab-D1p_Axel.js";
+import MarketingListMembersTab from "./MarketingListMembersTab-_EUXycXU.js";
 import "./Header-BFeBcT5X.js";
 import "react-bootstrap";
 import "sweetalert2";
@@ -29,7 +29,7 @@ import "@headlessui/react";
 import "react-select";
 import "./Checkbox-C9HPJULq.js";
 import "./PrimaryButton-CIbKPOjQ.js";
-import "./TableUsers-DnSnGial.js";
+import "./TableUsers-Bq29FRJM.js";
 import "./SortControl-B-edZX2D.js";
 import "react-datepicker";
 import "date-fns";
@@ -40,8 +40,8 @@ import "prop-types";
 import "./TableExporter-CrDOX5NX.js";
 import "./StatusButton-DfO41WfJ.js";
 import "./useTableManagement-UWRr8jtd.js";
-import "./UserShowView-CJCAJiz0.js";
-import "./ManagePhones-LdkmCbcO.js";
+import "./UserShowView-Uc93NpSJ.js";
+import "./ManagePhones-8V9K-iFw.js";
 import "./renderCellContent-DJWyVzIY.js";
 function BrevoExportAlert({ __, visible = false }) {
   if (!visible) {

@@ -17,7 +17,7 @@ import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
 import { R as ReusableModal } from "./ModalTemplate-BiHkGcpB.js";
 import { I as InputError } from "./InputError-DME5vguS.js";
 import { M as ModalUserCreate } from "./ModalUserCreate-BeQPp-U2.js";
-import UserShowView from "./UserShowView-CJCAJiz0.js";
+import UserShowView from "./UserShowView-Uc93NpSJ.js";
 import { r as renderCellContent } from "./renderCellContent-DJWyVzIY.js";
 import "./Header-BFeBcT5X.js";
 import "@inertiajs/inertia";
@@ -40,7 +40,7 @@ import "./YearSelect-CdvirGha.js";
 import "./SelectInput-BpRRLwUE.js";
 import "date-fns";
 import "prop-types";
-import "./ManagePhones-LdkmCbcO.js";
+import "./ManagePhones-8V9K-iFw.js";
 function ModalMarketingListFromContacts({ show, onClose, filters = {}, getFiltersForRedirect }) {
   const __ = useTranslation();
   const [form, setForm] = useState({

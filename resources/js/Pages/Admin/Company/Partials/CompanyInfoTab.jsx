@@ -8,7 +8,8 @@ export default function CompanyInfoTab({
 	updateParams = null, 
 	crm_account = false,
     business_types = [],
-    cost_centers = []
+    cost_centers = [],
+    phonesRedirectTo = null
 }){
 	// This partial is only a wrapper to render the edit form component.
 	return (
@@ -20,6 +21,7 @@ export default function CompanyInfoTab({
 			crm_account={crm_account}
             business_types={business_types ?? []}
             cost_centers={cost_centers ?? []}
+            phonesRedirectTo={phonesRedirectTo}
 		/>
 	);
 }

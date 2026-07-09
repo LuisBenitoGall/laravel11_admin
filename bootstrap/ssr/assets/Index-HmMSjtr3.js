@@ -11,7 +11,7 @@ import { S as StatusButton } from "./StatusButton-DfO41WfJ.js";
 import { T as TableExporter } from "./TableExporter-CrDOX5NX.js";
 import { u as useTableManagement } from "./useTableManagement-UWRr8jtd.js";
 import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
-import CrmAccountShowView from "./CrmAccountShowView-ChM5a15M.js";
+import CrmAccountShowView from "./CrmAccountShowView-DX-GM8Hx.js";
 import { r as renderCellContent } from "./renderCellContent-DJWyVzIY.js";
 import "./Header-BFeBcT5X.js";
 import "@inertiajs/inertia";
@@ -38,7 +38,7 @@ import "./YearSelect-CdvirGha.js";
 import "./SelectInput-BpRRLwUE.js";
 import "date-fns";
 import "prop-types";
-import "./ManagePhones-LdkmCbcO.js";
+import "./ManagePhones-8V9K-iFw.js";
 const EMPTY = Object.freeze([]);
 const EMPTY_OBJ = Object.freeze({});
 function Index({

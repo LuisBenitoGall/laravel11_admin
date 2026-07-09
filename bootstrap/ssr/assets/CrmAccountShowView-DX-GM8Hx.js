@@ -1,6 +1,6 @@
 import { jsxs, jsx, Fragment } from "react/jsx-runtime";
 import "react";
-import { M as ManagePhones } from "./ManagePhones-LdkmCbcO.js";
+import { M as ManagePhones } from "./ManagePhones-8V9K-iFw.js";
 import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
 import "@inertiajs/react";
 import "react-bootstrap";

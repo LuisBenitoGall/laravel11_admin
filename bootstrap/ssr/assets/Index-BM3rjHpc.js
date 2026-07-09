@@ -11,7 +11,7 @@ import { T as TableExporter } from "./TableExporter-CrDOX5NX.js";
 import "sweetalert2";
 import { u as useTranslation } from "./useTranslation-Nsy_Cpi1.js";
 import { u as useTableManagement } from "./useTableManagement-UWRr8jtd.js";
-import CompanyShowView from "./CompanyShowView-CP70sb9s.js";
+import CompanyShowView from "./CompanyShowView-CQ0hi31N.js";
 import { r as renderCellContent } from "./renderCellContent-DJWyVzIY.js";
 import "./Header-BFeBcT5X.js";
 import "@inertiajs/inertia";
@@ -28,7 +28,7 @@ import "date-fns";
 import "date-fns/locale";
 import "./SelectInput-BpRRLwUE.js";
 import "prop-types";
-import "./ManagePhones-LdkmCbcO.js";
+import "./ManagePhones-8V9K-iFw.js";
 function Index({ auth, session, title, subtitle, companies, queryParams: rawQueryParams = {}, availableLocales }) {
   const queryParams = typeof rawQueryParams === "object" && rawQueryParams !== null ? rawQueryParams : {};
   const __ = useTranslation();

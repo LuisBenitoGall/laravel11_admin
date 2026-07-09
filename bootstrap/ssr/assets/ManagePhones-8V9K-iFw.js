@@ -40,7 +40,9 @@ function ManagePhones({
   rowXs = 1,
   // NUEVO: configuración del grid
   rowMd = 2,
-  rowLg = 3
+  rowLg = 3,
+  redirectTo = null
+  // { route: string, params?: array } - redirección explícita tras guardar/actualizar
 }) {
   const __ = useTranslation();
   const { showConfirm } = useSweetAlert();
@@ -130,6 +132,10 @@ function ManagePhones({
       is_primary: editing.is_primary ? 1 : 0,
       notes: editing.notes || null
     };
+    if (redirectTo == null ? void 0 : redirectTo.route) {
+      payload.redirect_to = redirectTo.route;
+      if (Array.isArray(redirectTo.params)) payload.redirect_params = redirectTo.params;
+    }
     const common = {
       reserveScroll: true,
       onSuccess: () => {
@@ -159,7 +165,13 @@ function ManagePhones({
       icon: "warning",
       onConfirm: async () => {
         setDeletingId(id);
+        const data = {};
+        if (redirectTo == null ? void 0 : redirectTo.route) {
+          data.redirect_to = redirectTo.route;
+          if (Array.isArray(redirectTo.params)) data.redirect_params = redirectTo.params;
+        }
         router.delete(route("phones.destroy", id), {
+          data,
           preserveScroll: true,
           onSuccess: () => fetchData(),
           onError: () => setError(__("error_generico")),
