@@ -104,14 +104,14 @@
     "/build/assets/CompanyInfoTab-DkS-YmJG.js"
   ],
   "resources/js/Components/ManageExtraEmails.jsx": [
-    "/build/assets/UserPersonalData-CL_7AuKn.js",
+    "/build/assets/UserPersonalData-iQyIymnA.js",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Components/ManagePhones.jsx": [
     "/build/assets/ManagePhones-8V9K-iFw.js"
   ],
   "resources/js/Components/ManageUserAddresses.jsx": [
-    "/build/assets/Edit-B-QvWb1o.js",
+    "/build/assets/Edit-CEssy0Ia.js",
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
@@ -204,7 +204,7 @@
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css"
   ],
   "resources/js/Components/UserNoteForm.jsx": [
-    "/build/assets/Edit-B-QvWb1o.js",
+    "/build/assets/Edit-CEssy0Ia.js",
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
@@ -260,7 +260,7 @@
     "/build/assets/ModalUserCreate-BeQPp-U2.js"
   ],
   "resources/js/Components/modals/ModalUserNoteCreate.jsx": [
-    "/build/assets/Edit-B-QvWb1o.js",
+    "/build/assets/Edit-CEssy0Ia.js",
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
@@ -774,7 +774,7 @@
     "/build/assets/Create-CS5IXlHl.js"
   ],
   "resources/js/Pages/Admin/User/Edit.jsx": [
-    "/build/assets/Edit-B-QvWb1o.js",
+    "/build/assets/Edit-CEssy0Ia.js",
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
@@ -800,7 +800,7 @@
     "/build/assets/UserPassword-B_T7uAmO.js"
   ],
   "resources/js/Pages/Admin/User/Partials/UserPersonalData.jsx": [
-    "/build/assets/UserPersonalData-CL_7AuKn.js",
+    "/build/assets/UserPersonalData-iQyIymnA.js",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Pages/Admin/User/Partials/UserShowView.jsx": [

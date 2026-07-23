@@ -25,7 +25,7 @@ import { F as FormDatePickerInput, t as toLocalYmd } from "./DatePickerToForm-BN
 import { R as RelevanceSelect } from "./RelevanceSelect-C-e1h0gP.js";
 import UserImages from "./UserImages-fTJRUy_n.js";
 import UserNotes from "./UserNotes-C8GLj4Vs.js";
-import UserPersonalData from "./UserPersonalData-CL_7AuKn.js";
+import UserPersonalData from "./UserPersonalData-iQyIymnA.js";
 import UserPassword from "./UserPassword-B_T7uAmO.js";
 import "./Header-BFeBcT5X.js";
 import "@inertiajs/inertia";

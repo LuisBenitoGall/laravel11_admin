@@ -31,7 +31,8 @@
       "Bash(echo \"exit: $?\")",
       "PowerShell($env:NODE_OPTIONS; node -e \"const c = require\\('node:crypto'\\); console.log\\(typeof c.getRandomValues\\)\")",
       "PowerShell(Receive-Job *)",
-      "PowerShell([System.Environment]::GetEnvironmentVariable\\(\"NODE_OPTIONS\", \"Machine\"\\); [System.Environment]::GetEnvironmentVariable\\(\"NODE_OPTIONS\", \"User\"\\); [System.Environment]::GetEnvironmentVariable\\(\"NODE_OPTIONS\", \"Process\"\\))"
+      "PowerShell([System.Environment]::GetEnvironmentVariable\\(\"NODE_OPTIONS\", \"Machine\"\\); [System.Environment]::GetEnvironmentVariable\\(\"NODE_OPTIONS\", \"User\"\\); [System.Environment]::GetEnvironmentVariable\\(\"NODE_OPTIONS\", \"Process\"\\))",
+      "Bash(git check-ignore *)"
     ]
   }
 }

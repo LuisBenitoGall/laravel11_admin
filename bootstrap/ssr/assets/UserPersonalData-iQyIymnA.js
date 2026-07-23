@@ -456,14 +456,22 @@ function UserPersonalData({
   };
   (company_context == null ? void 0 : company_context.name) || "";
   const canEditUserCompanies = !!((_f = props.permissions) == null ? void 0 : _f["user-companies.edit"]);
-  const handleDeleteUserCompany = (ucId, name) => {
+  const handleDeleteUserCompany = (ucId, name, companyId) => {
     showConfirm({
       title: __("empresa_desvincular"),
       text: `${__("empresa_desvincular_confirm")} (${name})`,
       icon: "warning",
       onConfirm: () => {
         router.delete(route("user-companies.destroy", ucId), {
-          preserveScroll: true
+          preserveScroll: true,
+          onSuccess: () => {
+            setData((prevData) => {
+              const next = { ...prevData };
+              delete next[`position_company_${companyId}`];
+              delete next[`department_company_${companyId}`];
+              return next;
+            });
+          }
         });
       }
     });
@@ -813,7 +821,7 @@ function UserPersonalData({
                   type: "button",
                   className: "btn btn-sm btn-danger",
                   title: __("empresa_desvincular"),
-                  onClick: () => handleDeleteUserCompany(uc.id, ucName),
+                  onClick: () => handleDeleteUserCompany(uc.id, ucName, uc.company_id),
                   children: /* @__PURE__ */ jsx("i", { className: "la la-trash" })
                 }
               ) })

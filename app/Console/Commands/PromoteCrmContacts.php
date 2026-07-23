@@ -458,19 +458,16 @@ class PromoteCrmContacts extends Command
         }
 
         // Vinculación usuario ↔ empresa (si hay linked_company_id)
+        // Se crea o actualiza en cada ejecución para que no quede desincronizado
+        // respecto al cargo/departamento reflejado en crm_contacts.
         if ($account && $account->linked_company_id) {
-            $exists = UserCompany::where('user_id', $user->id)
-                ->where('company_id', $account->linked_company_id)
-                ->exists();
-
-            if (! $exists) {
-                $uc = new UserCompany();
-                $uc->user_id    = $user->id;
-                $uc->company_id = $account->linked_company_id;
-                $uc->position   = $tmp->position;
-                $uc->department = $tmp->department;
-                $uc->save();
-            }
+            $uc = UserCompany::firstOrNew([
+                'user_id'    => $user->id,
+                'company_id' => $account->linked_company_id,
+            ]);
+            $uc->position   = $tmp->position;
+            $uc->department = $tmp->department;
+            $uc->save();
         }
 
         // Teléfono móvil principal

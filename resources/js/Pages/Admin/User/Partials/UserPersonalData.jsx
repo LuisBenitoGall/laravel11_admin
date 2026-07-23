@@ -265,7 +265,7 @@ export default function UserPersonalData({
     const companyName = company_context?.name || '';
     const canEditUserCompanies = !!props.permissions?.['user-companies.edit'];
 
-    const handleDeleteUserCompany = (ucId, name) => {
+    const handleDeleteUserCompany = (ucId, name, companyId) => {
         showConfirm({
             title: __('empresa_desvincular'),
             text: `${__('empresa_desvincular_confirm')} (${name})`,
@@ -273,6 +273,16 @@ export default function UserPersonalData({
             onConfirm: () => {
                 router.delete(route('user-companies.destroy', ucId), {
                     preserveScroll: true,
+                    onSuccess: () => {
+                        // Quitamos del formulario los campos position_company_/department_company_
+                        // de la empresa desvinculada para que "Guardar" no la recree.
+                        setData((prevData) => {
+                            const next = { ...prevData };
+                            delete next[`position_company_${companyId}`];
+                            delete next[`department_company_${companyId}`];
+                            return next;
+                        });
+                    },
                 });
             },
         });
@@ -662,7 +672,7 @@ export default function UserPersonalData({
                                                             type="button"
                                                             className="btn btn-sm btn-danger"
                                                             title={__('empresa_desvincular')}
-                                                            onClick={() => handleDeleteUserCompany(uc.id, ucName)}
+                                                            onClick={() => handleDeleteUserCompany(uc.id, ucName, uc.company_id)}
                                                         >
                                                             <i className="la la-trash" />
                                                         </button>

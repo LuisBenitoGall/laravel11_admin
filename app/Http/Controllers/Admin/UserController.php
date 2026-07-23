@@ -1322,6 +1322,18 @@ class UserController extends Controller{
             $relation->position   = $position ?: null;
             $relation->department = $departmentValue ?: null;
             $relation->save();
+
+            // Mantenemos sincronizado el cargo/departamento del contacto CRM de la empresa
+            // en sesión: el listado de contactos CRM lo muestra desde crm_contacts, no desde
+            // user_companies, y ambos deben reflejar el mismo dato.
+            if ($companyId === $currentCompanyId) {
+                CrmContact::where('company_id', $currentCompanyId)
+                    ->where('user_id', $user->id)
+                    ->update([
+                        'position'   => $relation->position,
+                        'department' => $relation->department,
+                    ]);
+            }
         }
 
         // 6) Centros de coste vinculados al usuario (user_cost_centers)

@@ -548,19 +548,22 @@ class PromoteCrmMarketingListMembers extends Command
             }
 
             // Vincular UserCompany
+            // Se crea o actualiza en cada ejecución para que no quede desincronizado
+            // respecto al cargo/departamento reflejado en crm_contacts.
             if ($user && $user->id) {
                 $exists = UserCompany::where('user_id', $user->id)
                     ->where('company_id', $company->id)
                     ->exists();
 
-                if (! $exists) {
-                    $uc = new UserCompany();
-                    $uc->user_id    = $user->id;
-                    $uc->company_id = $company->id;
-                    $uc->position   = $tmp->position ?: null;
-                    $uc->department = $tmp->department ?: null;
-                    $uc->save();
+                $uc = UserCompany::firstOrNew([
+                    'user_id'    => $user->id,
+                    'company_id' => $company->id,
+                ]);
+                $uc->position   = $tmp->position ?: null;
+                $uc->department = $tmp->department ?: null;
+                $uc->save();
 
+                if (! $exists) {
                     $attached = true;
                 }
             }
