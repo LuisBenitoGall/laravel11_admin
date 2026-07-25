@@ -243,6 +243,11 @@ class CrmContactController extends Controller{
 
         /**
          * 2) SELECT + agregados solo sobre crm_contacts
+         *    position/department: se toman del contacto "principal" del usuario en esta
+         *    empresa (is_main = 1 si existe; si no, el más reciente) en vez de un MIN()
+         *    alfabético arbitrario — un mismo usuario puede tener varias filas en
+         *    crm_contacts (una por empresa/cuenta vinculada) con cargos legítimamente
+         *    distintos entre sí. Mismo criterio que ya usa UserController::show().
          */
         $query->select([
             'users.id',
@@ -255,13 +260,12 @@ class CrmContactController extends Controller{
             DB::raw('NULL as edit_company_id'),
             DB::raw('NULL as edit_crm_account_id'),
 
-            // Agregados básicos de crm_contacts
-            DB::raw('MIN(cc.position)     as position'),
-            DB::raw('MIN(cc.department)   as department'),
             DB::raw('MAX(cc.contact_type) as contact_type'),
             // Fecha de alta del contacto CRM (p. ej. clientes potenciales / leads)
             DB::raw('MIN(cc.created_at) as crm_contact_created_at'),
         ])
+        ->selectSub($this->mainCrmContactSubquery('position', $company_id, $leads), 'position')
+        ->selectSub($this->mainCrmContactSubquery('department', $company_id, $leads), 'department')
         ->groupBy(
             'users.id',
             'users.name',
@@ -435,6 +439,29 @@ class CrmContactController extends Controller{
         }
 
         return $query->orderBy("users.$sortField", $sortDirection);
+    }
+
+    /**
+     * 1.2.1. Subquery del contacto CRM "principal" de un usuario en la empresa dada:
+     *        prioriza is_main = 1 y, si ninguno está marcado, el más reciente (id mayor).
+     */
+    private function mainCrmContactSubquery(string $column, int $company_id, bool $leads): \Closure
+    {
+        return function ($q) use ($column, $company_id, $leads) {
+            $q->select("cc_main.$column")
+                ->from('crm_contacts as cc_main')
+                ->whereColumn('cc_main.user_id', 'users.id')
+                ->where('cc_main.company_id', $company_id)
+                ->whereNull('cc_main.deleted_at');
+
+            if ($leads) {
+                $q->where('cc_main.contact_type', '=', 'clp');
+            }
+
+            $q->orderByDesc('cc_main.is_main')
+              ->orderByDesc('cc_main.id')
+              ->limit(1);
+        };
     }
 
     /**

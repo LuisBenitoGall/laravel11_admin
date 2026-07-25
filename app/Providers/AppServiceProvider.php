@@ -10,6 +10,10 @@ use Illuminate\Support\ServiceProvider;
 use Inertia\Inertia;
 use Illuminate\Database\Eloquent\Builder;
 use App\Support\Filters\AdHocFilterApplier;
+use App\Models\CrmContact;
+use App\Models\UserCompany;
+use App\Observers\CrmContactObserver;
+use App\Observers\UserCompanyObserver;
 
 class AppServiceProvider extends ServiceProvider{
     /**
@@ -46,6 +50,11 @@ class AppServiceProvider extends ServiceProvider{
         Gate::before(function ($user, $ability) {
             return $user->hasRole('Super Admin') ? true : null;
         });
+
+        // Mantiene sincronizado el cargo/departamento entre crm_contacts y user_companies
+        // sea cual sea el punto de la app que los modifique (edición manual, importación CRM, etc.)
+        CrmContact::observe(CrmContactObserver::class);
+        UserCompany::observe(UserCompanyObserver::class);
 
         Builder::macro('applyAdhocFilters', function ($request, array $definitions) {
             /** @var \Illuminate\Database\Eloquent\Builder $this */
