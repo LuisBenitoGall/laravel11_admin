@@ -182,6 +182,37 @@ class CrmUsersDataStandardsTest extends TestCase
     }
 
     /** @test */
+    public function command_skips_phone_collision_with_soft_deleted_sibling(): void
+    {
+        $user = User::factory()->create();
+        UserCompany::create(['user_id' => $user->id, 'company_id' => $this->companyA->id, 'position' => 't']);
+
+        $trashed = new Phone();
+        $trashed->phoneable_type = User::class;
+        $trashed->phoneable_id = $user->id;
+        $trashed->e164 = '+34610960330';
+        $trashed->type = 'mobile';
+        $trashed->is_primary = false;
+        $trashed->save();
+        $trashed->delete();
+
+        $active = new Phone();
+        $active->phoneable_type = User::class;
+        $active->phoneable_id = $user->id;
+        $active->e164 = '610960330';
+        $active->type = 'mobile';
+        $active->is_primary = true;
+        $active->save();
+
+        $this->artisan('data:normalize-crm-users', [
+            '--company' => $this->companyA->id,
+            '--apply' => true,
+        ])->assertSuccessful();
+
+        $this->assertSame('610960330', DB::table('phones')->where('id', $active->id)->value('e164'));
+    }
+
+    /** @test */
     public function command_company_scope_does_not_cross_and_skips_linked_master_name(): void
     {
         $userB = User::factory()->create();

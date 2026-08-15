@@ -166,7 +166,8 @@ class NormalizeCrmUsersCommand extends Command
             return;
         }
 
-        $collision = Phone::query()
+        // UNIQUE en MySQL incluye soft-deleted; el scope por defecto los oculta.
+        $collision = Phone::withTrashed()
             ->where('phoneable_type', $phone->phoneable_type)
             ->where('phoneable_id', $phone->phoneable_id)
             ->where('e164', $canonical)
@@ -180,9 +181,18 @@ class NormalizeCrmUsersCommand extends Command
         }
 
         if ($apply) {
-            $phone->e164 = $canonical;
-            $phone->save();
-            $this->record('phones', $phone->id, 'e164', $before, $canonical, 'updated');
+            try {
+                $phone->e164 = $canonical;
+                $phone->save();
+                $this->record('phones', $phone->id, 'e164', $before, $canonical, 'updated');
+            } catch (\Illuminate\Database\QueryException $e) {
+                if ((string) $e->getCode() === '23000' || str_contains($e->getMessage(), 'phones_owner_e164_unique')) {
+                    $this->record('phones', $phone->id, 'e164', $before, $canonical, 'skip_collision');
+
+                    return;
+                }
+                throw $e;
+            }
         } else {
             $this->record('phones', $phone->id, 'e164', $before, $canonical, 'would_update');
         }
