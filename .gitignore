@@ -41,6 +41,16 @@ package-lock.json
 Thumbs.db
 
 # --------------------------------
+# Playwright
+# --------------------------------
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/e2e/.auth/
+/e2e/auth/
+
+# --------------------------------
 # Varias cosas que no quieres
 # --------------------------------
 *.log

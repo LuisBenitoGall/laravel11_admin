@@ -2,6 +2,12 @@
 
 namespace App\Support;
 
+use App\Support\DataStandards\AccountNameNormalizer;
+use App\Support\DataStandards\EmailNormalizer;
+use App\Support\DataStandards\NifNormalizer;
+use App\Support\DataStandards\PersonNameNormalizer;
+use App\Support\DataStandards\TextCleanupNormalizer;
+
 class ImportContactRowNormalizer
 {
     /**
@@ -12,16 +18,15 @@ class ImportContactRowNormalizer
      */
     public static function normalize(?string $value, bool $lowercase = false): string
     {
-        if ($value === null || $value === '') {
+        $v = TextCleanupNormalizer::normalize($value);
+        if ($v === '') {
             return '';
         }
-        $v = trim((string) $value);
-        $v = preg_replace('/[\r\n\t]+/', ' ', $v);
-        $v = preg_replace('/\s+/', ' ', $v);
         if ($lowercase) {
-            $v = mb_strtolower($v, 'UTF-8');
+            return mb_strtolower($v, 'UTF-8');
         }
-        return trim($v);
+
+        return $v;
     }
 
     /**
@@ -29,12 +34,11 @@ class ImportContactRowNormalizer
      */
     public static function normalizeEmail(?string $value): string
     {
-        return self::normalize($value, true);
+        return EmailNormalizer::normalize($value) ?? '';
     }
 
     /**
      * Aplica normalización a un array asociativo de valores (por clave).
-     * Las claves que contienen 'email' se pasan por normalizeEmail; el resto por normalize.
      */
     public static function normalizeRow(array $row): array
     {
@@ -43,10 +47,17 @@ class ImportContactRowNormalizer
             $str = is_scalar($value) ? (string) $value : '';
             if (stripos($key, 'email') !== false) {
                 $out[$key] = self::normalizeEmail($str);
+            } elseif (in_array($key, ['user_nif', 'company_nif'], true)) {
+                $out[$key] = NifNormalizer::normalize($str) ?? '';
+            } elseif (in_array($key, ['name', 'surname'], true)) {
+                $out[$key] = PersonNameNormalizer::normalize($str);
+            } elseif ($key === 'company') {
+                $out[$key] = AccountNameNormalizer::normalize($str);
             } else {
-                $out[$key] = self::normalize($str, false);
+                $out[$key] = TextCleanupNormalizer::normalize($str);
             }
         }
+
         return $out;
     }
 }

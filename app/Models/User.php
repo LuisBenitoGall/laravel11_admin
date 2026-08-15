@@ -16,6 +16,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Support\DataStandards\DateNormalizer;
+use App\Support\DataStandards\EmailNormalizer;
+use App\Support\DataStandards\NifNormalizer;
+use App\Support\DataStandards\PersonNameNormalizer;
 use App\Support\Filters\AdHocFilterApplier;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -183,18 +187,61 @@ class User extends Authenticatable implements MustVerifyEmail{
     /**
      * 8. Normalización email.
      */
-    public function setEmailAttribute($value): void{
+    public function setEmailAttribute($value): void
+    {
+        if ($value === null || (is_string($value) && $value === '')) {
+            $this->attributes['email'] = null;
+
+            return;
+        }
         $this->attributes['email'] = is_string($value)
-            ? mb_strtolower(trim($value))
+            ? EmailNormalizer::normalize($value)
             : $value;
     }
 
     /**
      * 9. Normalización nif.
      */
-    public function setNifAttribute($value): void{
+    public function setNifAttribute($value): void
+    {
+        if ($value === null || (is_string($value) && $value === '')) {
+            $this->attributes['nif'] = null;
+
+            return;
+        }
         $this->attributes['nif'] = is_string($value)
-            ? mb_strtoupper(trim($value))
+            ? NifNormalizer::normalize($value)
+            : $value;
+    }
+
+    public function setNameAttribute($value): void
+    {
+        $this->attributes['name'] = is_string($value)
+            ? PersonNameNormalizer::normalize($value)
+            : $value;
+    }
+
+    public function setSurnameAttribute($value): void
+    {
+        $this->attributes['surname'] = is_string($value)
+            ? PersonNameNormalizer::normalize($value)
+            : $value;
+    }
+
+    public function setBirthdayAttribute($value): void
+    {
+        if ($value === null || $value === '') {
+            $this->attributes['birthday'] = null;
+
+            return;
+        }
+        if ($value instanceof \DateTimeInterface) {
+            $this->attributes['birthday'] = $value->format('Y-m-d');
+
+            return;
+        }
+        $this->attributes['birthday'] = is_string($value)
+            ? DateNormalizer::normalize($value)
             : $value;
     }
 

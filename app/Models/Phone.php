@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use App\Support\DataStandards\PhoneNormalizer;
 use libphonenumber\PhoneNumberUtil;
-use libphonenumber\PhoneNumberFormat;
 
 class Phone extends Model{
     use SoftDeletes;
@@ -343,24 +343,14 @@ class Phone extends Model{
         return [$normalized, $wantsPrimaryAny];
     }
 
-    protected static function toE164OrNull(PhoneNumberUtil $util, string $raw, string $defaultRegion): ?string{
-        try {
-            // Permite números con o sin prefijo de país
-            $parsed = $util->parse($raw, $defaultRegion);
-            if (!$util->isValidNumber($parsed)) {
-                return null;
-            }
-            return $util->format($parsed, PhoneNumberFormat::E164);
-        } catch (\Throwable $e) {
-            return null;
-        }
+    protected static function toE164OrNull(PhoneNumberUtil $util, string $raw, string $defaultRegion): ?string
+    {
+        return PhoneNormalizer::toE164OrNull($raw, $defaultRegion);
     }
 
-    protected static function trimAllWhitespace(string $value): string{
-        // quita espacios, tabs y similares en todo el string
-        $value = preg_replace('/\s+/u', '', $value ?? '');
-        // normaliza posibles separadores raros
-        return trim($value ?? '');
+    protected static function trimAllWhitespace(string $value): string
+    {
+        return PhoneNormalizer::trimAllWhitespace($value);
     }
 
     /**

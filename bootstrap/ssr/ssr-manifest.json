@@ -24,7 +24,7 @@
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css"
   ],
   "resources/js/Components/BrevoExportAlert.jsx": [
-    "/build/assets/Edit-BLLx7She.js"
+    "/build/assets/Edit-BvV4ajIr.js"
   ],
   "resources/js/Components/BrevoSyncStatus.jsx": [
     "/build/assets/BrevoSyncStatus-Bv-6UIhc.js"
@@ -51,7 +51,7 @@
     "/build/assets/CompanyFormSearch-B58zbhM0.js"
   ],
   "resources/js/Components/CompanyNoteForm.jsx": [
-    "/build/assets/Edit-D0kvuXoz.js",
+    "/build/assets/Edit-CANb22HK.js",
     "/build/assets/react-datepicker-qm8xLgv-.css",
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css"
   ],
@@ -180,10 +180,10 @@
     "/build/assets/StatusButton-DfO41WfJ.js"
   ],
   "resources/js/Components/TableExporter.jsx": [
-    "/build/assets/TableExporter-CrDOX5NX.js"
+    "/build/assets/TableExporter-ozLWJjAM.js"
   ],
   "resources/js/Components/TableUsers.jsx": [
-    "/build/assets/TableUsers-Bq29FRJM.js"
+    "/build/assets/TableUsers-BfaTuVHl.js"
   ],
   "resources/js/Components/Tabs.jsx": [
     "/build/assets/Tabs-CZO-HKNH.js"
@@ -227,30 +227,30 @@
     "/build/assets/Edit-BcJJr6UR.js"
   ],
   "resources/js/Components/modals/ModalCompanyNoteCreate.jsx": [
-    "/build/assets/Edit-D0kvuXoz.js",
+    "/build/assets/Edit-CANb22HK.js",
     "/build/assets/react-datepicker-qm8xLgv-.css",
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css"
   ],
   "resources/js/Components/modals/ModalConvertCrmAccount.jsx": [
-    "/build/assets/Edit-D0kvuXoz.js",
+    "/build/assets/Edit-CANb22HK.js",
     "/build/assets/react-datepicker-qm8xLgv-.css",
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css"
   ],
   "resources/js/Components/modals/ModalFunctionalityCreate.jsx": [
-    "/build/assets/Edit-BLSOlxR0.js",
+    "/build/assets/Edit-VXOHweR6.js",
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css"
   ],
   "resources/js/Components/modals/ModalIvaAccountCreate.jsx": [
     "/build/assets/IvaAccounts-DUIm6FAr.js"
   ],
   "resources/js/Components/modals/ModalMarketingListAddUser.jsx": [
-    "/build/assets/Edit-BLLx7She.js"
+    "/build/assets/Edit-BvV4ajIr.js"
   ],
   "resources/js/Components/modals/ModalMarketingListCloneMembers.jsx": [
-    "/build/assets/Edit-BLLx7She.js"
+    "/build/assets/Edit-BvV4ajIr.js"
   ],
   "resources/js/Components/modals/ModalMarketingListFromContacts.jsx": [
-    "/build/assets/Index-D3YMSymD.js",
+    "/build/assets/Index-Bpi08ZfH.js",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Components/modals/ModalTemplate.jsx": [
@@ -318,7 +318,7 @@
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css"
   ],
   "resources/js/Pages/Admin/Account/Index.jsx": [
-    "/build/assets/Index-BPqxHanF.js"
+    "/build/assets/Index-DRqy5gni.js"
   ],
   "resources/js/Pages/Admin/AccountingAccount/Create.jsx": [
     "/build/assets/Create-B6hHaTsx.js",
@@ -329,7 +329,7 @@
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css"
   ],
   "resources/js/Pages/Admin/AccountingAccount/Index.jsx": [
-    "/build/assets/Index-D9s03o-j.js"
+    "/build/assets/Index-Bq8cPlz_.js"
   ],
   "resources/js/Pages/Admin/AccountingAccount/IvaAccounts.jsx": [
     "/build/assets/IvaAccounts-DUIm6FAr.js"
@@ -341,7 +341,7 @@
     "/build/assets/Edit-MeJP7UOH.js"
   ],
   "resources/js/Pages/Admin/AccountingAccountType/Index.jsx": [
-    "/build/assets/Index-DjX3EEFr.js"
+    "/build/assets/Index-Bmegk7oa.js"
   ],
   "resources/js/Pages/Admin/AccountingAccountType/Show.jsx": [
     "/build/assets/Show-Dr1F-XTV.js"
@@ -354,7 +354,7 @@
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css"
   ],
   "resources/js/Pages/Admin/Bank/Index.jsx": [
-    "/build/assets/Index-C38OLjB2.js"
+    "/build/assets/Index-7Doxz2GM.js"
   ],
   "resources/js/Pages/Admin/BankAccount/Create.jsx": [
     "/build/assets/Create-CPfZA3KI.js"
@@ -363,7 +363,7 @@
     "/build/assets/Edit-BuFDCfL5.js"
   ],
   "resources/js/Pages/Admin/BankAccount/Index.jsx": [
-    "/build/assets/Index-BPrW2Flv.js"
+    "/build/assets/Index-CojD45Lu.js"
   ],
   "resources/js/Pages/Admin/BusinessArea/Create.jsx": [
     "/build/assets/Create-C8-bAL84.js"
@@ -376,7 +376,7 @@
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Pages/Admin/Category/Index.jsx": [
-    "/build/assets/Index-DsREkUWF.js"
+    "/build/assets/Index-8scc7bGF.js"
   ],
   "resources/js/Pages/Admin/Category/Upsert.jsx": [
     "/build/assets/Upsert-BXEQdlgU.js"
@@ -388,12 +388,12 @@
     "/build/assets/Create-BM92zl_A.js"
   ],
   "resources/js/Pages/Admin/Company/Edit.jsx": [
-    "/build/assets/Edit-D0kvuXoz.js",
+    "/build/assets/Edit-CANb22HK.js",
     "/build/assets/react-datepicker-qm8xLgv-.css",
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css"
   ],
   "resources/js/Pages/Admin/Company/Index.jsx": [
-    "/build/assets/Index-BM3rjHpc.js",
+    "/build/assets/Index-eDHp_itj.js",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Pages/Admin/Company/Partials/CompanyInfoTab.jsx": [
@@ -408,10 +408,10 @@
     "/build/assets/CompanyShowView-CQ0hi31N.js"
   ],
   "resources/js/Pages/Admin/Company/Partials/CompanyUsersTab.jsx": [
-    "/build/assets/CompanyUsersTab-Bgo-0DL1.js"
+    "/build/assets/CompanyUsersTab-B6_fPdxc.js"
   ],
   "resources/js/Pages/Admin/Company/Partials/CompanyUsersTab_old.jsx": [
-    "/build/assets/CompanyUsersTab_old-yGPnImdj.js"
+    "/build/assets/CompanyUsersTab_old-D_XLLdPL.js"
   ],
   "resources/js/Pages/Admin/Company/Sectors.jsx": [
     "/build/assets/Sectors-BOKFYOz3.js"
@@ -423,7 +423,7 @@
     "/build/assets/Create-B-HXcyTW.js"
   ],
   "resources/js/Pages/Admin/CompanyAccount/Index.jsx": [
-    "/build/assets/Index-t3-KVOBJ.js"
+    "/build/assets/Index-B_O1_t4m.js"
   ],
   "resources/js/Pages/Admin/CompanyModule/Index.jsx": [
     "/build/assets/Index-RwlGIqI3.js"
@@ -442,7 +442,7 @@
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css"
   ],
   "resources/js/Pages/Admin/Content/Index.jsx": [
-    "/build/assets/Index-CsrU68zN.js"
+    "/build/assets/Index-D-5tVSmk.js"
   ],
   "resources/js/Pages/Admin/CostCenter/Create.jsx": [
     "/build/assets/Create-a4pHWW-u.js"
@@ -461,7 +461,7 @@
     "/build/assets/Edit-CRsqWBAs.js"
   ],
   "resources/js/Pages/Admin/Country/Index.jsx": [
-    "/build/assets/Index-CXf0ScBj.js"
+    "/build/assets/Index-CGcZGFFm.js"
   ],
   "resources/js/Pages/Admin/Crm/Index.jsx": [
     "/build/assets/Show-Dr1F-XTV.js"
@@ -470,7 +470,7 @@
     "/build/assets/Create-DKgAQ7lu.js"
   ],
   "resources/js/Pages/Admin/CrmAccount/Index.jsx": [
-    "/build/assets/Index-HmMSjtr3.js",
+    "/build/assets/Index-Be4UjbBF.js",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Pages/Admin/CrmAccount/Partials/CrmAccountAddressTab.jsx": [
@@ -483,7 +483,7 @@
     "/build/assets/Import-BKANq8Ph.js"
   ],
   "resources/js/Pages/Admin/CrmContact/Index.jsx": [
-    "/build/assets/Index-D3YMSymD.js",
+    "/build/assets/Index-Bpi08ZfH.js",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Pages/Admin/CrmOpportunity/Create.jsx": [
@@ -495,7 +495,7 @@
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css"
   ],
   "resources/js/Pages/Admin/CrmOpportunity/Index.jsx": [
-    "/build/assets/Index-COppzClW.js"
+    "/build/assets/Index-DYUA5t_f.js"
   ],
   "resources/js/Pages/Admin/CrmOpportunity/Partials/CrmOpportunitiesShowView.jsx": [
     "/build/assets/CrmOpportunitiesShowView-DSLH4Rwy.js"
@@ -508,17 +508,17 @@
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css"
   ],
   "resources/js/Pages/Admin/Currency/Index.jsx": [
-    "/build/assets/Index-DmV1DL1G.js"
+    "/build/assets/Index-DGUY0SrB.js"
   ],
   "resources/js/Pages/Admin/Customer/Create.jsx": [
     "/build/assets/Create-D0RT7y5s.js"
   ],
   "resources/js/Pages/Admin/Customer/Edit.jsx": [
-    "/build/assets/Edit-Bh8qF497.js",
+    "/build/assets/Edit-DbbE4ht2.js",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Pages/Admin/Customer/Index.jsx": [
-    "/build/assets/Index-vg6FXNJT.js",
+    "/build/assets/Index-C-vtvSwd.js",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Pages/Admin/Customer/Show.jsx": [
@@ -552,7 +552,7 @@
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css"
   ],
   "resources/js/Pages/Admin/IvaType/Index.jsx": [
-    "/build/assets/Index-Bo8MtKjU.js"
+    "/build/assets/Index-B1LVMLYb.js"
   ],
   "resources/js/Pages/Admin/Marketing/Index.jsx": [
     "/build/assets/Show-Dr1F-XTV.js"
@@ -564,7 +564,7 @@
     "/build/assets/Edit-BcJJr6UR.js"
   ],
   "resources/js/Pages/Admin/MarketingCampaign/Index.jsx": [
-    "/build/assets/Index-D8fxRQc_.js"
+    "/build/assets/Index-OoGtXToV.js"
   ],
   "resources/js/Pages/Admin/MarketingCampaign/Partials/MarketingCampaignInfoTab.jsx": [
     "/build/assets/MarketingCampaignInfoTab-L7yKOKcn.js"
@@ -579,16 +579,16 @@
     "/build/assets/Create-P5zvokmG.js"
   ],
   "resources/js/Pages/Admin/MarketingList/Edit.jsx": [
-    "/build/assets/Edit-BLLx7She.js"
+    "/build/assets/Edit-BvV4ajIr.js"
   ],
   "resources/js/Pages/Admin/MarketingList/Index.jsx": [
-    "/build/assets/Index-C68m9gd9.js"
+    "/build/assets/Index-7Rm1n4M8.js"
   ],
   "resources/js/Pages/Admin/MarketingList/Partials/MarketingListInfoTab.jsx": [
     "/build/assets/MarketingListInfoTab-DnS353qq.js"
   ],
   "resources/js/Pages/Admin/MarketingList/Partials/MarketingListMembersTab.jsx": [
-    "/build/assets/MarketingListMembersTab-_EUXycXU.js"
+    "/build/assets/MarketingListMembersTab-B0pvpyOA.js"
   ],
   "resources/js/Pages/Admin/MarketingList/Partials/MarketingListShowView.jsx": [
     "/build/assets/MarketingListShowView-DaZo3s4M.js"
@@ -601,14 +601,14 @@
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css"
   ],
   "resources/js/Pages/Admin/Module/Edit.jsx": [
-    "/build/assets/Edit-BLSOlxR0.js",
+    "/build/assets/Edit-VXOHweR6.js",
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css"
   ],
   "resources/js/Pages/Admin/Module/Index.jsx": [
-    "/build/assets/Index-Cm7S17mZ.js"
+    "/build/assets/Index-Id43cugS.js"
   ],
   "resources/js/Pages/Admin/Module/Partials/FunctionalitiesTab.jsx": [
-    "/build/assets/FunctionalitiesTab-QBcxRfu8.js"
+    "/build/assets/FunctionalitiesTab-EWtkpUmX.js"
   ],
   "resources/js/Pages/Admin/Module/Partials/ModuleTab.jsx": [
     "/build/assets/ModuleTab-D06Dq7Z1.js",
@@ -627,7 +627,7 @@
     "/build/assets/Create-DoMO-beR.js"
   ],
   "resources/js/Pages/Admin/Permission/Index.jsx": [
-    "/build/assets/Index-CcapvFGh.js"
+    "/build/assets/Index-DcT6yAb0.js"
   ],
   "resources/js/Pages/Admin/Product/Create.jsx": [
     "/build/assets/Create-C4JailDm.js"
@@ -638,7 +638,7 @@
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Pages/Admin/Product/Index.jsx": [
-    "/build/assets/Index-B0aqE3Al.js",
+    "/build/assets/Index-GhnU3iSJ.js",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Pages/Admin/Product/Partials/ProductAttributes.jsx": [
@@ -679,18 +679,18 @@
     "/build/assets/Edit-Deebacvi.js"
   ],
   "resources/js/Pages/Admin/ProductPattern/Index.jsx": [
-    "/build/assets/Index-DS3S1d_p.js",
+    "/build/assets/Index-CvrBX7Wl.js",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Pages/Admin/Provider/Create.jsx": [
     "/build/assets/Create-BoFD_bRE.js"
   ],
   "resources/js/Pages/Admin/Provider/Edit.jsx": [
-    "/build/assets/Edit-DE5OGtVF.js",
+    "/build/assets/Edit-BA8B--ij.js",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Pages/Admin/Provider/Index.jsx": [
-    "/build/assets/Index-DJtQop-0.js",
+    "/build/assets/Index-Dk7KM6zC.js",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Pages/Admin/Provider/Show.jsx": [
@@ -703,7 +703,7 @@
     "/build/assets/Edit-CScfX8dB.js"
   ],
   "resources/js/Pages/Admin/Province/Index.jsx": [
-    "/build/assets/Index-BPZEHxGh.js"
+    "/build/assets/Index-BR2Vps1i.js"
   ],
   "resources/js/Pages/Admin/Role/Create.jsx": [
     "/build/assets/Create-CmL6Ht6c.js",
@@ -714,7 +714,7 @@
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css"
   ],
   "resources/js/Pages/Admin/Role/Index.jsx": [
-    "/build/assets/Index-DahLbWwJ.js",
+    "/build/assets/Index-BjNa3bik.js",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Pages/Admin/Schedule/Index.jsx": [
@@ -743,7 +743,7 @@
     "/build/assets/react-draft-wysiwyg-BRnLTqeH.css"
   ],
   "resources/js/Pages/Admin/StockMovement/Index.jsx": [
-    "/build/assets/Index-DREqIp9-.js"
+    "/build/assets/Index-DbT2TjgG.js"
   ],
   "resources/js/Pages/Admin/Town/Create.jsx": [
     "/build/assets/Create-DXQPmqcy.js"
@@ -752,7 +752,7 @@
     "/build/assets/Edit-CMONVTm2.js"
   ],
   "resources/js/Pages/Admin/Town/Index.jsx": [
-    "/build/assets/Index-DnbxARmk.js"
+    "/build/assets/Index-DeRM9H5X.js"
   ],
   "resources/js/Pages/Admin/Unit/Create.jsx": [
     "/build/assets/Create-BAoGY2Ve.js"
@@ -761,13 +761,13 @@
     "/build/assets/Edit-C4-_y73Q.js"
   ],
   "resources/js/Pages/Admin/Unit/Index.jsx": [
-    "/build/assets/Index-BWBtEaSD.js"
+    "/build/assets/Index-KtXIqYkF.js"
   ],
   "resources/js/Pages/Admin/User/Categories.jsx": [
     "/build/assets/Categories-DT2Wq54L.js"
   ],
   "resources/js/Pages/Admin/User/Contacts.jsx": [
-    "/build/assets/Contacts-WzZClbqP.js",
+    "/build/assets/Contacts-Df4CJ3Lx.js",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Pages/Admin/User/Create.jsx": [
@@ -779,7 +779,7 @@
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Pages/Admin/User/Index.jsx": [
-    "/build/assets/Index-DI8rqGPr.js",
+    "/build/assets/Index-DUbqMmTh.js",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Pages/Admin/User/Partials/UserCompaniesData.jsx": [
@@ -816,7 +816,7 @@
     "/build/assets/Edit-DXPv0btH.js"
   ],
   "resources/js/Pages/Admin/Workplace/Index.jsx": [
-    "/build/assets/Index-DEUNlOJ-.js",
+    "/build/assets/Index-Bj_yesgp.js",
     "/build/assets/react-datepicker-qm8xLgv-.css"
   ],
   "resources/js/Pages/Auth/ConfirmPassword.jsx": [

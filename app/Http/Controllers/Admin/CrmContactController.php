@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use App\Services\CrmContactImportSampleGenerator;
 use App\Support\CompanyContext;
+use App\Support\DataStandards\SlugNormalizer;
 use App\Support\Filters\WildcardPattern;
 use App\Support\ImportContactRowNormalizer;
 use Inertia\Inertia;
@@ -1168,20 +1169,33 @@ class CrmContactController extends Controller{
                 $companyName = $row['company'] ?? '';
                 $taxId = $row['company_nif'] ?? '';
                 if ($companyName !== '' || $taxId !== '') {
+                    // 1) Prioridad NIF (tax_id) dentro de la empresa de sesión
                     if ($taxId !== '') {
                         $crmAccount = CrmAccount::where('company_id', $currentCompanyId)->where('tax_id', $taxId)->first();
                     }
+                    // 2) Si no hay match por NIF, reutilizar por normalized_name (SlugNormalizer)
+                    if ($crmAccount === null && $companyName !== '') {
+                        $normalizedName = SlugNormalizer::normalize($companyName);
+                        if ($normalizedName !== '') {
+                            $crmAccount = CrmAccount::where('company_id', $currentCompanyId)
+                                ->where('normalized_name', $normalizedName)
+                                ->first();
+                        }
+                    }
+                    // 3) Solo crear si no hubo match por NIF ni por nombre (sin mutar cuentas reutilizadas)
                     if ($crmAccount === null && $companyName !== '') {
                         $crmAccount = new CrmAccount();
                         $crmAccount->company_id = $currentCompanyId;
                         $crmAccount->name = $companyName;
-                        $crmAccount->normalized_name = Str::slug($companyName) ?: 'cuenta-' . $user->id;
+                        if (($crmAccount->normalized_name ?? '') === '') {
+                            $crmAccount->normalized_name = 'cuenta-'.$user->id;
+                        }
                         $crmAccount->tax_id = $taxId ?: null;
                         $crmAccount->billing_city = $row['company_city'] ?? null;
                         $crmAccount->billing_postal_code = $row['company_postal_code'] ?? null;
                         $crmAccount->billing_street = $row['company_street'] ?? null;
-                        $crmAccount->main_phone = $row['company_phone'] ?? null;
-                        $crmAccount->main_email = $row['company_email'] ?? null;
+                        $crmAccount->main_phone = (($row['company_phone'] ?? '') !== '') ? $row['company_phone'] : null;
+                        $crmAccount->main_email = (($row['company_email'] ?? '') !== '') ? $row['company_email'] : null;
                         $crmAccount->owner_id = $userId;
                         $crmAccount->created_by = $userId;
                         $crmAccount->updated_by = $userId;

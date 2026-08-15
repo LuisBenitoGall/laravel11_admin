@@ -3,12 +3,16 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build && vite build --ssr"
+        "build": "vite build && vite build --ssr",
+        "test:e2e": "playwright test",
+        "test:e2e:ui": "playwright test --ui",
+        "test:e2e:headed": "playwright test --headed"
     },
     "devDependencies": {
         "@anthropic-ai/claude-code": "^2.1.131",
         "@headlessui/react": "^2.0.0",
         "@inertiajs/react": "^1.0.0",
+        "@playwright/test": "^1.62.1",
         "@tailwindcss/forms": "^0.5.3",
         "@vitejs/plugin-react": "^4.7.0",
         "autoprefixer": "^10.4.12",

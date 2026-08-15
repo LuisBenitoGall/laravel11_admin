@@ -33,6 +33,12 @@ php artisan schedule:work
 
 # Run a single test method
 ./vendor/bin/phpunit --filter testMethodName
+
+# E2E Playwright (Laragon + Vite deben estar arriba; no arranca webServer)
+npm run test:e2e
+npm run test:e2e:ui
+npm run test:e2e:headed
+# Override: PLAYWRIGHT_BASE_URL=http://laravel11_admin.test
 ```
 
 ### Code Style

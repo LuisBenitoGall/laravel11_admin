@@ -36,8 +36,37 @@ const TableExporter = ({ fetchData, columns, filename = 'export' }) => {
         let v = col.export === 'html' ? cleanHtml(value) : value;
         if (v === null || v === undefined) return '';
         if (typeof col.exportValue === 'function') return col.exportValue(v);
+
+        const isDateExport =
+            col.export === 'date' ||
+            col.exportFormat === 'date' ||
+            col.key === 'birthday';
+
+        if (isDateExport) {
+            return formatExportDate(v);
+        }
+
         if (typeof v === 'object') return JSON.stringify(v);
         return v;
+    };
+
+    const formatExportDate = (value) => {
+        if (value === null || value === undefined || value === '') return '';
+        if (typeof value === 'string') {
+            // YYYY-MM-DD or ISO prefix
+            const m = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+            if (m) {
+                return `${m[3]}/${m[2]}/${m[1]}`;
+            }
+            return value;
+        }
+        if (value instanceof Date && !Number.isNaN(value.getTime())) {
+            const dd = String(value.getDate()).padStart(2, '0');
+            const mm = String(value.getMonth() + 1).padStart(2, '0');
+            const yyyy = value.getFullYear();
+            return `${dd}/${mm}/${yyyy}`;
+        }
+        return String(value);
     };
 
     // Exportar a Excel real (.xlsx) con SheetJS
