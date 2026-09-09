@@ -171,6 +171,8 @@
     "horarios": "Horarios",
     "imagen": "Imagen",
     "imagenes": "Imágenes",
+    "import_condiciones_texto": "The file must be Excel (.xls or .xlsx), max 2 MB and at most 1000 data rows (excluding the header). Each row needs at least a name, a person email (user_email) or a valid person phone number. Download the template, fill it in and upload it here.",
+    "import_sin_identidad": "Missing person name, email and phone.",
     "inactiva": "Inactiva",
     "inactivo": "Inactivo",
     "inicio": "Inicio",

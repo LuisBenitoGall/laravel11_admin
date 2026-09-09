@@ -1136,8 +1136,16 @@ class CrmContactController extends Controller{
             $row = ImportContactRowNormalizer::normalizeRow($assoc);
 
             $name = $row['name'] ?? '';
-            if ($name === '') {
-                $failedRows[] = ['row' => $excelRowNum, 'reason' => __('import_sin_nombre'), 'data' => $assoc];
+            $email = $row['user_email'] ?? '';
+            $phone1 = (string) ($row['user_phone1'] ?? '');
+            $phone2 = (string) ($row['user_phone2'] ?? '');
+            // Portero de identidad de persona: name OR user_email OR teléfono E.164/ES
+            // (company_* y user_nif solo no abren el portero)
+            $hasPersonIdentity = $name !== ''
+                || $email !== ''
+                || $this->rowHasAtLeastOneValidPhoneNumber($phone1, $phone2);
+            if (! $hasPersonIdentity) {
+                $failedRows[] = ['row' => $excelRowNum, 'reason' => __('import_sin_identidad'), 'data' => $assoc];
                 $totalFailed++;
                 continue;
             }
@@ -1146,7 +1154,6 @@ class CrmContactController extends Controller{
                 DB::beginTransaction();
 
                 $user = null;
-                $email = $row['user_email'] ?? '';
                 $nif = $row['user_nif'] ?? '';
                 if ($email !== '') {
                     $user = User::where('email', $email)->first();
@@ -1156,7 +1163,8 @@ class CrmContactController extends Controller{
                 }
                 if ($user === null) {
                     $user = new User();
-                    $user->name = $name;
+                    // name de fila vacío → literal Anónimo solo en create; no pisar User existente
+                    $user->name = $name !== '' ? $name : 'Anónimo';
                     $user->surname = $row['surname'] ?? '';
                     $user->email = $email ?: null;
                     $user->nif = $nif ?: null;
