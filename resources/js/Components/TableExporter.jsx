@@ -24,6 +24,12 @@ const TableExporter = ({ fetchData, columns, filename = 'export' }) => {
             return data.data;
         }
 
+        // Contrato filteredData { rows: [...] } o { rows: { data: [...] } }
+        if (data && data.rows != null) {
+            if (Array.isArray(data.rows)) return data.rows;
+            if (Array.isArray(data.rows?.data)) return data.rows.data;
+        }
+
         if (data && typeof data === 'object') {
             const arrKey = Object.keys(data).find(k => Array.isArray(data[k]));
             if (arrKey) return data[arrKey];

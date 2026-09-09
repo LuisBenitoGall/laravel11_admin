@@ -14,7 +14,7 @@ export function useTableManagement({
   indexRoute = null,
   destroyRoute,
   filteredDataRoute,
-  filteredDataKey = null,          // << NUEVO: clave del JSON con las filas (p.ej. 'relations', 'companies', 'users')
+  filteredDataKey = null,          // compat legacy: clave JSON de filas (p.ej. 'accounts')
   labelName,
   defaultSortField = 'name',
   queryParams: initialQueryParams,
@@ -29,10 +29,18 @@ export function useTableManagement({
     const __ = useTranslation();
     const props = usePage()?.props || {};
     const { showConfirm } = useSweetAlert();
-    const permissions = props.permissions || {};
+
+    // Preferir table.* cuando el Index ya manda el contenedor; fallback legacy en raíz
+    const pageTable = (props.table && typeof props.table === 'object') ? props.table : null;
+    const permissions = (pageTable?.permissions && typeof pageTable.permissions === 'object')
+        ? pageTable.permissions
+        : (props.permissions || {});
+    const columnPrefsSource = (pageTable?.columnPreferences && typeof pageTable.columnPreferences === 'object')
+        ? pageTable.columnPreferences
+        : (props.columnPreferences || {});
 
     // Preferencias de columnas
-    const savedPrefs = props.columnPreferences?.[table];
+    const savedPrefs = columnPrefsSource?.[table];
     const initialVisible = Array.isArray(savedPrefs) && savedPrefs.length
         ? savedPrefs
         : allColumnKeys.filter(k => !defaultHiddenKeys.includes(k));
@@ -193,33 +201,44 @@ export function useTableManagement({
     //     // 👈 que dependa de queryParams, no de perPage para evitar re-llamadas constantes
     // }, [indexRoute, manualFiltering, queryParams, perPage]);
 
-  // Conversión kebab-case a snake_case si hace falta (fallback por si no se pasa filteredDataKey)
-  const jsonEntityName = entityName.includes('-') ? entityName.replace(/-/g, '_') : entityName;
+  // Extrae filas de filteredData: contrato rows primero; luego compat legacy
+  const unwrapCollection = (maybe) => {
+    if (Array.isArray(maybe)) return maybe;
+    if (maybe && Array.isArray(maybe.data)) return maybe.data;
+    return null;
+  };
 
   const extractRows = (payload) => {
-    // 1) Si se indicó filteredDataKey explícito, úsalo
-    if (filteredDataKey && payload && Object.prototype.hasOwnProperty.call(payload, filteredDataKey)) {
-      const maybe = payload[filteredDataKey];
-      return Array.isArray(maybe) ? maybe : Array.isArray(maybe?.data) ? maybe.data : [];
-    }
-
-    // 2) Intento por entityName/jsonEntityName
-    if (payload && Object.prototype.hasOwnProperty.call(payload, jsonEntityName)) {
-      const maybe = payload[jsonEntityName];
-      return Array.isArray(maybe) ? maybe : Array.isArray(maybe?.data) ? maybe.data : [];
-    }
-
-    // 3) Autodetección: primer array en el objeto
-    if (payload && typeof payload === 'object') {
-      const firstArray = Object.values(payload).find(v => Array.isArray(v));
-      if (Array.isArray(firstArray)) return firstArray;
-
-      // o paginator { data: [] }
-      if (Array.isArray(payload.data)) return payload.data;
-    }
-
-    // 4) Si el payload ya es un array
     if (Array.isArray(payload)) return payload;
+    if (!payload || typeof payload !== 'object') return [];
+
+    // 1) Contrato estándar table.* / filteredData → { rows }
+    if (Object.prototype.hasOwnProperty.call(payload, 'rows')) {
+      const fromRows = unwrapCollection(payload.rows);
+      if (fromRows) return fromRows;
+    }
+
+    // 2) Compat: filteredDataKey explícito (Indexes legacy)
+    if (filteredDataKey && Object.prototype.hasOwnProperty.call(payload, filteredDataKey)) {
+      const fromKey = unwrapCollection(payload[filteredDataKey]);
+      if (fromKey) return fromKey;
+    }
+
+    // 3) Compat: entityName / kebab→snake
+    if (typeof entityName === 'string' && entityName.length > 0) {
+      const jsonEntityName = entityName.includes('-') ? entityName.replace(/-/g, '_') : entityName;
+      for (const key of [jsonEntityName, entityName]) {
+        if (Object.prototype.hasOwnProperty.call(payload, key)) {
+          const fromEntity = unwrapCollection(payload[key]);
+          if (fromEntity) return fromEntity;
+        }
+      }
+    }
+
+    // 4) Autodetección legacy
+    const firstArray = Object.values(payload).find(v => Array.isArray(v));
+    if (Array.isArray(firstArray)) return firstArray;
+    if (Array.isArray(payload.data)) return payload.data;
 
     return [];
   };
