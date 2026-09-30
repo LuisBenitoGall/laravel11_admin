@@ -4,6 +4,8 @@ Fuente de verdad del contrato: [`spec.md`](./spec.md) en este mismo directorio.
 
 Este documento resume **cómo** adoptar el patrón en un change dedicado. No migra listados existentes; cada Index se migra en su propio change.
 
+**Alcance:** no se exige rollout masivo (Users, Companies, Products, Orders, etc.) ni eliminar el soporte legacy global de una vez. Referencia ya adoptada: listado CrmContact (`table.*` / `{ rows }`).
+
 ## Shape backend — `index()`
 
 ```php

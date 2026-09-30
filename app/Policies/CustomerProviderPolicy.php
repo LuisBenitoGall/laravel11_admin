@@ -4,8 +4,10 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\CustomerProvider;
+use App\Support\CompanyContext;
 
-class CustomerProviderPolicy{
+class CustomerProviderPolicy
+{
     // Roles/permisos Spatie que realmente existen en tu app
     // customers.*  y  providers.*  (index, create, show, update, destroy)
     // Nota: "edit" suele mapear a "update" a nivel de autorización.
@@ -41,6 +43,7 @@ class CustomerProviderPolicy{
         if ($side === 'customer') {
             return $user->can('providers.show');
         }
+
         return false;
     }
 
@@ -54,11 +57,17 @@ class CustomerProviderPolicy{
         // y los IDs que vienen en la request (si los hay).
         $currentCompanyId = $this->currentCompanyId();
         $requestedCustomerId = (int) request()->input('customer_id');
+        $requestedUserCustomerId = (int) request()->input('user_customer_id');
         $requestedProviderId = (int) request()->input('provider_id');
 
         if ($currentCompanyId && $requestedProviderId && $currentCompanyId === $requestedProviderId) {
-            // Actúa como PROVEEDOR creando un cliente
-            return $this->userBelongsToCompany($user, $currentCompanyId) && $user->can('customers.create');
+            // Actúa como PROVEEDOR creando un cliente (empresa o particular)
+            $ok = $this->userBelongsToCompany($user, $currentCompanyId);
+            if ($requestedUserCustomerId > 0) {
+                return $ok && ($user->can('customers.create') || $user->can('users.create'));
+            }
+
+            return $ok && $user->can('customers.create');
         }
 
         if ($currentCompanyId && $requestedCustomerId && $currentCompanyId === $requestedCustomerId) {
@@ -67,7 +76,7 @@ class CustomerProviderPolicy{
         }
 
         // Si no podemos deducir lado, exige al menos uno de los permisos
-        return $user->can('customers.create') || $user->can('providers.create');
+        return $user->can('customers.create') || $user->can('providers.create') || $user->can('users.create');
     }
 
     /* ======================
@@ -83,6 +92,7 @@ class CustomerProviderPolicy{
         if ($side === 'customer') {
             return $user->can('providers.update');
         }
+
         return false;
     }
 
@@ -99,6 +109,7 @@ class CustomerProviderPolicy{
         if ($side === 'customer') {
             return $user->can('providers.destroy');
         }
+
         return false;
     }
 
@@ -112,6 +123,7 @@ class CustomerProviderPolicy{
         if ($side === 'customer') {
             return $user->can('providers.update');
         }
+
         return false;
     }
 
@@ -130,15 +142,18 @@ class CustomerProviderPolicy{
      * - 'provider' si pertenece a la empresa proveedor del registro
      * - 'customer' si pertenece a la empresa cliente del registro
      * - null si no pertenece a ninguna
+     *
+     * Filas con user_customer_id (cliente particular): solo lado provider.
      */
     protected function whichSide(User $user, CustomerProvider $cp): ?string
     {
-        if ($this->userBelongsToCompany($user, $cp->provider_id)) {
+        if ($this->userBelongsToCompany($user, (int) $cp->provider_id)) {
             return 'provider';
         }
-        if ($this->userBelongsToCompany($user, $cp->customer_id)) {
+        if ($cp->customer_id && $this->userBelongsToCompany($user, (int) $cp->customer_id)) {
             return 'customer';
         }
+
         return null;
     }
 
@@ -148,18 +163,24 @@ class CustomerProviderPolicy{
      */
     protected function userBelongsToCompany(User $user, int $companyId): bool
     {
-        if (!method_exists($user, 'companies')) {
+        if ($companyId <= 0 || ! method_exists($user, 'companies')) {
             return false;
         }
+
         return $user->companies()->where('companies.id', $companyId)->exists();
     }
 
     /**
-     * Obtiene la empresa en sesión, si la usas así en tu app.
+     * Obtiene la empresa en sesión (currentCompany / CompanyContext).
      */
     protected function currentCompanyId(): ?int
     {
-        $id = session('company_id');
+        $fromCtx = app(CompanyContext::class)->id();
+        if ($fromCtx) {
+            return (int) $fromCtx;
+        }
+        $id = session('currentCompany') ?: session('company_id');
+
         return $id ? (int) $id : null;
     }
 }

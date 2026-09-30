@@ -204,6 +204,9 @@ Reglas:
 - La exportación se realiza llamando a filteredDataRoute con los mismos filtros activos (cabecera + adhoc).
 - El endpoint de exportación debe devolver siempre:
     { "rows": [ ... ] }
+    (también admite Resource Collection `{ "rows": { "data": [ ... ] } }`).
+- El cliente (`useTableManagement` / `fetchData` de exportación) MUST obtener filas prioritariamente desde `rows`. MAY conservar fallbacks legacy (`filteredDataKey`, nombre de entidad, autodetection) solo mientras existan Indexes no migrados. MUST NOT depender de una clave de dominio distinta de `rows` en vistas que ya usan el contrato `table.*`.
+- Guía de adopción y checklist DoD por tabla: [`migration_guide.md`](./migration_guide.md). La migración de listados es gradual (un change por Index); este patrón MUST NOT exigir migrar todos los listados de golpe.
 
 
 ## Permisos y acciones

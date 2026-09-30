@@ -6,7 +6,7 @@ Los escenarios siguientes se cubren con tests en `tests/Feature/WpNewsletterForm
 
 ### Requirement: Recepción y validación del formulario
 
-El endpoint POST `/api/wp/newsletter-form` acepta los campos del formulario WordPress y valida que el email esté presente y sea válido.
+El endpoint POST `/api/wp/newsletter-form` MUST aceptar los campos del formulario WordPress y MUST validar que el email esté presente y sea válido.
 
 #### Scenario: Petición sin email
 
@@ -29,7 +29,7 @@ El endpoint POST `/api/wp/newsletter-form` acepta los campos del formulario Word
 
 ### Requirement: Usuario existente o nuevo
 
-El sistema debe disponer de un usuario asociado al email recibido; si no existe, se crea.
+El sistema MUST disponer de un usuario asociado al email recibido; si no existe, MUST crearlo.
 
 #### Scenario: Email no existe en users
 
@@ -47,7 +47,7 @@ El sistema debe disponer de un usuario asociado al email recibido; si no existe,
 
 ### Requirement: Contacto CRM
 
-Para el usuario resuelto (existente o nuevo), debe existir un contacto CRM para la empresa del controlador; si no existe, se crea.
+Para el usuario resuelto (existente o nuevo), MUST existir un contacto CRM para la empresa del controlador; si no existe, MUST crearlo.
 
 #### Scenario: No existe contacto CRM para el usuario en la empresa
 
@@ -65,7 +65,7 @@ Para el usuario resuelto (existente o nuevo), debe existir un contacto CRM para 
 
 ### Requirement: Mensaje de contacto
 
-Se debe guardar un mensaje asociado al contacto con los datos de producto y servicio del formulario.
+El sistema MUST guardar un mensaje asociado al contacto con los datos de producto y servicio del formulario.
 
 #### Scenario: Guardar mensaje con producto y servicio
 
@@ -80,7 +80,7 @@ Se debe guardar un mensaje asociado al contacto con los datos de producto y serv
 
 ### Requirement: Lista de marketing
 
-El usuario debe quedar incluido en la lista de marketing con slug definido en el método (`newsletter-envio`), comprobando antes si ya está.
+El usuario MUST quedar incluido en la lista de marketing con slug definido en el método (`newsletter-envio`), comprobando antes si ya está.
 
 #### Scenario: Lista existe y usuario no está en la lista
 
@@ -104,7 +104,7 @@ El usuario debe quedar incluido en la lista de marketing con slug definido en el
 
 ### Requirement: Notificación al administrador en error
 
-Si en cualquier paso del flujo (usuario, contacto, mensaje, lista) se produce una excepción no controlada, el administrador debe ser notificado y el cliente debe recibir una respuesta de error segura.
+Si en cualquier paso del flujo (usuario, contacto, mensaje, lista) se produce una excepción no controlada, el administrador MUST ser notificado y el cliente MUST recibir una respuesta de error segura.
 
 #### Scenario: Excepción durante el flujo
 

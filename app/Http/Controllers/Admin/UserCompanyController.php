@@ -42,8 +42,10 @@ class UserCompanyController extends Controller{
                     ->update(['crm_account_id' => null]);
             }
 
+            // Volver al contexto de origen (p. ej. users.edit, pestaña empresa, cuenta CRM).
+            // No forzar users.edit: rompería listados embebidos en otras pantallas.
             if ($request->header('X-Inertia')) {
-                return redirect()->route('users.edit', $userId)
+                return redirect()->back()
                     ->with('msg', __('empresa_desvinculada_ok'));
             }
             return response()->json(['message' => 'OK']);

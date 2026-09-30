@@ -61,6 +61,7 @@ use App\Http\Controllers\Admin\CostCenterController;
 use App\Http\Controllers\Admin\CountryController;
 use App\Http\Controllers\Admin\CrmAccountController;
 use App\Http\Controllers\Admin\CrmContactController;
+use App\Http\Controllers\Admin\CustodyIntakeIdentityController;
 use App\Http\Controllers\Admin\CrmOpportunityController;
 use App\Http\Controllers\Admin\CurrencyController;
 // use App\Http\Controllers\Admin\CustomerProductController;
@@ -909,6 +910,16 @@ Route::middleware(['web', 'auth', 'company', 'current_company'])->prefix('admin'
     //Shipments:
     Route::middleware('module_setted:logistics')->group(function (){
         Route::get('/shipments', [ShipmentController::class, 'index'])->name('shipments.index')->middleware('permission:shipments.index');
+
+        // Custody intake identity (oleada 0 — sin albarán)
+        Route::get('/logistics/intake-identity', [CustodyIntakeIdentityController::class, 'index'])
+            ->name('logistics.intake-identity');
+        Route::post('/logistics/intake-identity/search', [CustodyIntakeIdentityController::class, 'search'])
+            ->name('logistics.intake-identity.search');
+        Route::post('/logistics/intake-identity/ensure', [CustodyIntakeIdentityController::class, 'ensure'])
+            ->name('logistics.intake-identity.ensure');
+        Route::post('/logistics/intake-identity/store', [CustodyIntakeIdentityController::class, 'store'])
+            ->name('logistics.intake-identity.store');
     });
 
     //Staff Picks:
