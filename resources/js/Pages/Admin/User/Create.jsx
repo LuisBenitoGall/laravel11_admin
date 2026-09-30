@@ -36,7 +36,7 @@ export default function Create({ auth, session, title, subtitle, roles = {}, ava
         sex: '',
         status: true,
         link_company: true,
-        send_password: false
+        send_pwd: false
     });
 
     const handleChange = (e) => {
@@ -190,13 +190,13 @@ export default function Create({ auth, session, title, subtitle, roles = {}, ava
                         {/* Envío password a usuario */}
                         <div className="col-md-3 text-center">
                             <div className="position-relative">
-                                <label htmlFor="send_password" className="form-label">{ __('usuario_envio_password') }</label>
+                                <label htmlFor="send_pwd" className="form-label">{ __('usuario_envio_password') }</label>
                                 <div className='pt-1 position-relative'>
                                     <Checkbox 
                                         className="xl"
-                                        name="send_password"
-                                        checked={data.send_password}
-                                        onChange={(e) => setData('send_password', e.target.checked)}
+                                        name="send_pwd"
+                                        checked={data.send_pwd}
+                                        onChange={(e) => setData('send_pwd', e.target.checked)}
                                     />
                                 </div>
                             </div>

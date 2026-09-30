@@ -1,6 +1,7 @@
 import { router, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
 import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { addYears } from 'date-fns';
 import * as locales from 'date-fns/locale';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';

@@ -3,6 +3,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { OverlayTrigger, Table, Tooltip } from 'react-bootstrap';
 import axios from 'axios';
+import 'react-datepicker/dist/react-datepicker.css';
 
 //Components:
 import BrevoSyncStatus from '@/Components/BrevoSyncStatus';
@@ -76,8 +77,20 @@ export default function Index({
     const columns = [
         { key: 'name', label: __('lista'), sort: true, filter: 'text', type: 'link', link: 'marketing-lists.edit', class_th: '', class_td: '', placeholder: __('lista_filtrar') },
         { key: 'members_count', label: __('miembros'), sort: true, filter: '', class_th: 'text-center', class_td: 'text-end' },
-        { key: 'created_by', label: __('autor'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_filtrar') }
-    ];    
+        { key: 'created_by', label: __('autor'), sort: true, filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_filtrar') },
+        {
+            key: 'created_at',
+            label: __('fecha_creacion'),
+            sort: true,
+            filter: 'date',
+            class_th: 'text-center',
+            class_td: 'text-end',
+            placeholder: __('fecha_creacion'),
+            dateKeys: ['date_from', 'date_to'],
+            // Passthrough del string ya localizado del Resource (evita re-formato ISO en renderCellContent)
+            render: ({ value }) => (value == null || value === '' ? '' : String(value)),
+        },
+    ];
 
     //Métodos de la tabla:
     const {
@@ -165,6 +178,7 @@ export default function Index({
                             queryParams={queryParams}
                             visibleColumns={visibleColumns}
                             SearchFieldChanged={SearchFieldChanged}
+                            indexRoute="marketing-lists.index"
                             PrependColumns={1}
                         />
 

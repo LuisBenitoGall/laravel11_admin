@@ -256,6 +256,7 @@ class CrmContactController extends Controller{
             'users.surname',
             'users.email',
             'users.status',
+            'users.created_at',
 
             // De momento sin lógica de empresa distinta / cuenta CRM:
             DB::raw('NULL as edit_company_id'),
@@ -273,6 +274,7 @@ class CrmContactController extends Controller{
             'users.surname',
             'users.email',
             'users.status',
+            'users.created_at',
         );
 
         /**
@@ -425,7 +427,7 @@ class CrmContactController extends Controller{
         if (!in_array($sortDirection, ['ASC', 'DESC'], true)) {
             $sortDirection = 'ASC';
         }
-        $allowedSortFields = ['full_name', 'name', 'surname', 'email'];
+        $allowedSortFields = ['full_name', 'name', 'surname', 'email', 'created_at'];
 
         if (!in_array($sortField, $allowedSortFields, true)) {
             $sortField = 'full_name';
@@ -437,6 +439,10 @@ class CrmContactController extends Controller{
             return $query->orderByRaw(
                 "CONCAT(TRIM(COALESCE(users.name, '')), ' ', TRIM(COALESCE(users.surname, ''))) {$sortDirection}"
             );
+        }
+
+        if ($sortField === 'created_at') {
+            return $query->orderBy('users.created_at', $sortDirection);
         }
 
         return $query->orderBy("users.$sortField", $sortDirection);

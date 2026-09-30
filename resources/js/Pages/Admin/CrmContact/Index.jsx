@@ -211,7 +211,6 @@ export default function Index({
     //Columnas:
     const columns = [
         { key: 'full_name',       label: __('nombre'),      sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('nombre_filtrar') },
-        // { key: 'created_at', label: __('fecha_alta'),  sort: true,  filter: 'date', class_th: 'text-center', class_td: 'text-end', placeholder: __('fecha_alta'), dateKeys: ['date_from', 'date_to'] },
         { key: 'email',        label: __('email'),          sort: true,  filter: 'text', class_th: '', class_td: '', placeholder: __('email_filtrar') },
         { key: 'other_emails', label: __('otros_emails'),   sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('otros_emails_filtrar'), exportValue: (v) => Array.isArray(v) ? v.filter(Boolean).join('; ') : (v ?? '') },
         { key: 'phones',       label: __('telefonos'),      sort: false, filter: 'text', class_th: '', class_td: '', placeholder: __('telefonos_filtrar'), exportValue: (v) => Array.isArray(v) ? v.map(p => p.e164).filter(Boolean).join('; ') : (v ?? '') },
@@ -230,6 +229,18 @@ export default function Index({
                 placeholder: '',
             }]
             : []),
+        {
+            key: 'created_at',
+            label: __('fecha_alta'),
+            sort: true,
+            filter: 'date',
+            class_th: 'text-center',
+            class_td: 'text-end',
+            placeholder: __('fecha_alta'),
+            dateKeys: ['date_from', 'date_to'],
+            // Passthrough del string ya localizado del Resource (evita re-formato ISO en renderCellContent)
+            render: ({ value }) => (value == null || value === '' ? '' : String(value)),
+        },
         { key: 'avatar',     label: __('imagen'),      sort: false, filter: '',     type: 'image', icon: 'user-tie', class_th: 'text-center', class_td: 'text-center', placeholder: '' }
     ];
 
@@ -426,6 +437,8 @@ export default function Index({
                             queryParams={queryParamsForNav}
                             visibleColumns={visibleColumns}
                             SearchFieldChanged={SearchFieldChanged}
+                            indexRoute={indexRouteName}
+                            indexParams={indexRouteParams}
                             PrependColumns={1}
                         />
 
