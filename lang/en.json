@@ -337,6 +337,7 @@
     "usuario_password_email_aviso": "We recommend changing your password after the first sign-in. If you did not expect this email, ignore it or contact an administrator.",
     "usuario_password_email_label_email": "Email",
     "usuario_password_email_label_password": "Password",
+    "usuario_sin_acceso_admin": "You do not have access to the admin panel. Contact an administrator if you believe this is an error.",
     "usuario_sin_empresa": "No estás vinculado a ninguna empresa.",
     "usuarios": "Users",
     "usuarios_listados": "Listados de usuarios",

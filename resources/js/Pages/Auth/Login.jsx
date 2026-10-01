@@ -19,7 +19,7 @@ export default function Login({
     recaptchaSiteKey, 
     recaptchaEnabled 
 }) {
-    const { APP_NAME, APP_FULL_NAME } = usePage().props;
+    const { APP_NAME, APP_FULL_NAME, alert: flashAlert } = usePage().props;
     const __ = useTranslation();
     
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -73,8 +73,14 @@ export default function Login({
             <Head title="Login" />
 
             {status && (
-                <div className="mb-4 font-medium text-sm text-green-600">
+                <div className="mb-4 font-medium text-sm text-success">
                     {status}
+                </div>
+            )}
+
+            {flashAlert && (
+                <div className="mb-4 font-medium text-sm text-danger">
+                    {flashAlert}
                 </div>
             )}
 

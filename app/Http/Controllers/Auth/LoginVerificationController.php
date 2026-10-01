@@ -77,7 +77,15 @@ class LoginVerificationController extends Controller
         ]);
 
         // Loguear al usuario
-        Auth::loginUsingId($pending['user_id'], $pending['remember'] ?? false);
+        $user = User::find($pending['user_id']);
+        if (! $user || ! $user->isAdmin) {
+            $request->session()->forget('pending_login');
+            return redirect()
+                ->route('login')
+                ->with('alert', __('usuario_sin_acceso_admin'));
+        }
+
+        Auth::loginUsingId($user->id, $pending['remember'] ?? false);
 
         // Regenerar sesión para evitar fixation
         $request->session()->regenerate();

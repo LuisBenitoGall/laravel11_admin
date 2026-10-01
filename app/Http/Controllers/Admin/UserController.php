@@ -638,8 +638,12 @@ class UserController extends Controller{
 
         $companyId = $request->company_id? $request->company_id:session('currentCompany');
 
+        // isAdmin: Super Admin, rol con permisos, o alta con vínculo a empresa + envío de password (acceso al panel).
         $isAdmin = false;
-        if($role && $role->name == config('constants.SUPER_ADMIN_') || ($permissions && $permissions->count())){
+        if (($role && $role->name == config('constants.SUPER_ADMIN_')) || ($permissions && $permissions->count())) {
+            $isAdmin = true;
+        }
+        if ($request->boolean('link_company') && $request->boolean('send_pwd')) {
             $isAdmin = true;
         }
 

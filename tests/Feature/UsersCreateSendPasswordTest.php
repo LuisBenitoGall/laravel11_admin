@@ -35,7 +35,7 @@ class UsersCreateSendPasswordTest extends TestCase
 
         $this->role = Role::firstOrCreate(['name' => 'Staff Test', 'guard_name' => 'web']);
 
-        $this->actor = User::factory()->create();
+        $this->actor = User::factory()->create(['isAdmin' => true]);
         $this->actor->assignRole('Super Admin');
 
         $this->company = Company::factory()->create([
@@ -93,6 +93,8 @@ class UsersCreateSendPasswordTest extends TestCase
                     && str_contains($html, route('login'));
             }
         );
+
+        $this->assertTrue((bool) $created->isAdmin, 'Alta con vínculo a empresa + envío de password debe marcar isAdmin');
     }
 
     /** @test */

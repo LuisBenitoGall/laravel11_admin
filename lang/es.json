@@ -1290,6 +1290,7 @@
     "usuario_nuevo": "Nuevo usuario",
     "usuario_pwd_actualizado_msg": "El password se ha actualizado correctamente.",
     "usuario_selec_categoria": "Selecciona categoría para obtener los usuarios vinculados.",
+    "usuario_sin_acceso_admin": "No tienes acceso al panel de administración. Contacta con un administrador si crees que es un error.",
     "usuario_sin_empresa": "No estás vinculado a ninguna empresa.",
     "usuarios": "Usuarios",
     "usuarios_autorizados": "Usuarios autorizados",

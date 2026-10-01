@@ -61,6 +61,12 @@ class AuthenticatedSessionController extends Controller{
             ]);
         }
 
+        if (! $user->isAdmin) {
+            throw ValidationException::withMessages([
+                'email' => [__('usuario_sin_acceso_admin')],
+            ]);
+        }
+
         //Verificación email:
         if($user && !$user->email_verified_at){
             $user->email_verified_at = Carbon::now();

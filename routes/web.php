@@ -214,7 +214,7 @@ Route::middleware('guest')->group(function () {
 });
 
 //ADMIN:
-Route::middleware(['web', 'auth', 'company', 'current_company'])->prefix('admin')->group(function(){
+Route::middleware(['web', 'auth', 'admin_user', 'company', 'current_company'])->prefix('admin')->group(function(){
     //Accounting Account Types:
     Route::middleware('module_setted:accounting')->group(function (){
         Route::get('/accounting-account-types', [AccountingAccountTypeController::class, 'index'])->name('accounting-account-types.index')->middleware('permission:accounting-account-types.index');
@@ -1061,7 +1061,7 @@ Route::middleware(['web', 'auth', 'company', 'current_company'])->prefix('admin'
     Route::get('/test1/', [WorkplaceController::class, 'test'])->name('test1.index');
 });
 
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth', 'verified', 'admin_user'])
 ->prefix('admin')
 ->group(function () {
     // ✅ zona de confort (sin middleware company)
