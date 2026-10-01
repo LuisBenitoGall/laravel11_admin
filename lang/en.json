@@ -328,6 +328,7 @@
     "usuario": "User",
     "usuario_no_encontrado": "No se ha hallado a este usuario",
     "usuario_nuevo": "Nuevo usuario",
+    "usuario_password_email_error": "The user was created, but the password email could not be sent. Check mail configuration.",
     "usuario_sin_empresa": "No estás vinculado a ninguna empresa.",
     "usuarios": "Users",
     "usuarios_listados": "Listados de usuarios",

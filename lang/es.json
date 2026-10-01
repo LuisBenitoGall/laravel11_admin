@@ -1270,6 +1270,7 @@
     "usuario_agregar_autocomplete": "Agrega un usuario existente o crea uno nuevo",
     "usuario_buscar": "Buscar usuario",
     "usuario_creado_msg": "El usuario se ha creado correctamente.",
+    "usuario_password_email_error": "El usuario se creó, pero no se pudo enviar el correo con la contraseña. Revisa la configuración de correo.",
     "usuario_editar": "Editar usuario",
     "usuario_eliminado": "El usuario ha sido eliminado correctamente.",
     "usuario_eliminar": "Eliminar usuario",

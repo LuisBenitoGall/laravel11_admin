@@ -113,4 +113,22 @@ class UsersCreateSendPasswordTest extends TestCase
         $response->assertRedirect();
         $this->assertDatabaseHas('users', ['email' => 'sin.flag@example.com']);
     }
+
+    /** @test */
+    public function send_pwd_mail_failure_still_creates_user_without_500(): void
+    {
+        Mail::shouldReceive('send')
+            ->once()
+            ->andThrow(new \RuntimeException('SMTP connection refused'));
+
+        $response = $this->postStore([
+            'send_pwd' => true,
+            'email' => 'mail.fail@example.com',
+        ]);
+
+        $response->assertRedirect(route('users.edit', User::where('email', 'mail.fail@example.com')->first()));
+        $response->assertSessionHas('msg');
+        $response->assertSessionHas('alert');
+        $this->assertDatabaseHas('users', ['email' => 'mail.fail@example.com']);
+    }
 }

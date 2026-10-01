@@ -686,20 +686,35 @@ class UserController extends Controller{
             Phone::addOrUpdateFor($user, $phones, ['default_region' => 'ES']);
         }
 
-        //Envío de password:
-        if($request->input('send_pwd') && $request->side != 'crm-accounts'){
-            $emailFrom = config('constants.EMAIL_');
-            $emailTo = $user->email;
-            $data['usuario'] = $user->name.' '.$user->surname;
-            $data['password'] = $random_password;
-            $company = Company::find(session('currentCompany'));
-            $data['company'] = $company;
+        // Envío de password: no debe tumbar el alta si falla SMTP / from / empresa.
+        $passwordMailFailed = false;
+        if ($request->boolean('send_pwd') && $request->side != 'crm-accounts' && filled($user->email)) {
+            try {
+                $emailFrom = config('constants.EMAIL_') ?: config('mail.from.address');
+                $company = Company::find(session('currentCompany'));
+                $fromName = $company?->name
+                    ?: (config('mail.from.name') ?: config('app.name'));
+                $emailTo = $user->email;
 
-            Mail::send('emails.send-user-password', $data, function($message) use($emailFrom, $company, $emailTo){
-                $message->from($emailFrom, $company->name);
-                $message->to($emailTo);
-                $message->subject(__('contrasena_envio'));
-            });
+                $data = [
+                    'usuario' => trim($user->name.' '.$user->surname),
+                    'password' => $random_password,
+                    'company' => $company,
+                ];
+
+                Mail::send('emails.send-user-password', $data, function ($message) use ($emailFrom, $fromName, $emailTo) {
+                    $message->from($emailFrom, $fromName);
+                    $message->to($emailTo);
+                    $message->subject(__('contrasena_envio'));
+                });
+            } catch (\Throwable $e) {
+                $passwordMailFailed = true;
+                Log::error('users.store: fallo envío password', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'message' => $e->getMessage(),
+                ]);
+            }
         }
 
         //Registro de CRM Contact:
@@ -726,6 +741,11 @@ class UserController extends Controller{
             }
         }
 
+        $flash = ['msg' => __('usuario_creado_msg')];
+        if ($passwordMailFailed) {
+            $flash['alert'] = __('usuario_password_email_error');
+        }
+
         // Redirección explícita indicada por el cliente (p. ej. desde ModalUserCreate en Company/Edit → CrmAccount)
         if ($request->filled('redirect_to')) {
             $params = $request->input('redirect_params');
@@ -733,7 +753,7 @@ class UserController extends Controller{
                 $params = json_decode($params, true) ?: [];
             }
             $params = is_array($params) ? array_values(array_filter($params, fn ($v) => is_scalar($v))) : [];
-            return redirect()->route($request->redirect_to, $params)->with('msg', __('usuario_creado_msg'));
+            return redirect()->route($request->redirect_to, $params)->with($flash);
         }
 
         // if ($request->side == 'customers') {
@@ -744,10 +764,10 @@ class UserController extends Controller{
         // }
         if ($request->side == 'crm-accounts') {
             //return redirect()->route('users.contacts')->with('msg', __('usuario_creado_msg'));
-            return redirect()->route('crm-contacts.index')->with('msg', __('usuario_creado_msg'));
+            return redirect()->route('crm-contacts.index')->with($flash);
         }
 
-        return redirect()->route('users.edit', $user)->with('msg', __('usuario_creado_msg'));
+        return redirect()->route('users.edit', $user)->with($flash);
     }
 
     /**
