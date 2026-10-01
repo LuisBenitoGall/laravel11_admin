@@ -4,18 +4,16 @@ namespace Tests\Feature;
 
 use App\Models\Company;
 use App\Models\User;
+use App\Notifications\SendUserPasswordNotification;
 use App\Support\CompanyContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
- * Alinea Create.jsx → send_pwd con UserController::store.
- *
- * Nota: Mail::fake() no registra Mail::send('vista', ...); el controller usa
- * vista `emails.send-user-password`, así que se mockea Mail::send.
+ * Create.jsx → send_pwd; envío vía Notification (misma config mail que reset password).
  */
 class UsersCreateSendPasswordTest extends TestCase
 {
@@ -73,38 +71,46 @@ class UsersCreateSendPasswordTest extends TestCase
     /** @test */
     public function send_pwd_true_sends_password_email_on_create(): void
     {
-        Mail::shouldReceive('send')
-            ->once()
-            ->withArgs(function ($view, $data, $callback) {
-                return $view === 'emails.send-user-password'
-                    && is_array($data)
-                    && ! empty($data['password'])
-                    && is_string($data['usuario'] ?? null)
-                    && str_contains($data['usuario'], 'Nuevo')
-                    && is_callable($callback);
-            });
+        Notification::fake();
 
         $response = $this->postStore(['send_pwd' => true]);
 
         $response->assertRedirect();
         $this->assertDatabaseHas('users', ['email' => 'nuevo.usuario@example.com']);
+
+        $created = User::where('email', 'nuevo.usuario@example.com')->first();
+        $this->assertNotNull($created);
+
+        Notification::assertSentTo(
+            $created,
+            SendUserPasswordNotification::class,
+            function (SendUserPasswordNotification $notification) use ($created) {
+                $mail = $notification->toMail($created);
+                $html = $mail->render();
+
+                return $mail->subject === __('contrasena_envio')
+                    && str_contains($html, 'nuevo.usuario@example.com')
+                    && str_contains($html, route('login'));
+            }
+        );
     }
 
     /** @test */
     public function send_pwd_false_does_not_send_password_email(): void
     {
-        Mail::shouldReceive('send')->never();
+        Notification::fake();
 
         $response = $this->postStore(['send_pwd' => false]);
 
         $response->assertRedirect();
         $this->assertDatabaseHas('users', ['email' => 'nuevo.usuario@example.com']);
+        Notification::assertNothingSent();
     }
 
     /** @test */
     public function send_pwd_absent_does_not_send_password_email(): void
     {
-        Mail::shouldReceive('send')->never();
+        Notification::fake();
 
         $response = $this->postStore([
             'email' => 'sin.flag@example.com',
@@ -112,23 +118,33 @@ class UsersCreateSendPasswordTest extends TestCase
 
         $response->assertRedirect();
         $this->assertDatabaseHas('users', ['email' => 'sin.flag@example.com']);
+        Notification::assertNothingSent();
     }
 
     /** @test */
     public function send_pwd_mail_failure_still_creates_user_without_500(): void
     {
-        Mail::shouldReceive('send')
-            ->once()
-            ->andThrow(new \RuntimeException('SMTP connection refused'));
+        // Forzar fallo de transporte (mismo tipo de error que un SMTP mal configurado)
+        config([
+            'mail.default' => 'smtp',
+            'mail.mailers.smtp.transport' => 'smtp',
+            'mail.mailers.smtp.host' => '127.0.0.1',
+            'mail.mailers.smtp.port' => 9,
+            'mail.mailers.smtp.timeout' => 1,
+            'mail.mailers.smtp.username' => null,
+            'mail.mailers.smtp.password' => null,
+            'mail.mailers.smtp.encryption' => null,
+        ]);
 
         $response = $this->postStore([
             'send_pwd' => true,
             'email' => 'mail.fail@example.com',
         ]);
 
-        $response->assertRedirect(route('users.edit', User::where('email', 'mail.fail@example.com')->first()));
+        $user = User::where('email', 'mail.fail@example.com')->first();
+        $this->assertNotNull($user);
+        $response->assertRedirect(route('users.edit', $user));
         $response->assertSessionHas('msg');
         $response->assertSessionHas('alert');
-        $this->assertDatabaseHas('users', ['email' => 'mail.fail@example.com']);
     }
 }

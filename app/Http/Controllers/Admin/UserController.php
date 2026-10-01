@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
@@ -46,6 +45,7 @@ use App\Models\UserAddress;
 use App\Models\UserColumnPreference;
 use App\Models\UserCompany;
 use App\Models\UserCostCenter;
+use App\Notifications\SendUserPasswordNotification;
 use App\Models\UserImage;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -686,27 +686,15 @@ class UserController extends Controller{
             Phone::addOrUpdateFor($user, $phones, ['default_region' => 'ES']);
         }
 
-        // Envío de password: no debe tumbar el alta si falla SMTP / from / empresa.
+        // Envío de password: misma config que reset (Notification + mail.from / MAIL_*).
         $passwordMailFailed = false;
         if ($request->boolean('send_pwd') && $request->side != 'crm-accounts' && filled($user->email)) {
             try {
-                $emailFrom = config('constants.EMAIL_') ?: config('mail.from.address');
                 $company = Company::find(session('currentCompany'));
-                $fromName = $company?->name
-                    ?: (config('mail.from.name') ?: config('app.name'));
-                $emailTo = $user->email;
-
-                $data = [
-                    'usuario' => trim($user->name.' '.$user->surname),
-                    'password' => $random_password,
-                    'company' => $company,
-                ];
-
-                Mail::send('emails.send-user-password', $data, function ($message) use ($emailFrom, $fromName, $emailTo) {
-                    $message->from($emailFrom, $fromName);
-                    $message->to($emailTo);
-                    $message->subject(__('contrasena_envio'));
-                });
+                $user->notify(new SendUserPasswordNotification(
+                    $random_password,
+                    $company?->name
+                ));
             } catch (\Throwable $e) {
                 $passwordMailFailed = true;
                 Log::error('users.store: fallo envío password', [
